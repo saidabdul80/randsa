@@ -1,0 +1,276 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function currentUserDoc() {
+      return userDoc(request.auth.uid);
+    }
+
+    function currentUserExists() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return currentUserExists() ? currentUserDoc().data.role : null;
+    }
+
+    function isAdmin() {
+      return currentUserRole() == 'admin';
+    }
+
+    function isPropertyManager() {
+      return ['landlord', 'agent', 'admin'].hasAny([currentUserRole()]);
+    }
+
+    function immutableUserFieldsUnchanged() {
+      return request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function selfVerificationSubmissionTransitionAllowed() {
+      return request.resource.data.role == 'agent'
+        && request.resource.data.isVerifiedAgent == false
+        && request.resource.data.verificationStatus == 'pending'
+        && resource.data.isVerifiedAgent != true
+        && resource.data.verificationStatus != 'approved';
+    }
+
+    function propertyBaseFieldsValid() {
+      return request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerRole == currentUserRole()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.address is string
+        && request.resource.data.address.size() > 0;
+    }
+
+    function propertyStatusUnchanged() {
+      return request.resource.data.status == resource.data.status;
+    }
+
+    function propertyImmutableOwnerFieldsUnchanged() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.ownerRole == resource.data.ownerRole
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function userOwnsProperty() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function userOwnsPayment() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function userOwnsBooking() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function userOwnsSavedRecord() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function userOwnsNotification() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function userOwnsVerification() {
+      return signedIn() && resource.data.agentId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow create: if isSelf(userId)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['tenant', 'landlord', 'agent']
+        && request.resource.data.isVerifiedAgent == false
+        && request.resource.data.verificationStatus == 'not_submitted';
+
+      allow read: if isSelf(userId) || isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          isSelf(userId)
+          && immutableUserFieldsUnchanged()
+          && (
+            (
+              request.resource.data.isVerifiedAgent == resource.data.isVerifiedAgent
+              && request.resource.data.verificationStatus == resource.data.verificationStatus
+            )
+            || selfVerificationSubmissionTransitionAllowed()
+          )
+        );
+
+      allow delete: if isAdmin();
+
+      match /tokens/{tokenId} {
+        allow read: if isSelf(userId) || isAdmin();
+        allow create: if isSelf(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 0
+          && request.resource.data.device is string;
+        allow update: if false;
+        allow delete: if isSelf(userId) || isAdmin();
+      }
+    }
+
+    match /properties/{propertyId} {
+      allow read: if resource.data.status == 'approved'
+        || userOwnsProperty()
+        || isAdmin();
+
+      allow create: if signedIn()
+        && currentUserExists()
+        && isPropertyManager()
+        && propertyBaseFieldsValid()
+        && (
+          (isAdmin() && request.resource.data.status in ['pending', 'approved', 'rejected'])
+          || (!isAdmin() && request.resource.data.status == 'pending')
+        );
+
+      allow update: if isAdmin()
+        || (
+          userOwnsProperty()
+          && propertyImmutableOwnerFieldsUnchanged()
+          && propertyStatusUnchanged()
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /agentVerifications/{verificationId} {
+      allow read: if userOwnsVerification() || isAdmin();
+
+      allow create: if signedIn()
+        && currentUserRole() == 'agent'
+        && request.resource.data.agentId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.adminNote == '';
+
+      allow update: if isAdmin()
+        || (
+          userOwnsVerification()
+          && request.resource.data.agentId == resource.data.agentId
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.adminNote == resource.data.adminNote
+          && request.resource.data.reviewedAt == resource.data.reviewedAt
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if userOwnsPayment() || isAdmin();
+
+      // Clients can create only their own pending payment record.
+      // Verification and status changes should happen in backend code with the Admin SDK.
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.propertyId is string
+        && request.resource.data.propertyId.size() > 0
+        && request.resource.data.agentId is string
+        && request.resource.data.agentId.size() > 0
+        && request.resource.data.payerEmail == request.auth.token.email
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.paystackReference is string
+        && request.resource.data.paystackReference.size() > 0
+        && request.resource.data.paymentType in ['inspection_fee', 'rent_deposit', 'full_rent_payment', 'service_fee']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.verificationMode == 'backend_required'
+        && request.resource.data.verifiedAt == null;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if userOwnsBooking() || isAdmin();
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.reminderSent == false;
+
+      allow update: if isAdmin()
+        || (
+          userOwnsBooking()
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.propertyId == resource.data.propertyId
+          && request.resource.data.agentId == resource.data.agentId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.inspectionDate == resource.data.inspectionDate
+          && request.resource.data.inspectionTime == resource.data.inspectionTime
+          && request.resource.data.paymentStatus == resource.data.paymentStatus
+          && (
+            (
+              request.resource.data.status == resource.data.status
+              && (
+                request.resource.data.reminderSent == resource.data.reminderSent
+                || (
+                  resource.data.reminderSent == false
+                  && request.resource.data.reminderSent == true
+                )
+              )
+            )
+            || (
+              request.resource.data.status == 'cancelled'
+              && request.resource.data.reminderSent == resource.data.reminderSent
+            )
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /savedProperties/{savedId} {
+      allow read: if userOwnsSavedRecord() || isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.propertyId is string;
+      allow update: if false;
+      allow delete: if userOwnsSavedRecord() || isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if userOwnsNotification() || isAdmin();
+
+      // Production expectation: backend writers create notification documents.
+      // Clients may only mark their own record as read.
+      allow create: if isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          userOwnsNotification()
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.type == resource.data.type
+          && request.resource.data.title == resource.data.title
+          && request.resource.data.body == resource.data.body
+          && request.resource.data.channel == resource.data.channel
+          && request.resource.data.relatedPropertyId == resource.data.relatedPropertyId
+          && request.resource.data.relatedBookingId == resource.data.relatedBookingId
+          && request.resource.data.relatedPaymentId == resource.data.relatedPaymentId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.deliveredAt == resource.data.deliveredAt
+          && (
+            request.resource.data.readAt == resource.data.readAt
+            || (resource.data.readAt == null && request.resource.data.readAt != null)
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+  }
+}

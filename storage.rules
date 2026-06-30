@@ -1,0 +1,87 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserExists() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return currentUserExists() ? userDoc().data.role : null;
+    }
+
+    function isAdmin() {
+      return currentUserRole() == 'admin';
+    }
+
+    function isPropertyManager() {
+      return ['landlord', 'agent', 'admin'].hasAny([currentUserRole()]);
+    }
+
+    function isAllowedPropertyImageUpload() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
+    function isAllowedVerificationDocumentUpload() {
+      return request.resource != null
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+        )
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
+    function isAllowedUserFileUpload() {
+      return request.resource != null
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+        )
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
+    function canManageOwnPath(ownerId) {
+      return signedIn() && (request.auth.uid == ownerId || isAdmin());
+    }
+
+    // Assumed future upload path:
+    // properties/{ownerId}/{propertyId}/{fileName}
+    match /properties/{ownerId}/{propertyId}/{fileName} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && isAllowedPropertyImageUpload()
+        && ((request.auth.uid == ownerId && isPropertyManager()) || isAdmin());
+      allow delete: if canManageOwnPath(ownerId);
+    }
+
+    // Assumed future upload path:
+    // agent-verifications/{agentId}/{fileName}
+    match /agent-verifications/{agentId}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == agentId || isAdmin());
+      allow create, update: if signedIn()
+        && isAllowedVerificationDocumentUpload()
+        && (request.auth.uid == agentId || isAdmin());
+      allow delete: if canManageOwnPath(agentId);
+    }
+
+    // Assumed future upload path:
+    // users/{userId}/{fileName}
+    match /users/{userId}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update: if signedIn()
+        && isAllowedUserFileUpload()
+        && (request.auth.uid == userId || isAdmin());
+      allow delete: if signedIn() && (request.auth.uid == userId || isAdmin());
+    }
+  }
+}
