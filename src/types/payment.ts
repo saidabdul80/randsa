@@ -1,10 +1,12 @@
 import type { PropertyRecord } from './property'
+import type { BookingRecord } from './booking'
 
 export type PaymentType =
   | 'inspection_fee'
   | 'rent_deposit'
   | 'full_rent_payment'
   | 'service_fee'
+  | 'booking_payment'
 
 export type PaymentStatus = 'pending' | 'success' | 'failed'
 export type PaymentVerificationMode = 'local_bypass' | 'backend_required' | 'backend_verified'
@@ -13,6 +15,7 @@ export interface PaymentRecord {
   id: string
   userId: string
   propertyId: string
+  bookingId: string | null
   agentId: string
   propertyTitle: string
   payerName: string
@@ -45,6 +48,7 @@ const paymentLabelMap: Record<PaymentType, string> = {
   rent_deposit: 'Rent deposit',
   full_rent_payment: 'Full rent payment',
   service_fee: 'Service fee',
+  booking_payment: 'Booking payment',
 }
 
 const paymentDescriptionMap: Record<PaymentType, string> = {
@@ -54,6 +58,7 @@ const paymentDescriptionMap: Record<PaymentType, string> = {
   full_rent_payment: 'Uses the full rent amount shown on the property listing.',
   service_fee:
     'Uses the agency fee for now as the local placeholder service fee until final Paystack rules are confirmed.',
+  booking_payment: 'Uses the estimated total stored on the selected booking.',
 }
 
 export function formatPaymentTypeLabel(type: PaymentType) {
@@ -72,7 +77,15 @@ export function formatNaira(value: number) {
   }).format(value)
 }
 
-export function getSuggestedPaymentAmount(property: PropertyRecord, type: PaymentType) {
+export function getSuggestedPaymentAmount(
+  property: PropertyRecord,
+  type: PaymentType,
+  booking: BookingRecord | null = null,
+) {
+  if (type === 'booking_payment') {
+    return booking?.estimatedTotal ?? 0
+  }
+
   if (type === 'inspection_fee') {
     return property.inspectionFee
   }
@@ -88,11 +101,16 @@ export function getSuggestedPaymentAmount(property: PropertyRecord, type: Paymen
   return property.rentPrice
 }
 
-export function buildPaymentTypeOptions(property: PropertyRecord): PaymentTypeOption[] {
-  return (Object.keys(paymentLabelMap) as PaymentType[]).map((type) => ({
+export function buildPaymentTypeOptions(
+  property: PropertyRecord,
+  booking: BookingRecord | null = null,
+): PaymentTypeOption[] {
+  return (Object.keys(paymentLabelMap) as PaymentType[])
+    .filter((type) => type !== 'booking_payment' || Boolean(booking?.estimatedTotal))
+    .map((type) => ({
     type,
     label: paymentLabelMap[type],
     description: paymentDescriptionMap[type],
-    amount: getSuggestedPaymentAmount(property, type),
+    amount: getSuggestedPaymentAmount(property, type, booking),
   }))
 }

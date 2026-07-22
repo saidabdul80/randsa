@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   query,
   serverTimestamp,
   setDoc,
@@ -29,10 +30,29 @@ import { deleteStorageObjectByUrl, uploadPropertyImages } from './storageUploads
 import {
   createEmptyPropertyInput,
   MAX_PROPERTY_IMAGES,
+  type PropertyAvailabilityConfig,
   type PropertyFormInput,
   type PropertyRecord,
 } from '../types/property'
 import type { UserProfile } from '../types/user'
+
+const PUBLIC_CAROUSEL_QUERY_LIMIT = 18
+
+export type PublicCarouselProperty = Pick<
+  PropertyRecord,
+  | 'id'
+  | 'title'
+  | 'category'
+  | 'propertyType'
+  | 'rentPrice'
+  | 'paymentDuration'
+  | 'state'
+  | 'city'
+  | 'area'
+  | 'images'
+>
+
+let publicCarouselPropertiesRequest: Promise<PublicCarouselProperty[]> | null = null
 
 function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
@@ -51,6 +71,49 @@ function normalizeTimestampLike(value: unknown) {
   }
 
   return value ? String(value) : null
+}
+
+function normalizeAvailabilityConfig(value: unknown): PropertyAvailabilityConfig {
+  const data = value && typeof value === 'object' ? value as Record<string, unknown> : {}
+  const rawAgents = Array.isArray(data.agents) ? data.agents : []
+
+  return {
+    agents: rawAgents
+      .filter((agent): agent is Record<string, unknown> => Boolean(agent) && typeof agent === 'object')
+      .map((agent) => ({
+        agentId: String(agent.agentId ?? '').trim(),
+        workingDays: Array.isArray(agent.workingDays)
+          ? agent.workingDays.map(Number).filter((day) => day >= 0 && day <= 6)
+          : [],
+        startTime: String(agent.startTime ?? '09:00'),
+        endTime: String(agent.endTime ?? '17:00'),
+        slotIntervalMinutes: Math.max(1, Number(agent.slotIntervalMinutes ?? 30)),
+        inspectionDurationMinutes: Math.max(1, Number(agent.inspectionDurationMinutes ?? 30)),
+        maximumInspectionsPerDay: Math.max(1, Number(agent.maximumInspectionsPerDay ?? 16)),
+        unavailableDates: Array.isArray(agent.unavailableDates)
+          ? agent.unavailableDates.map(String)
+          : [],
+        vacationPeriods: Array.isArray(agent.vacationPeriods)
+          ? agent.vacationPeriods
+              .filter((period): period is Record<string, unknown> => Boolean(period) && typeof period === 'object')
+              .map((period) => ({
+                startDate: String(period.startDate ?? ''),
+                endDate: String(period.endDate ?? ''),
+              }))
+          : [],
+      }))
+      .filter((agent) => agent.agentId && agent.workingDays.length),
+    limitedRemainingCapacity: Math.max(1, Number(data.limitedRemainingCapacity ?? 3)),
+    blockedDates: Array.isArray(data.blockedDates) ? data.blockedDates.map(String) : [],
+    bufferMinutes:
+      data.bufferMinutes === null || data.bufferMinutes === undefined
+        ? null
+        : Math.max(0, Number(data.bufferMinutes)),
+    minimumDurationMinutes:
+      data.minimumDurationMinutes === null || data.minimumDurationMinutes === undefined
+        ? null
+        : Math.max(1, Number(data.minimumDurationMinutes)),
+  }
 }
 
 function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
@@ -93,6 +156,7 @@ function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
     ownerPhone: String(data.ownerPhone ?? ''),
     status: data.status ?? 'pending',
     isAvailable: Boolean(data.isAvailable),
+    availabilityConfig: normalizeAvailabilityConfig(data.availabilityConfig),
     createdAt: normalizeTimestampLike(data.createdAt) ?? '',
     updatedAt: normalizeTimestampLike(data.updatedAt) ?? normalizeTimestampLike(data.createdAt) ?? '',
   } satisfies PropertyRecord
@@ -100,6 +164,21 @@ function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
 
 function sortProperties(properties: PropertyRecord[]) {
   return [...properties].sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+}
+
+function toPublicCarouselProperty(property: PropertyRecord): PublicCarouselProperty {
+  return {
+    id: property.id,
+    title: property.title,
+    category: property.category,
+    propertyType: property.propertyType,
+    rentPrice: property.rentPrice,
+    paymentDuration: property.paymentDuration,
+    state: property.state,
+    city: property.city,
+    area: property.area,
+    images: property.images,
+  }
 }
 
 async function getCurrentUserRole() {
@@ -144,6 +223,27 @@ async function listFirestoreProperties(firestore: Firestore) {
   return sortProperties([...recordMap.values()])
 }
 
+async function listFirestorePublicCarouselProperties(firestore: Firestore) {
+  const snapshot = await getDocs(
+    query(
+      collection(firestore, 'properties'),
+      where('status', '==', 'approved'),
+      limit(PUBLIC_CAROUSEL_QUERY_LIMIT),
+    ),
+  )
+
+  return sortProperties(
+    snapshot.docs
+      .map((propertyDoc) => mapDocToPropertyRecord(propertyDoc.id, propertyDoc.data()))
+      .filter(
+        (property) =>
+          property.status === 'approved' &&
+          property.isAvailable &&
+          property.images.some((image) => image.trim()),
+      ),
+  ).map(toPublicCarouselProperty)
+}
+
 function normalizeMoney(value: number) {
   if (Number.isNaN(value) || value < 0) {
     return 0
@@ -184,6 +284,7 @@ function sanitizeInput(input: PropertyFormInput): PropertyFormInput {
     toilets: safeInput.toilets ?? null,
     amenities: cleanAmenities(safeInput.amenities),
     images: safeInput.images.slice(0, MAX_PROPERTY_IMAGES),
+    availabilityConfig: normalizeAvailabilityConfig(safeInput.availabilityConfig),
   }
 }
 
@@ -241,6 +342,31 @@ export async function listProperties() {
 
   const properties = await getAllStoredProperties()
   return sortProperties(properties)
+}
+
+export function listPublicCarouselProperties() {
+  if (!publicCarouselPropertiesRequest) {
+    publicCarouselPropertiesRequest = (async () => {
+      if (authMode !== 'local') {
+        return listFirestorePublicCarouselProperties(ensureFirestoreReady())
+      }
+
+      const properties = await getAllStoredProperties()
+      return sortProperties(
+        properties.filter(
+          (property) =>
+            property.status === 'approved' &&
+            property.isAvailable &&
+            property.images.some((image) => image.trim()),
+        ),
+      ).slice(0, PUBLIC_CAROUSEL_QUERY_LIMIT).map(toPublicCarouselProperty)
+    })().catch((error) => {
+      publicCarouselPropertiesRequest = null
+      throw error
+    })
+  }
+
+  return publicCarouselPropertiesRequest
 }
 
 export async function getPropertyById(propertyId: string) {
@@ -310,6 +436,7 @@ export async function createProperty(input: PropertyFormInput, owner: UserProfil
     ownerPhone: safeInput.ownerPhone,
     status: owner.role === 'admin' ? 'approved' : 'pending',
     isAvailable: safeInput.isAvailable,
+    availabilityConfig: safeInput.availabilityConfig,
     createdAt: now,
     updatedAt: now,
   }
@@ -353,6 +480,7 @@ export async function createProperty(input: PropertyFormInput, owner: UserProfil
         ownerPhone: record.ownerPhone,
         status: record.status,
         isAvailable: record.isAvailable,
+        availabilityConfig: record.availabilityConfig,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
@@ -441,6 +569,7 @@ export async function updateProperty(propertyId: string, input: PropertyFormInpu
         images: updated.images,
         ownerPhone: updated.ownerPhone,
         isAvailable: updated.isAvailable,
+        availabilityConfig: updated.availabilityConfig,
         updatedAt: serverTimestamp(),
       })
 

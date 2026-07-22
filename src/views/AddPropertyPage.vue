@@ -1,70 +1,244 @@
 <template>
   <AppShell
-    eyebrow="Create"
-    title="Add property"
-    description="Create polished listings with dynamic fields, image uploads, and map-based location pinning."
+    :show-header="false"
+    content-class="min-h-full w-full pb-28 sm:pb-8"
   >
-    <section class="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
-      <div class="glass-panel p-6 sm:p-8">
-        <PropertyForm
-          :initial-value="initialValue"
-          submit-label="Create property"
-          :is-submitting="isSubmitting"
-          @submit="handleCreate"
-          @cancel="handleCancel"
+    <div class="add-listing-page">
+      <div class="add-listing-navigation">
+        <NotificationSidebarNav
+          :can-manage-properties="canManageProperties"
+          aria-label="Add property navigation"
+          :show-mobile="true"
         />
       </div>
 
-      <div class="grid gap-4">
-        <div class="glass-panel p-6">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Access</p>
-          <h2 class="mt-3 text-xl font-bold text-ink dark:text-white">Listing access is role based.</h2>
-          <p class="mt-3 text-sm leading-7 text-mist dark:text-slate-300">
-            Only landlord, agent, and admin accounts can create listings. Tenant accounts stay focused on search, bookings, and saved properties.
-          </p>
-        </div>
-        <div class="glass-panel p-6">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Listing quality</p>
-          <p class="mt-3 text-sm leading-7 text-mist dark:text-slate-300">
-            Add clear photos, precise location details, and complete fees so tenants can compare confidently before booking an inspection.
-          </p>
-        </div>
+      <main class="add-listing-main">
+        <header class="add-listing-toolbar">
+          <RouterLink to="/home" class="add-listing-brand" aria-label="RANDSA home">
+            <span>R</span>
+            <strong>RANDSA</strong>
+          </RouterLink>
+
+          <div class="add-listing-toolbar__actions">
+            <span v-if="draftSavedLabel" class="draft-saved-label">
+              <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" />
+              {{ draftSavedLabel }}
+            </span>
+            <button
+              type="button"
+              class="save-draft-button"
+              :disabled="isSavingDraft || isSubmitting"
+              @click="handleSaveDraft(draftValue, currentStep)"
+            >
+              <IonIcon :icon="documentTextOutline" aria-hidden="true" />
+              {{ isSavingDraft ? 'Saving...' : 'Save draft' }}
+            </button>
+            <span v-if="profileInitials" class="profile-initials" :title="state.profile?.fullName">
+              {{ profileInitials }}
+            </span>
+          </div>
+        </header>
+
+        <section class="add-listing-hero">
+          <div>
+            <p>Smart adaptive listing assistant</p>
+            <h1>{{ pageTitle }}</h1>
+            <span>
+              Create a polished listing in focused steps while keeping every field compatible with RANDSA’s existing property data.
+            </span>
+          </div>
+          <div class="add-listing-hero__image" aria-hidden="true">
+            <img :src="addPropertyHero" alt="">
+          </div>
+        </section>
+
         <div
           v-if="statusMessage"
-          class="rounded-[24px] border px-4 py-4 text-sm"
-          :class="statusTone === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'"
+          class="add-listing-status"
+          :class="statusTone"
+          role="status"
         >
-          {{ statusMessage }}
+          <IonIcon :icon="statusTone === 'error' ? alertCircleOutline : checkmarkCircleOutline" aria-hidden="true" />
+          <span>{{ statusMessage }}</span>
+          <button type="button" title="Dismiss message" aria-label="Dismiss message" @click="statusMessage = ''">
+            <IonIcon :icon="closeOutline" aria-hidden="true" />
+          </button>
         </div>
-      </div>
-    </section>
+
+        <div class="add-listing-workspace">
+          <PropertyWizard
+            :initial-value="initialValue"
+            :initial-step="initialStep"
+            :is-submitting="isSubmitting"
+            @update:value="draftValue = $event"
+            @step-change="currentStep = $event"
+            @save-draft="handleSaveDraft"
+            @submit="handleCreate"
+            @cancel="handleCancel"
+          />
+
+          <aside class="add-listing-aside">
+            <PropertyListingPreview :value="draftValue" />
+
+            <section class="permission-panel">
+              <div class="permission-panel__title">
+                <span><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" /></span>
+                <div>
+                  <p>Access &amp; permissions</p>
+                  <h2>Listing access is role based</h2>
+                </div>
+              </div>
+              <p>Only landlord, agent, and admin accounts can create listings.</p>
+              <ul>
+                <li>
+                  <IonIcon :icon="personOutline" aria-hidden="true" />
+                  <span><strong>Landlord</strong>Create and manage owned properties</span>
+                </li>
+                <li>
+                  <IonIcon :icon="peopleOutline" aria-hidden="true" />
+                  <span><strong>Agent</strong>Create and manage on behalf of owners</span>
+                </li>
+                <li>
+                  <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
+                  <span><strong>Admin</strong>Full listing management</span>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { IonIcon } from '@ionic/vue'
+import {
+  alertCircleOutline,
+  checkmarkCircleOutline,
+  closeOutline,
+  documentTextOutline,
+  peopleOutline,
+  personOutline,
+  shieldCheckmarkOutline,
+} from 'ionicons/icons'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 
+import addPropertyHero from '../assets/randsa-hero-home.png'
 import AppShell from '../components/layout/AppShell.vue'
-import PropertyForm from '../components/property/PropertyForm.vue'
+import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
+import PropertyListingPreview from '../components/property/PropertyListingPreview.vue'
+import PropertyWizard from '../components/property/PropertyWizard.vue'
 import { useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
+import {
+  deletePropertyWizardDraft,
+  loadPropertyWizardDraft,
+  savePropertyWizardDraft,
+} from '../services/propertyDrafts'
 import { createEmptyPropertyInput, type PropertyFormInput } from '../types/property'
 
 const router = useRouter()
-const { state } = useAuth()
+const { state, canManageProperties } = useAuth()
 const { saveNewProperty } = useProperties()
 
+const initialValue = ref<PropertyFormInput>(createEmptyPropertyInput())
+const draftValue = ref<PropertyFormInput>(createEmptyPropertyInput())
+const initialStep = ref(1)
+const currentStep = ref(1)
 const isSubmitting = ref(false)
+const isSavingDraft = ref(false)
 const statusMessage = ref('')
-const statusTone = ref<'error' | 'success'>('error')
+const statusTone = ref<'error' | 'success'>('success')
+const draftSavedAt = ref<Date | null>(null)
+let restoredUserId = ''
 
-const initialValue = computed(() => ({
-  ...createEmptyPropertyInput(),
-  ownerPhone: state.profile?.phone ?? '',
-}))
+const pageTitle = computed(() => {
+  const category = draftValue.value.category
+  const labels = {
+    residential: 'Add a residential property',
+    commercial: 'Add a commercial space',
+    land: 'Add land',
+    vehicle: 'Add a vehicle',
+    event: 'Add an event space',
+    horse: 'Add a horse rental',
+    other: 'Add another rental',
+  }
+  return labels[category]
+})
+
+const profileInitials = computed(() => {
+  const name = state.profile?.fullName.trim() ?? ''
+  if (!name) return ''
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase() ?? '')
+    .join('')
+})
+
+const draftSavedLabel = computed(() => {
+  if (!draftSavedAt.value) return ''
+  return `Draft saved ${draftSavedAt.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+})
+
+watch(
+  () => state.profile,
+  async (profile) => {
+    if (!profile || restoredUserId === profile.uid) return
+    restoredUserId = profile.uid
+
+    const emptyValue = {
+      ...createEmptyPropertyInput(),
+      ownerPhone: profile.phone ?? '',
+    }
+
+    try {
+      const draft = await loadPropertyWizardDraft(profile.uid)
+      const restoredValue = draft?.value ?? emptyValue
+      initialValue.value = restoredValue
+      draftValue.value = restoredValue
+      initialStep.value = draft?.step ?? 1
+      currentStep.value = draft?.step ?? 1
+
+      if (draft) {
+        draftSavedAt.value = new Date(draft.updatedAt)
+        statusTone.value = 'success'
+        statusMessage.value = 'Your saved property draft has been restored on this device.'
+      }
+    } catch (error) {
+      initialValue.value = emptyValue
+      draftValue.value = emptyValue
+      statusTone.value = 'error'
+      statusMessage.value = error instanceof Error ? error.message : 'The saved draft could not be restored.'
+    }
+  },
+  { immediate: true },
+)
+
+async function handleSaveDraft(value: PropertyFormInput, step: number) {
+  statusMessage.value = ''
+
+  if (!state.profile) {
+    statusTone.value = 'error'
+    statusMessage.value = 'You need to be signed in before you can save a property draft.'
+    return
+  }
+
+  isSavingDraft.value = true
+  try {
+    await savePropertyWizardDraft(state.profile.uid, value, step)
+    draftSavedAt.value = new Date()
+    statusTone.value = 'success'
+    statusMessage.value = 'Draft saved on this device. You can continue from this step later.'
+  } catch (error) {
+    statusTone.value = 'error'
+    statusMessage.value = error instanceof Error ? error.message : 'Could not save this property draft.'
+  } finally {
+    isSavingDraft.value = false
+  }
+}
 
 async function handleCreate(value: PropertyFormInput) {
   statusMessage.value = ''
@@ -79,6 +253,11 @@ async function handleCreate(value: PropertyFormInput) {
 
   try {
     const property = await saveNewProperty(value, state.profile)
+    try {
+      await deletePropertyWizardDraft(state.profile.uid)
+    } catch {
+      // A local draft cleanup failure must not undo a successful Firebase property creation.
+    }
     statusTone.value = 'success'
     statusMessage.value = 'Property created successfully. Redirecting to the details page...'
     await router.replace(`/properties/${property.id}`)
@@ -94,3 +273,93 @@ function handleCancel() {
   void router.push('/properties')
 }
 </script>
+
+<style scoped>
+.add-listing-page { min-height: 100%; background: #f5f7fa; color: #102033; }
+.add-listing-navigation { padding: 10px 12px 0; }
+.add-listing-main { min-width: 0; padding: 0 12px 28px; }
+.add-listing-toolbar { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; }
+.add-listing-brand { display: none; align-items: center; gap: 9px; color: #102033; text-decoration: none; }
+.add-listing-brand > span { color: #1769ef; font-size: 31px; font-weight: 950; line-height: 1; }
+.add-listing-brand strong { font-size: 16px; }
+.add-listing-toolbar__actions { display: flex; align-items: center; gap: 9px; margin-left: auto; }
+.draft-saved-label { display: inline-flex; align-items: center; gap: 5px; color: #438064; font-size: 8px; font-weight: 750; }
+.save-draft-button { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; border: 1px solid #dce4ed; border-radius: 10px; background: #fff; padding: 0 13px; color: #243950; font-size: 11px; font-weight: 800; box-shadow: 0 10px 25px -23px rgba(16,32,51,.5); }
+.save-draft-button:disabled { cursor: not-allowed; opacity: .55; }
+.profile-initials { display: grid; width: 36px; height: 36px; place-items: center; border: 3px solid #fff; border-radius: 50%; background: #102033; color: #fff; font-size: 9px; font-weight: 850; box-shadow: 0 0 0 1px #dce4ed; }
+.add-listing-hero { position: relative; display: grid; min-height: 150px; overflow: hidden; border: 1px solid #dfe7f0; border-radius: 18px; background: #edf4ff; }
+.add-listing-hero > div:first-child { position: relative; z-index: 2; align-self: center; padding: 22px; }
+.add-listing-hero p { margin: 0; color: #1769ef; font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.add-listing-hero h1 { max-width: 520px; margin: 9px 0 0; color: #102033; font-size: clamp(24px, 4vw, 35px); font-weight: 900; letter-spacing: 0; line-height: 1.08; }
+.add-listing-hero > div:first-child > span { display: block; max-width: 520px; margin-top: 9px; color: #596f88; font-size: 12px; line-height: 1.65; }
+.add-listing-hero__image { position: absolute; inset: 0; }
+.add-listing-hero__image::after { position: absolute; inset: 0; background: linear-gradient(90deg, #edf4ff 0%, rgba(237,244,255,.97) 44%, rgba(237,244,255,.08) 77%); content: ''; }
+.add-listing-hero__image img { width: 100%; height: 100%; object-fit: cover; object-position: 72% 57%; }
+.add-listing-status { display: flex; align-items: center; gap: 8px; margin-top: 12px; border: 1px solid; border-radius: 11px; padding: 10px 12px; font-size: 9px; line-height: 1.5; }
+.add-listing-status > ion-icon { flex: 0 0 auto; font-size: 17px; }
+.add-listing-status > span { flex: 1; }
+.add-listing-status > button { display: grid; width: 25px; height: 25px; place-items: center; border: 0; border-radius: 50%; background: transparent; color: currentColor; }
+.add-listing-status.success { border-color: #bfe9d4; background: #f0fbf5; color: #087b4c; }
+.add-listing-status.error { border-color: #fecdd3; background: #fff1f2; color: #be123c; }
+.add-listing-workspace { display: grid; min-width: 0; gap: 16px; margin-top: 16px; }
+.add-listing-aside { display: none; }
+.permission-panel { border: 1px solid #e1e8f0; border-radius: 17px; background: #fff; padding: 17px; box-shadow: 0 20px 50px -42px rgba(16,32,51,.45); }
+.permission-panel__title { display: flex; align-items: center; gap: 10px; }
+.permission-panel__title > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: #f1eafe; color: #7c3aed; }
+.permission-panel__title p { margin: 0; color: #7c3aed; font-size: 7px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.permission-panel__title h2 { margin: 3px 0 0; color: #102033; font-size: 12px; }
+.permission-panel > p { margin: 12px 0 0; color: #687a8f; font-size: 8px; line-height: 1.6; }
+.permission-panel ul { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; }
+.permission-panel li { display: flex; align-items: center; gap: 9px; color: #566b82; font-size: 7px; }
+.permission-panel li > ion-icon { width: 17px; flex: 0 0 auto; color: #1769ef; font-size: 17px; }
+.permission-panel li span,
+.permission-panel li strong { display: block; }
+.permission-panel li strong { margin-bottom: 2px; color: #253a51; font-size: 8px; }
+
+@media (max-width: 639px) {
+  .add-listing-navigation { display: none; }
+  .add-listing-main { padding-top: 8px; }
+  .add-listing-toolbar { min-height: 52px; }
+  .add-listing-brand { display: flex; }
+  .draft-saved-label,
+  .profile-initials { display: none; }
+  .save-draft-button { min-height: 34px; padding-inline: 10px; }
+  .add-listing-hero { min-height: 132px; }
+  .add-listing-hero > div:first-child { padding: 17px; }
+  .add-listing-hero h1 { max-width: 280px; font-size: 24px; }
+  .add-listing-hero > div:first-child > span { max-width: 300px; font-size: 8px; }
+  .add-listing-hero__image::after { background: linear-gradient(90deg, #edf4ff 0%, rgba(237,244,255,.94) 68%, rgba(237,244,255,.25)); }
+}
+
+@media (min-width: 640px) {
+  .add-listing-main { padding-inline: 18px; }
+  .add-listing-hero { min-height: 170px; }
+  .add-listing-hero > div:first-child { padding: 28px; }
+  :deep(nav[aria-label="Primary navigation"]) { display: none !important; }
+}
+
+@media (min-width: 1024px) {
+  .add-listing-page { display: grid; grid-template-columns: 205px minmax(0, 1fr); gap: 18px; padding: 14px 18px 26px; }
+  .add-listing-navigation { padding: 0; }
+  .add-listing-main { padding: 0; }
+  .add-listing-toolbar { min-height: 58px; }
+  .add-listing-brand { display: flex; }
+  .add-listing-hero { min-height: 175px; }
+}
+
+@media (min-width: 1280px) {
+  .add-listing-workspace { grid-template-columns: minmax(0, 1fr) 285px; align-items: start; }
+  .add-listing-aside { position: sticky; top: 16px; display: grid; gap: 14px; }
+}
+
+:global(.dark) .add-listing-page { background: #0b1420; color: #f8fafc; }
+:global(.dark) .add-listing-brand,
+:global(.dark) .permission-panel__title h2,
+:global(.dark) .permission-panel li strong { color: #f8fafc; }
+:global(.dark) .save-draft-button,
+:global(.dark) .permission-panel { border-color: #29374a; background: #111c2a; color: #e8eef6; }
+:global(.dark) .add-listing-hero { border-color: #29374a; background: #13243a; }
+:global(.dark) .add-listing-hero h1 { color: #f8fafc; }
+:global(.dark) .add-listing-hero > div:first-child > span { color: #cad5e1; }
+:global(.dark) .add-listing-hero__image::after { background: linear-gradient(90deg, #13243a 0%, rgba(19,36,58,.96) 44%, rgba(19,36,58,.12) 78%); }
+</style>

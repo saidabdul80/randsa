@@ -1,8 +1,24 @@
 import type { UserRole } from './user'
 
 export type PropertyStatus = 'pending' | 'approved' | 'rejected'
-export type PropertyCategory = 'residential' | 'commercial' | 'land'
-export type PaymentDuration = 'monthly' | 'quarterly' | 'biannually' | 'yearly' | 'custom'
+export type PropertyCategory =
+  | 'residential'
+  | 'commercial'
+  | 'land'
+  | 'vehicle'
+  | 'event'
+  | 'horse'
+  | 'other'
+export type PaymentDuration =
+  | 'hourly'
+  | 'daily'
+  | 'per_session'
+  | 'fixed'
+  | 'monthly'
+  | 'quarterly'
+  | 'biannually'
+  | 'yearly'
+  | 'custom'
 export type PropertySortOption = 'newest' | 'lowest-price' | 'highest-price'
 export type PropertyKindFilter = 'all' | 'house' | 'shop'
 export type AvailabilityFilter = 'all' | 'available' | 'unavailable'
@@ -16,8 +32,39 @@ export type PropertyType =
   | 'Flat'
   | 'Duplex'
   | 'Land'
+  | 'Car'
+  | 'Vehicle'
+  | 'Event space'
+  | 'Event centre'
+  | 'Horse rental'
+  | 'Other rental'
 
 export type PropertyImageSource = 'local' | 'remote'
+
+export interface PropertyVacationPeriod {
+  startDate: string
+  endDate: string
+}
+
+export interface PropertyBookingAgentSchedule {
+  agentId: string
+  workingDays: number[]
+  startTime: string
+  endTime: string
+  slotIntervalMinutes: number
+  inspectionDurationMinutes: number
+  maximumInspectionsPerDay: number
+  unavailableDates: string[]
+  vacationPeriods: PropertyVacationPeriod[]
+}
+
+export interface PropertyAvailabilityConfig {
+  agents: PropertyBookingAgentSchedule[]
+  limitedRemainingCapacity: number
+  blockedDates: string[]
+  bufferMinutes: number | null
+  minimumDurationMinutes: number | null
+}
 
 export interface PropertyImageInput {
   id: string
@@ -67,6 +114,7 @@ export interface PropertyRecord {
   ownerPhone: string
   status: PropertyStatus
   isAvailable: boolean
+  availabilityConfig: PropertyAvailabilityConfig
   createdAt: string
   updatedAt: string
 }
@@ -104,6 +152,7 @@ export interface PropertyFormInput {
   images: PropertyImageInput[]
   ownerPhone: string
   isAvailable: boolean
+  availabilityConfig: PropertyAvailabilityConfig
 }
 
 export interface PropertyFilterState {
@@ -163,6 +212,13 @@ export function createEmptyPropertyInput(): PropertyFormInput {
     images: [],
     ownerPhone: '',
     isAvailable: true,
+    availabilityConfig: {
+      agents: [],
+      limitedRemainingCapacity: 3,
+      blockedDates: [],
+      bufferMinutes: null,
+      minimumDurationMinutes: null,
+    },
   }
 }
 
@@ -202,7 +258,7 @@ export function showsResidentialRoomFields(propertyType: PropertyType) {
 }
 
 export function allowsCommercialFieldGroup(propertyType: PropertyType) {
-  return propertyType === 'Shop rent'
+  return propertyType === 'Shop rent' || propertyType === 'Office space'
 }
 
 export function isPropertyManagerRole(role: UserRole | null | undefined) {

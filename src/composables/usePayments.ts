@@ -33,12 +33,13 @@ export function usePayments() {
     property: PropertyRecord,
     paymentType: PaymentType,
     amount: number,
+    bookingId: string | null = null,
   ) {
     isLoading.value = true
     error.value = ''
 
     try {
-      const payment = await createPaymentRecord(user, property, paymentType, amount)
+      const payment = await createPaymentRecord(user, property, paymentType, amount, bookingId)
       await refreshForUser(user.uid)
       return payment
     } catch (caughtError) {

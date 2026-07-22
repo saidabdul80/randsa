@@ -6,16 +6,17 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   Timestamp,
   updateDoc,
   where,
   type DocumentData,
 } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 
-import { authMode, db, firebaseConfigError, isFirebaseConfigured } from '../lib/firebase'
+import { authMode, db, firebaseConfigError, functions, isFirebaseConfigured } from '../lib/firebase'
 import { listPaymentsForUser } from './payments'
-import type { BookingInput, BookingRecord } from '../types/booking'
+import { isInspectionMode, validateUniversalBookingInput } from './bookingModes'
+import type { BookingInput, BookingMode, BookingPricingUnit, BookingRecord } from '../types/booking'
 import type { PaymentRecord } from '../types/payment'
 import type { PropertyRecord } from '../types/property'
 import type { UserProfile } from '../types/user'
@@ -49,7 +50,10 @@ function readBookings() {
   }
 
   try {
-    return JSON.parse(raw) as BookingRecord[]
+    const parsed = JSON.parse(raw) as Array<Partial<BookingRecord> & { id?: string }>
+    return Array.isArray(parsed)
+      ? parsed.map((booking) => mapDocToBookingRecord(String(booking.id ?? ''), booking))
+      : []
   } catch {
     return [] as BookingRecord[]
   }
@@ -75,14 +79,44 @@ function normalizeTimestampLike(value: unknown) {
   return value ? String(value) : null
 }
 
+function normalizeBookingDateTime(date: string, time: string) {
+  if (!date || !time) return ''
+  const value = new Date(`${date}T${time}:00+01:00`)
+  return Number.isNaN(value.getTime()) ? '' : value.toISOString()
+}
+
 function mapDocToBookingRecord(bookingId: string, data: DocumentData) {
+  const inspectionDate = String(data.inspectionDate ?? '')
+  const inspectionTime = String(data.inspectionTime ?? '')
+  const durationMinutes = Math.max(1, Number(data.durationMinutes ?? 30))
+  const startAt = normalizeTimestampLike(data.startAt) ?? normalizeBookingDateTime(inspectionDate, inspectionTime)
+  const fallbackEnd = startAt
+    ? new Date(new Date(startAt).getTime() + durationMinutes * 60_000).toISOString()
+    : ''
+
   return {
     id: bookingId,
     userId: String(data.userId ?? ''),
     propertyId: String(data.propertyId ?? ''),
+    listingId: String(data.listingId ?? data.propertyId ?? ''),
     agentId: String(data.agentId ?? ''),
-    inspectionDate: String(data.inspectionDate ?? ''),
-    inspectionTime: String(data.inspectionTime ?? ''),
+    bookingMode: (data.bookingMode ?? 'property_inspection') as BookingMode,
+    listingCategory: String(data.listingCategory ?? ''),
+    inspectionDate,
+    inspectionTime,
+    startAt,
+    endAt: normalizeTimestampLike(data.endAt) ?? fallbackEnd,
+    durationMinutes,
+    quantity: Math.max(1, Number(data.quantity ?? 1)),
+    pricingUnit: (data.pricingUnit ?? 'per_inspection') as BookingPricingUnit,
+    estimatedTotal:
+      data.estimatedTotal === null || data.estimatedTotal === undefined
+        ? null
+        : Number(data.estimatedTotal),
+    categoryDetails:
+      data.categoryDetails && typeof data.categoryDetails === 'object'
+        ? data.categoryDetails
+        : {},
     status: data.status ?? 'pending',
     paymentStatus: data.paymentStatus ?? 'pending',
     reminderSent: Boolean(data.reminderSent),
@@ -111,12 +145,25 @@ function buildLatestInspectionPaymentMap(payments: PaymentRecord[]) {
   return map
 }
 
+function buildLatestBookingPaymentMap(payments: PaymentRecord[]) {
+  const map = new Map<string, PaymentRecord>()
+  for (const payment of payments) {
+    if (payment.paymentType === 'booking_payment' && payment.bookingId && !map.has(payment.bookingId)) {
+      map.set(payment.bookingId, payment)
+    }
+  }
+  return map
+}
+
 async function applyDerivedPaymentStatuses(bookings: BookingRecord[], userId: string) {
   const payments = await listPaymentsForUser(userId)
   const latestPaymentMap = buildLatestInspectionPaymentMap(payments)
+  const latestBookingPaymentMap = buildLatestBookingPaymentMap(payments)
 
   return bookings.map((booking) => {
-    const latestPayment = latestPaymentMap.get(`${booking.userId}:${booking.propertyId}`)
+    const latestPayment = isInspectionMode(booking.bookingMode)
+      ? latestPaymentMap.get(`${booking.userId}:${booking.propertyId}`)
+      : latestBookingPaymentMap.get(booking.id)
 
     return latestPayment
       ? {
@@ -172,30 +219,32 @@ export async function getBookingById(bookingId: string) {
   return hydratedBooking ?? booking
 }
 
-export function validateBookingInput(input: BookingInput) {
-  if (!input.inspectionDate) {
-    throw new Error('Select an inspection date before saving the booking.')
-  }
-
-  if (!input.inspectionTime) {
-    throw new Error('Select an inspection time before saving the booking.')
-  }
-
-  if (!input.guestPhone.trim()) {
-    throw new Error('Add a phone number for the inspection booking.')
-  }
+export function validateBookingInput(input: BookingInput, property: PropertyRecord) {
+  return validateUniversalBookingInput(input, property)
 }
 
 export async function createBooking(input: BookingInput, user: UserProfile, property: PropertyRecord) {
-  validateBookingInput(input)
+  const selection = validateBookingInput(input, property)
 
-  const bookings =
-    authMode === 'local'
-      ? readBookings()
-      : await listBookingsForUser(user.uid)
+  if (authMode !== 'local') {
+    if (!functions) {
+      throw new Error('Firebase Functions is not configured for secure booking creation.')
+    }
+
+    const callable = httpsCallable<BookingInput & { propertyId: string }, { booking: BookingRecord }>(
+      functions,
+      'createUniversalBooking',
+    )
+    const result = await callable({ ...input, propertyId: property.id })
+    return mapDocToBookingRecord(result.data.booking.id, result.data.booking)
+  }
+
+  const bookings = readBookings()
 
   const hasActiveBooking = bookings.some(
     (booking) =>
+      isInspectionMode(selection.bookingMode) &&
+      isInspectionMode(booking.bookingMode) &&
       booking.userId === user.uid &&
       booking.propertyId === property.id &&
       booking.status !== 'cancelled' &&
@@ -204,8 +253,13 @@ export async function createBooking(input: BookingInput, user: UserProfile, prop
 
   if (hasActiveBooking) {
     throw new Error(
-      'You already have an active inspection booking for this property. Cancel it first if you need a new time.',
+      'You already have an active inspection booking for this listing. Cancel it first if you need a new time.',
     )
+  }
+
+  const { findBookingConflict } = await import('./bookingAvailability')
+  if (findBookingConflict(input, property, bookings)) {
+    throw new Error('This time is no longer available. Please select another option.')
   }
 
   const latestInspectionPayment = (await listPaymentsForUser(user.uid)).find(
@@ -217,36 +271,28 @@ export async function createBooking(input: BookingInput, user: UserProfile, prop
     id: `booking-${crypto.randomUUID()}`,
     userId: user.uid,
     propertyId: property.id,
+    listingId: property.id,
     agentId: property.ownerId,
+    bookingMode: selection.bookingMode,
+    listingCategory: property.propertyType,
     inspectionDate: input.inspectionDate,
     inspectionTime: input.inspectionTime,
+    startAt: selection.startAt,
+    endAt: selection.endAt,
+    durationMinutes: selection.durationMinutes,
+    quantity: selection.quantity,
+    pricingUnit: selection.pricingUnit,
+    estimatedTotal: selection.estimatedTotal,
+    categoryDetails: input.categoryDetails,
     status: 'pending',
-    paymentStatus: latestInspectionPayment?.status ?? 'pending',
+    paymentStatus: isInspectionMode(selection.bookingMode)
+      ? latestInspectionPayment?.status ?? 'pending'
+      : 'pending',
     reminderSent: false,
     guestPhone: input.guestPhone.trim(),
     notes: input.notes.trim(),
     createdAt: now,
     updatedAt: now,
-  }
-
-  if (authMode !== 'local') {
-    const firestore = ensureFirestoreReady()
-    await setDoc(doc(firestore, 'bookings', booking.id), {
-      userId: booking.userId,
-      propertyId: booking.propertyId,
-      agentId: booking.agentId,
-      inspectionDate: booking.inspectionDate,
-      inspectionTime: booking.inspectionTime,
-      status: booking.status,
-      paymentStatus: booking.paymentStatus,
-      reminderSent: booking.reminderSent,
-      guestPhone: booking.guestPhone,
-      notes: booking.notes,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-
-    return (await getBookingById(booking.id)) ?? booking
   }
 
   writeBookings([booking, ...bookings])
@@ -351,9 +397,19 @@ export function buildFirestoreBookingPayload(booking: BookingRecord) {
   return {
     userId: booking.userId,
     propertyId: booking.propertyId,
+    listingId: booking.listingId,
     agentId: booking.agentId,
+    bookingMode: booking.bookingMode,
+    listingCategory: booking.listingCategory,
     inspectionDate: booking.inspectionDate,
     inspectionTime: booking.inspectionTime,
+    startAt: toTimestampOrServerValue(booking.startAt),
+    endAt: toTimestampOrServerValue(booking.endAt),
+    durationMinutes: booking.durationMinutes,
+    quantity: booking.quantity,
+    pricingUnit: booking.pricingUnit,
+    estimatedTotal: booking.estimatedTotal,
+    categoryDetails: booking.categoryDetails,
     status: booking.status,
     paymentStatus: booking.paymentStatus,
     reminderSent: booking.reminderSent,

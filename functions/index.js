@@ -2,6 +2,18 @@ const admin = require('firebase-admin')
 const { HttpsError, onCall } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { defineSecret } = require('firebase-functions/params')
+const {
+  getBookingModeConfig,
+  getAvailabilityConfig,
+  getEligibleAgentSchedules,
+  getBookingRange,
+  isInspectionMode,
+  rangesOverlap,
+  resolveBookingMode,
+  sanitizeCategoryDetails,
+  usesTimeSlotTimeline,
+  validateBookingSelection,
+} = require('./booking-engine')
 
 admin.initializeApp()
 
@@ -23,6 +35,7 @@ function mapPaymentSnapshot(snapshot) {
     id: snapshot.id,
     userId: data.userId || '',
     propertyId: data.propertyId || '',
+    bookingId: data.bookingId || null,
     agentId: data.agentId || '',
     propertyTitle: data.propertyTitle || '',
     payerName: data.payerName || '',
@@ -74,7 +87,26 @@ async function assertPaymentMatchesProperty(payment) {
 
   const property = propertySnapshot.data() || {}
   const paymentType = String(payment.paymentType || '').trim()
-  const expectedAmount = getExpectedPaymentAmount(property, paymentType)
+  let expectedAmount = getExpectedPaymentAmount(property, paymentType)
+  let bookingSnapshot = null
+
+  if (paymentType === 'booking_payment') {
+    const bookingId = String(payment.bookingId || '').trim()
+    if (!bookingId) {
+      throw new HttpsError('failed-precondition', 'Booking payment is missing a booking ID.')
+    }
+
+    bookingSnapshot = await db.collection('bookings').doc(bookingId).get()
+    const booking = bookingSnapshot.data()
+    if (
+      !bookingSnapshot.exists
+      || booking?.userId !== payment.userId
+      || booking?.propertyId !== propertyId
+    ) {
+      throw new HttpsError('failed-precondition', 'Booking payment did not match the selected booking.')
+    }
+    expectedAmount = Number(booking.estimatedTotal || 0)
+  }
   const recordedAmount = Number(payment.amount || 0)
 
   if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
@@ -92,7 +124,88 @@ async function assertPaymentMatchesProperty(payment) {
     throw new HttpsError('failed-precondition', 'Payment agent did not match the property owner.')
   }
 
-  return { property, expectedAmount }
+  return { property, expectedAmount, bookingSnapshot }
+}
+
+function mapBookingSnapshot(snapshot) {
+  const data = snapshot.data() || {}
+  const range = getBookingRange(data)
+
+  return {
+    id: snapshot.id,
+    userId: data.userId || '',
+    propertyId: data.propertyId || data.listingId || '',
+    listingId: data.listingId || data.propertyId || '',
+    agentId: data.agentId || '',
+    bookingMode: data.bookingMode || 'property_inspection',
+    listingCategory: data.listingCategory || '',
+    inspectionDate: data.inspectionDate || '',
+    inspectionTime: data.inspectionTime || '',
+    startAt: range?.startAt.toISOString() || '',
+    endAt: range?.endAt.toISOString() || '',
+    durationMinutes: Number(data.durationMinutes || range?.durationMinutes || 30),
+    quantity: Math.max(1, Number(data.quantity || 1)),
+    pricingUnit: data.pricingUnit || 'per_inspection',
+    estimatedTotal: data.estimatedTotal === null || data.estimatedTotal === undefined
+      ? null
+      : Number(data.estimatedTotal),
+    categoryDetails: data.categoryDetails && typeof data.categoryDetails === 'object'
+      ? data.categoryDetails
+      : {},
+    status: data.status || 'pending',
+    paymentStatus: data.paymentStatus || 'pending',
+    reminderSent: data.reminderSent === true,
+    guestPhone: data.guestPhone || '',
+    notes: data.notes || '',
+    createdAt: normalizeTimestamp(data.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeTimestamp(data.updatedAt) || normalizeTimestamp(data.createdAt) || new Date().toISOString(),
+  }
+}
+
+async function assertPropertyVisibleToUser(propertySnapshot, userId) {
+  if (!propertySnapshot.exists) {
+    throw new HttpsError('not-found', 'The selected listing was not found.')
+  }
+
+  const property = propertySnapshot.data() || {}
+  if (property.status === 'approved' || property.ownerId === userId) return property
+
+  const userSnapshot = await db.collection('users').doc(userId).get()
+  if (userSnapshot.data()?.role === 'admin') return property
+  throw new HttpsError('permission-denied', 'This listing is not available to your account.')
+}
+
+function toHttpsBookingError(error) {
+  if (error instanceof HttpsError) return error
+  const message = error instanceof Error ? error.message : 'The booking request could not be validated.'
+  return new HttpsError('failed-precondition', message)
+}
+
+function buildBookingConfirmationCopy(booking, propertyTitle) {
+  const config = getBookingModeConfig(booking.bookingMode)
+  const formattedStart = new Intl.DateTimeFormat('en-NG', {
+    timeZone: 'Africa/Lagos',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(booking.startAt))
+  return {
+    title: `${config.primaryActionLabel} confirmed`,
+    body: `${propertyTitle} is booked for ${formattedStart}.`,
+  }
+}
+
+async function ensureBookingConfirmationNotification(booking, propertyTitle) {
+  const confirmationCopy = buildBookingConfirmationCopy(booking, propertyTitle || 'Your listing')
+  return createNotificationDocument({
+    userId: booking.userId,
+    type: 'booking_confirmation',
+    title: confirmationCopy.title,
+    body: confirmationCopy.body,
+    channel: await getNotificationChannelForUser(booking.userId),
+    relatedPropertyId: booking.propertyId,
+    relatedBookingId: booking.id,
+    relatedPaymentId: null,
+  })
 }
 
 function sanitizeIdSegment(value) {
@@ -177,11 +290,8 @@ function isBookingEligibleForReminder(data) {
 }
 
 function getTimeUntilInspectionMs(data) {
-  if (!data?.inspectionDate || !data?.inspectionTime) {
-    return Number.POSITIVE_INFINITY
-  }
-
-  return new Date(`${data.inspectionDate}T${data.inspectionTime}`).getTime() - Date.now()
+  const range = getBookingRange(data)
+  return range ? range.startAt.getTime() - Date.now() : Number.POSITIVE_INFINITY
 }
 
 async function processInspectionReminderSnapshots(bookingSnapshots) {
@@ -200,7 +310,9 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
       continue
     }
 
-    let propertyTitle = 'your property inspection'
+    const bookingMode = data.bookingMode || 'property_inspection'
+    const modeConfig = getBookingModeConfig(bookingMode)
+    let propertyTitle = 'your booking'
 
     if (data.propertyId) {
       const propertySnapshot = await db.collection('properties').doc(String(data.propertyId)).get()
@@ -211,8 +323,8 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
     const notification = await createNotificationDocument({
       userId: String(data.userId || ''),
       type: 'inspection_reminder',
-      title: 'Inspection reminder',
-      body: `Your visit for ${propertyTitle} is within the next 24 hours.`,
+      title: modeConfig.reminderTitle,
+      body: `${modeConfig.reminderLead} for ${propertyTitle} begins within the next 24 hours.`,
       channel,
       relatedPropertyId: data.propertyId ? String(data.propertyId) : null,
       relatedBookingId: bookingSnapshot.id,
@@ -229,6 +341,234 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
 
   return created
 }
+
+exports.getBookingAvailability = onCall({ invoker: 'public' }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'Sign in before checking booking availability.')
+  }
+
+  const propertyId = String(request.data?.propertyId || '').trim()
+  if (!propertyId) {
+    throw new HttpsError('invalid-argument', 'A listing ID is required.')
+  }
+
+  const propertySnapshot = await db.collection('properties').doc(propertyId).get()
+  await assertPropertyVisibleToUser(propertySnapshot, request.auth.uid)
+
+  const snapshot = await db.collection('bookings').where('propertyId', '==', propertyId).limit(500).get()
+  const bookings = snapshot.docs
+    .filter((document) => {
+      const status = document.data()?.status
+      return status !== 'cancelled' && status !== 'completed'
+    })
+    .map((document) => {
+      const booking = mapBookingSnapshot(document)
+      return {
+        id: booking.id,
+        propertyId: booking.propertyId,
+        agentId: booking.agentId,
+        status: booking.status,
+        bookingMode: booking.bookingMode,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        inspectionDate: booking.inspectionDate,
+        inspectionTime: booking.inspectionTime,
+        durationMinutes: booking.durationMinutes,
+      }
+    })
+
+  return { bookings }
+})
+
+exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'Sign in before creating a booking.')
+  }
+
+  const input = request.data || {}
+  const propertyId = String(input.propertyId || '').trim()
+  const requestId = String(input.requestId || '').trim()
+  if (!propertyId || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId)) {
+    throw new HttpsError('invalid-argument', 'A listing ID and valid request ID are required.')
+  }
+
+  const bookingRef = db.collection('bookings').doc(`booking-${requestId}`)
+  const existingBookingSnapshot = await bookingRef.get()
+  if (existingBookingSnapshot.exists) {
+    const existingBooking = mapBookingSnapshot(existingBookingSnapshot)
+    if (existingBooking.userId !== request.auth.uid || existingBooking.propertyId !== propertyId) {
+      throw new HttpsError('permission-denied', 'This booking request ID is already in use.')
+    }
+    const existingPropertySnapshot = await db.collection('properties').doc(propertyId).get()
+    await ensureBookingConfirmationNotification(
+      existingBooking,
+      existingPropertySnapshot.data()?.title || 'Your listing',
+    )
+    return { booking: existingBooking }
+  }
+
+  const propertyRef = db.collection('properties').doc(propertyId)
+  const initialPropertySnapshot = await propertyRef.get()
+  const initialProperty = await assertPropertyVisibleToUser(initialPropertySnapshot, request.auth.uid)
+  const requestingUserSnapshot = await db.collection('users').doc(request.auth.uid).get()
+  const requestingUserIsAdmin = requestingUserSnapshot.data()?.role === 'admin'
+  let initialSelection
+  try {
+    initialSelection = validateBookingSelection(input, initialProperty)
+  } catch (error) {
+    throw toHttpsBookingError(error)
+  }
+
+  const paymentSnapshot = await db
+    .collection('payments')
+    .where('userId', '==', request.auth.uid)
+    .where('propertyId', '==', propertyId)
+    .get()
+  const latestInspectionPayment = paymentSnapshot.docs
+    .map((document) => document.data())
+    .filter((payment) => payment.paymentType === 'inspection_fee')
+    .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0))[0]
+  const initialPaymentStatus = isInspectionMode(initialSelection.bookingMode)
+    ? latestInspectionPayment?.status || 'pending'
+    : 'pending'
+
+  let createdSnapshot
+  try {
+    await db.runTransaction(async (transaction) => {
+      const existingSnapshot = await transaction.get(bookingRef)
+      if (existingSnapshot.exists) {
+        if (existingSnapshot.data()?.userId !== request.auth.uid) {
+          throw new HttpsError('permission-denied', 'This booking request ID is already in use.')
+        }
+        return
+      }
+
+      const propertySnapshot = await transaction.get(propertyRef)
+      const property = propertySnapshot.data()
+      if (!propertySnapshot.exists || !property) {
+        throw new HttpsError('not-found', 'The selected listing was not found.')
+      }
+      if (
+        property.status !== 'approved'
+        && property.ownerId !== request.auth.uid
+        && !requestingUserIsAdmin
+      ) {
+        throw new HttpsError('permission-denied', 'This listing is not available to your account.')
+      }
+
+      const selection = validateBookingSelection(input, property)
+      const availabilityConfig = getAvailabilityConfig(property, selection.bookingMode)
+      const bookingsQuery = db.collection('bookings').where('propertyId', '==', propertyId)
+      const bookingsSnapshot = await transaction.get(bookingsQuery)
+      const activeBookingDocs = bookingsSnapshot.docs.filter((document) => {
+        const status = document.data()?.status
+        return status !== 'cancelled' && status !== 'completed'
+      })
+
+      for (const document of activeBookingDocs) {
+        const data = document.data() || {}
+        if (
+          isInspectionMode(selection.bookingMode)
+          && data.userId === request.auth.uid
+          && isInspectionMode(data.bookingMode || 'property_inspection')
+        ) {
+          throw new HttpsError(
+            'already-exists',
+            'You already have an active inspection booking for this listing. Cancel it first if you need a new time.',
+          )
+        }
+      }
+
+      let assignedAgentId = String(property.ownerId || '')
+      if (usesTimeSlotTimeline(selection.bookingMode)) {
+        const eligibleAgents = getEligibleAgentSchedules(property, selection, input)
+        const availableAgent = eligibleAgents.find((agent) => {
+          const agentBookings = activeBookingDocs.filter(
+            (document) => String(document.data()?.agentId || property.ownerId || '') === agent.agentId,
+          )
+          const bookingsOnDate = agentBookings.filter(
+            (document) => document.data()?.inspectionDate === input.inspectionDate,
+          )
+          if (bookingsOnDate.length >= agent.maximumInspectionsPerDay) return false
+
+          return !agentBookings.some((document) => {
+            const existingRange = getBookingRange(document.data())
+            return existingRange && rangesOverlap(
+              selection.startAt,
+              selection.endAt,
+              existingRange.startAt,
+              existingRange.endAt,
+              availabilityConfig.bufferMinutes,
+            )
+          })
+        })
+
+        if (!availableAgent) {
+          throw new HttpsError(
+            'already-exists',
+            'This time is no longer available. Please select another option.',
+          )
+        }
+        assignedAgentId = availableAgent.agentId
+      } else {
+        for (const document of activeBookingDocs) {
+          const existingRange = getBookingRange(document.data())
+          if (
+            existingRange
+            && rangesOverlap(
+              selection.startAt,
+              selection.endAt,
+              existingRange.startAt,
+              existingRange.endAt,
+              availabilityConfig.bufferMinutes,
+            )
+          ) {
+            throw new HttpsError(
+              'already-exists',
+              'This time is no longer available. Please select another option.',
+            )
+          }
+        }
+      }
+
+      transaction.set(bookingRef, {
+        userId: request.auth.uid,
+        propertyId,
+        listingId: propertyId,
+        agentId: assignedAgentId,
+        bookingMode: selection.bookingMode,
+        listingCategory: String(property.propertyType || property.category || ''),
+        inspectionDate: String(input.inspectionDate || ''),
+        inspectionTime: String(input.inspectionTime || ''),
+        startAt: admin.firestore.Timestamp.fromDate(selection.startAt),
+        endAt: admin.firestore.Timestamp.fromDate(selection.endAt),
+        durationMinutes: selection.durationMinutes,
+        quantity: selection.quantity,
+        pricingUnit: selection.pricingUnit,
+        estimatedTotal: selection.estimatedTotal,
+        categoryDetails: sanitizeCategoryDetails(input.categoryDetails),
+        status: 'pending',
+        paymentStatus: initialPaymentStatus,
+        reminderSent: false,
+        guestPhone: String(input.guestPhone || '').trim().slice(0, 40),
+        notes: String(input.notes || '').trim().slice(0, 2000),
+        requestId,
+        schemaVersion: 2,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    })
+
+    createdSnapshot = await bookingRef.get()
+  } catch (error) {
+    throw toHttpsBookingError(error)
+  }
+
+  const booking = mapBookingSnapshot(createdSnapshot)
+  await ensureBookingConfirmationNotification(booking, initialProperty.title || 'Your listing')
+
+  return { booking }
+})
 
 async function sendBrowserNotification(userId, notification) {
   const tokensSnapshot = await db.collection('users').doc(userId).collection('tokens').get()
@@ -320,7 +660,7 @@ exports.verifyPaystackPayment = onCall(
       }
     }
 
-    const { expectedAmount } = await assertPaymentMatchesProperty(payment)
+    const { expectedAmount, bookingSnapshot } = await assertPaymentMatchesProperty(payment)
 
     const secret = paystackSecretKey.value()
 
@@ -401,6 +741,13 @@ exports.verifyPaystackPayment = onCall(
       gatewayCustomerEmail: gatewayCustomerEmail || null,
       gatewayVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
     })
+
+    if (gatewayStatus === 'success' && bookingSnapshot?.exists) {
+      await bookingSnapshot.ref.update({
+        paymentStatus: 'success',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    }
 
     const updatedSnapshot = await paymentRef.get()
 

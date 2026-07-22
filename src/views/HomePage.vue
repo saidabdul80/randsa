@@ -1,58 +1,262 @@
 <template>
   <AppShell
     :show-header="false"
-    content-class="min-h-full w-full bg-white pb-28 text-ink dark:bg-slate-950 dark:text-white"
+    :show-bottom-nav="false"
+    content-class="min-h-full w-full bg-white text-ink dark:bg-slate-950 dark:text-white"
   >
-    <section class="relative min-h-[640px] overflow-hidden bg-ink text-white sm:min-h-[700px]">
-      <img
-        :src="homeHeroImage"
-        alt="Modern rental home at dusk"
-        class="absolute inset-0 h-full w-full object-cover"
-      >
-      <div class="absolute inset-0 bg-gradient-to-r from-slate-950/82 via-slate-950/38 to-slate-950/16" />
-      <div class="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/54 to-transparent" />
-
-      <div class="relative mx-auto flex min-h-[640px] w-full max-w-7xl flex-col px-5 py-7 sm:min-h-[700px] sm:px-8 lg:px-12">
-        <header class="flex items-center justify-between gap-4">
-          <RouterLink to="/home" class="text-2xl font-extrabold tracking-normal text-white">
-            RANDSA
-          </RouterLink>
-          <nav class="hidden items-center gap-8 text-sm font-semibold text-white/86 md:flex">
+    <header
+      class="fixed inset-x-0 top-0 z-40 transition duration-300"
+      :class="headerSurfaceClass"
+    >
+      <div class="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
+        <RouterLink
+          to="/home"
+          class="text-2xl font-extrabold tracking-normal transition"
+          :class="headerForegroundClass"
+          @click="handleNavigationClick('/home', $event)"
+        >
+          RANDSA
+        </RouterLink>
+        <nav
+          class="hidden min-w-0 items-center text-sm font-semibold md:flex"
+          :class="isHeaderSearchOpen
+            ? 'relative flex-1 justify-center'
+            : 'absolute left-1/2 -translate-x-1/2 justify-center'"
+          aria-label="Home navigation"
+          @keydown.esc="closeHeaderSearch"
+        >
+          <div v-if="!isHeaderSearchOpen" class="flex items-center gap-5 lg:gap-7">
             <RouterLink
               v-for="link in desktopLinks"
               :key="link.to"
               :to="link.to"
-              class="transition hover:text-white"
+              class="relative inline-flex items-center gap-1.5 py-2 transition duration-200 after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-0.5 after:w-0 after:rounded-full after:bg-current after:transition-all after:duration-200 hover:-translate-y-0.5 hover:after:w-full"
+              :class="navigationLinkClass"
+              @click="handleNavigationClick(link.to, $event)"
             >
+              <IonIcon v-if="link.icon" :icon="link.icon" class="text-lg" aria-hidden="true" />
               {{ link.label }}
             </RouterLink>
-          </nav>
+            <button
+              v-if="showHeaderSearch"
+              type="button"
+              class="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              :class="headerSearchButtonClass"
+              title="Explore properties"
+              aria-label="Explore properties"
+              @click="openHeaderSearch"
+            >
+              <IonIcon :icon="searchOutline" class="text-lg" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div v-else class="relative flex min-w-0 flex-1 items-center justify-center px-12">
+            <div class="flex w-full max-w-[878px] min-w-0 items-center">
+              <div class="relative mr-[22px] shrink-0">
+                <button
+                  type="button"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  :class="headerSearchButtonClass"
+                  title="Open navigation"
+                  aria-label="Open navigation"
+                  :aria-expanded="isHeaderMenuOpen"
+                  @click="toggleHeaderMenu"
+                >
+                  <IonIcon :icon="menuOutline" class="text-xl" aria-hidden="true" />
+                </button>
+                <div
+                  v-if="isHeaderMenuOpen"
+                  class="absolute left-0 top-12 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-2 text-slate-800 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  @mouseenter="cancelHeaderMenuClose"
+                  @mouseleave="scheduleHeaderMenuClose"
+                  @focusin="cancelHeaderMenuClose"
+                  @focusout="scheduleHeaderMenuClose"
+                >
+                  <RouterLink
+                    v-for="link in desktopLinks"
+                    :key="`menu-${link.to}`"
+                    :to="link.to"
+                    class="flex items-center gap-2 px-4 py-2.5 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                    @click="handleNavigationClick(link.to, $event)"
+                  >
+                    <IonIcon v-if="link.icon" :icon="link.icon" class="text-lg text-brand-600" aria-hidden="true" />
+                    {{ link.label }}
+                  </RouterLink>
+                </div>
+              </div>
+
+              <form
+                class="flex h-10 w-full max-w-3xl min-w-0 items-center overflow-hidden rounded-full bg-white p-1 text-slate-800 shadow-sm ring-1 ring-slate-200"
+                role="search"
+                @submit.prevent="submitHeaderSearch"
+              >
+              <label class="flex h-full min-w-0 flex-[1.1] items-center px-2 lg:px-3">
+                <IonIcon :icon="locationOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
+                <input
+                  ref="headerSearchInputRef"
+                  v-model="search.city"
+                  type="search"
+                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none placeholder:text-slate-400 lg:text-sm"
+                  placeholder="City or street"
+                  aria-label="City or street"
+                >
+              </label>
+
+              <label class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3">
+                <IonIcon :icon="homeOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
+                <select
+                  v-model="search.type"
+                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
+                  aria-label="Type of rent"
+                >
+                  <option value="">Type of rent</option>
+                  <option v-for="type in propertyTypes" :key="`header-${type}`" :value="type">{{ type }}</option>
+                </select>
+              </label>
+
+              <label class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3">
+                <IonIcon :icon="cashOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
+                <select
+                  v-model="search.price"
+                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
+                  aria-label="Price"
+                >
+                  <option value="">Price</option>
+                  <option value="budget">Budget: NGN 5,000 - NGN 250,000</option>
+                  <option value="mid">Mid range: NGN 250,000 - NGN 1M</option>
+                  <option value="premium">Premium: NGN 1M and above</option>
+                </select>
+              </label>
+
+              <button
+                type="submit"
+                class="flex h-8 shrink-0 items-center justify-center rounded-full bg-ink px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:px-4"
+              >
+                Explore
+              </button>
+              </form>
+
+              <button
+                type="button"
+                class="ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                :class="headerSearchButtonClass"
+                title="Close Explore"
+                aria-label="Close Explore"
+                @click="closeHeaderSearch"
+              >
+                <IonIcon :icon="closeOutline" class="text-xl" aria-hidden="true" />
+              </button>
+            </div>
+
+          </div>
+        </nav>
+        <div class="flex items-center gap-2">
           <RouterLink
-            :to="isAuthenticated ? '/properties' : '/register'"
-            class="inline-flex h-12 items-center justify-center rounded-full bg-slate-950/82 px-7 text-sm font-bold text-white shadow-xl shadow-slate-950/20 ring-1 ring-white/12 transition hover:bg-slate-900"
+            to="/add-property"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden"
+            :class="isHeaderSolid || heroUsesDarkNavigation
+              ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200'
+              : 'bg-white text-brand-700'"
+            title="Add property"
+            aria-label="Add property"
+          >
+            <IonIcon :icon="addCircleOutline" class="text-2xl" aria-hidden="true" />
+          </RouterLink>
+          <RouterLink
+            :to="isAuthenticated ? '/home#listings' : '/register'"
+            class="inline-flex h-9 items-center justify-center rounded-full bg-red-600 px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 sm:px-4"
+            @click="isAuthenticated && handleNavigationClick('/home#listings', $event)"
           >
             Try Now
           </RouterLink>
-        </header>
+        </div>
+      </div>
+    </header>
 
-        <div class="flex flex-1 flex-col justify-center pb-16 pt-14 sm:pt-20">
+    <section
+      ref="heroRef"
+      class="relative min-h-[640px] overflow-hidden bg-ink text-white sm:min-h-[700px]"
+      aria-roledescription="carousel"
+      aria-label="RANDSA rental categories"
+    >
+      <img
+        v-for="(slide, index) in heroSlides"
+        :key="slide.title"
+        :src="slide.image"
+        :alt="slide.alt"
+        class="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+        :class="activeSlideIndex === index ? 'opacity-100' : 'opacity-0'"
+      >
+      <div
+        class="absolute inset-x-0 bottom-0 bg-gradient-to-r transition-colors duration-500"
+        :class="heroUsesDarkNavigation
+          ? 'top-20 from-slate-950/68 via-slate-950/24 to-transparent'
+          : 'top-0 from-slate-950/82 via-slate-950/38 to-slate-950/16'"
+      />
+      <div class="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/54 to-transparent" />
+
+      <div class="relative mx-auto flex min-h-[640px] w-full max-w-7xl flex-col px-5 pb-7 pt-24 sm:min-h-[700px] sm:px-8 lg:px-12">
+        <div class="flex flex-1 flex-col justify-center pb-10 pt-8 sm:pt-14">
           <div class="max-w-3xl">
-            <p class="mb-4 inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/82 ring-1 ring-white/18 backdrop-blur">
-              Rental marketplace
+            <p
+              class="mb-4 inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] ring-1 backdrop-blur-md"
+              :class="heroUsesDarkNavigation
+                ? 'bg-slate-950/48 text-slate-950 ring-white/30'
+                : 'bg-white/12 text-white ring-white/18'"
+            >
+              {{ activeSlide.eyebrow }}
             </p>
             <h1 class="max-w-3xl font-display text-5xl font-bold leading-[1.06] tracking-normal text-white sm:text-6xl lg:text-7xl">
-              Finding Your New Home Is Simple
+              {{ activeSlide.title }}
             </h1>
             <p class="mt-6 max-w-2xl text-lg font-medium leading-8 text-white/86 sm:text-xl">
-              High-quality rental listings with search, inspection booking, payments, and reminders in one polished flow.
+              {{ activeSlide.description }}
             </p>
           </div>
 
+          <div class="mt-6 flex flex-wrap items-center gap-2" aria-label="Hero slide controls">
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Previous slide"
+              @click="showPreviousSlide"
+            >
+              <IonIcon :icon="chevronBackOutline" aria-hidden="true" />
+            </button>
+            <button
+              v-for="(slide, index) in heroSlides"
+              :key="`${slide.title}-control`"
+              type="button"
+              class="h-2.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+              :class="activeSlideIndex === index ? 'w-8 bg-white' : 'w-2.5 bg-white/45 hover:bg-white/70'"
+              :aria-label="`Show slide ${index + 1}: ${slide.eyebrow}`"
+              :aria-current="activeSlideIndex === index ? 'true' : undefined"
+              @click="showSlide(index)"
+            />
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              :aria-label="isCarouselPaused ? 'Play slideshow' : 'Pause slideshow'"
+              @click="toggleCarousel"
+            >
+              <IonIcon :icon="isCarouselPaused ? playOutline : pauseOutline" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-white/14 text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-white/24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label="Next slide"
+              @click="showNextSlide"
+            >
+              <IonIcon :icon="chevronForwardOutline" aria-hidden="true" />
+            </button>
+          </div>
+
           <form
-            class="mt-10 grid w-full max-w-6xl gap-2 rounded-[28px] bg-white p-3 shadow-2xl shadow-slate-950/24 sm:grid-cols-[1.1fr_1fr_0.85fr_auto] sm:items-center sm:rounded-full"
+            ref="searchFormRef"
+            class="mx-auto mt-5 grid w-full max-w-4xl gap-1 overflow-hidden rounded-[22px] bg-white p-2 shadow-xl shadow-slate-950/20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto] sm:items-center sm:rounded-full"
             @submit.prevent="submitSearch"
           >
-            <label class="flex min-h-14 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full">
+            <label class="flex min-h-11 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full">
               <ion-icon :icon="locationOutline" class="text-xl text-slate-400" />
               <input
                 v-model="search.city"
@@ -61,7 +265,7 @@
                 placeholder="City or street"
               >
             </label>
-            <label class="flex min-h-14 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
+            <label class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
               <ion-icon :icon="homeOutline" class="text-xl text-slate-400" />
               <select
                 v-model="search.type"
@@ -71,122 +275,211 @@
                 <option v-for="type in propertyTypes" :key="type" :value="type">{{ type }}</option>
               </select>
             </label>
-            <label class="flex min-h-14 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
+            <label class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
               <ion-icon :icon="cashOutline" class="text-xl text-slate-400" />
               <select
                 v-model="search.price"
                 class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none sm:text-base"
               >
                 <option value="">Price</option>
-                <option value="budget">Budget</option>
-                <option value="mid">Mid range</option>
-                <option value="premium">Premium</option>
+                <option value="budget">Budget: NGN 5,000 - NGN 250,000</option>
+                <option value="mid">Mid range: NGN 250,000 - NGN 1M</option>
+                <option value="premium">Premium: NGN 1M and above</option>
               </select>
             </label>
             <button
               type="submit"
-              class="inline-flex min-h-14 items-center justify-center rounded-full bg-ink px-8 text-sm font-bold text-white transition hover:bg-slate-800 sm:min-w-32"
+              class="inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 text-sm font-bold text-white transition hover:bg-slate-800 sm:min-w-24"
             >
-              Search
+              Explore
             </button>
           </form>
         </div>
       </div>
     </section>
 
-    <section class="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
+    <section
+      id="listings"
+      ref="listingsRef"
+      class="mx-auto w-full max-w-[1720px] scroll-mt-20 px-4 pb-12 pt-6 sm:px-8 lg:px-12 lg:pb-16 lg:pt-8"
+    >
       <div class="flex items-end justify-between gap-4">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">RANDSA picks</p>
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">RANDSA listings</p>
           <h2 class="mt-2 text-3xl font-extrabold tracking-normal text-ink dark:text-white sm:text-4xl">
-            Most Viewed
+            Property Listings
           </h2>
         </div>
-        <RouterLink to="/properties" class="hidden text-sm font-bold text-brand-700 sm:inline-flex">
-          See all listings
-        </RouterLink>
+        <p class="hidden text-sm font-bold text-brand-700 sm:block">
+          {{ homepageProperties.length }} listings
+        </p>
       </div>
 
-      <div class="mt-8 grid gap-6 md:grid-cols-3">
-        <article
-          v-for="property in featuredProperties"
-          :key="property.title"
-          class="overflow-hidden rounded-[12px] border border-slate-100 bg-white shadow-[0_18px_45px_-34px_rgba(16,32,51,0.55)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_-34px_rgba(16,32,51,0.65)] dark:border-slate-800 dark:bg-slate-900"
+      <p
+        v-if="listingActionMessage"
+        role="status"
+        class="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+      >
+        {{ listingActionMessage }}
+      </p>
+
+      <AdaptiveMarketplaceGrid
+        v-if="displayedHomepageProperties.length"
+        class="mt-6"
+        :listings="displayedHomepageProperties"
+        :saved-property-ids="savedPropertyIds"
+        :is-saving="isSavedActionLoading"
+        @toggle-saved="handleToggleSavedProperty"
+      />
+      <div v-else class="mt-8 border-y border-slate-200 py-12 text-center dark:border-slate-800">
+        <h3 class="text-lg font-bold text-ink dark:text-white">No matching listings</h3>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">Clear the current filters to see all properties.</p>
+        <button
+          type="button"
+          class="mt-5 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800"
+          @click="clearListingSearch"
         >
-          <div class="aspect-[1.04] overflow-hidden bg-slate-100 dark:bg-slate-800">
-            <img
-              :src="homeHeroImage"
-              :alt="property.title"
-              class="h-full w-full object-cover transition duration-500 hover:scale-105"
-            >
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-extrabold tracking-normal text-ink dark:text-white">{{ property.title }}</h3>
-            <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-300">{{ property.location }}</p>
-            <div class="mt-4 flex items-center gap-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              <span class="inline-flex items-center gap-1.5">
-                <ion-icon :icon="bedOutline" />
-                {{ property.beds }}
-              </span>
-              <span class="inline-flex items-center gap-1.5">
-                <ion-icon :icon="carOutline" />
-                {{ property.parking }}
-              </span>
-              <span class="inline-flex items-center gap-1.5">
-                <ion-icon :icon="resizeOutline" />
-                {{ property.baths }}
-              </span>
-            </div>
-            <div class="mt-5 flex items-end justify-between gap-4">
-              <p class="text-xl font-extrabold text-ink dark:text-white">
-                {{ property.price }}
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-300">/ year</span>
-              </p>
-              <RouterLink
-                to="/properties"
-                class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-ink transition hover:bg-ink hover:text-white dark:bg-slate-800 dark:text-white"
-                :aria-label="`View ${property.title}`"
-              >
-                <ion-icon :icon="arrowForwardOutline" />
-              </RouterLink>
-            </div>
-          </div>
-        </article>
+          Clear filters
+        </button>
       </div>
     </section>
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { IonIcon } from '@ionic/vue'
 import {
-  arrowForwardOutline,
-  bedOutline,
-  carOutline,
+  addCircleOutline,
   cashOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
+  closeOutline,
   homeOutline,
   locationOutline,
-  resizeOutline,
+  menuOutline,
+  pauseOutline,
+  playOutline,
+  searchOutline,
 } from 'ionicons/icons'
 
 import AppShell from '../components/layout/AppShell.vue'
+import AdaptiveMarketplaceGrid from '../components/property/AdaptiveMarketplaceGrid.vue'
+import heroCarImage from '../assets/randsa-hero-car.png'
+import heroEventImage from '../assets/randsa-hero-event.png'
 import homeHeroImage from '../assets/randsa-hero-home.png'
-import { useAuth } from '../composables/useAuth'
+import heroHorsesImage from '../assets/randsa-hero-horses.png'
+import { ensureAuthReady, useAuth } from '../composables/useAuth'
+import { useProperties } from '../composables/useProperties'
+import { useSavedProperties } from '../composables/useSavedProperties'
+import type { PropertyRecord } from '../types/property'
 
 const router = useRouter()
-const { isAuthenticated } = useAuth()
+const { isAuthenticated, state } = useAuth()
+const { properties, refresh: refreshProperties } = useProperties()
+const {
+  isLoading: isSavedActionLoading,
+  savedRecords,
+  refresh: refreshSavedProperties,
+  toggleSavedProperty,
+} = useSavedProperties()
+const heroRef = ref<HTMLElement | null>(null)
+const searchFormRef = ref<HTMLFormElement | null>(null)
+const listingsRef = ref<HTMLElement | null>(null)
+const headerSearchInputRef = ref<HTMLInputElement | null>(null)
+const activeSlideIndex = ref(0)
+const isCarouselPaused = ref(false)
+const isHeaderSolid = ref(false)
+const isScrollingWithinHero = ref(false)
+const showHeaderSearch = ref(false)
+const isHeaderSearchOpen = ref(false)
+const isHeaderSearchRequested = ref(false)
+const isHeaderMenuOpen = ref(false)
+const listingActionMessage = ref('')
+
+const heroSlides = [
+  {
+    eyebrow: 'Home rentals',
+    title: 'Finding Your New Home Is Simple',
+    description: 'High-quality rental listings with search, inspection booking, payments, and reminders in one polished flow.',
+    image: homeHeroImage,
+    alt: 'Modern rental home glowing at dusk',
+    navigationText: 'light',
+  },
+  {
+    eyebrow: 'Car rentals',
+    title: 'Your Next Ride Is Ready',
+    description: 'Rent a standout car for everyday movement, weekend plans, and special arrivals.',
+    image: heroCarImage,
+    alt: 'Luxury blue car on a modern driveway at dusk',
+    navigationText: 'light',
+  },
+  {
+    eyebrow: 'Event rentals',
+    title: 'A Setting Worth Celebrating',
+    description: 'Rent an elegant event setting for celebrations, receptions, and memorable gatherings.',
+    image: heroEventImage,
+    alt: 'Elegant outdoor event marquee prepared for a celebration',
+    navigationText: 'light',
+  },
+  {
+    eyebrow: 'Equestrian rentals',
+    title: 'Ride Into Something Memorable',
+    description: 'Rent a calm countryside horse experience for a day that feels refreshingly different.',
+    image: heroHorsesImage,
+    alt: 'Two beautiful horses standing together on a green field',
+    navigationText: 'dark',
+  },
+] as const
+
+const activeSlide = computed(() => heroSlides[activeSlideIndex.value])
+const heroUsesDarkNavigation = computed(() => activeSlide.value.navigationText === 'dark')
+
+const headerSurfaceClass = computed(() => {
+  if (isHeaderSolid.value) {
+    return 'border-b border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950'
+  }
+
+  if (isScrollingWithinHero.value) {
+    return heroUsesDarkNavigation.value
+      ? 'border-b border-black/10 bg-white/50 shadow-sm backdrop-blur-xl'
+      : 'border-b border-white/10 bg-slate-950/30 shadow-sm backdrop-blur-xl'
+  }
+
+  return 'bg-transparent'
+})
+
+const headerForegroundClass = computed(() => {
+  if (isHeaderSolid.value) return 'text-ink dark:text-white'
+  if (heroUsesDarkNavigation.value) return 'text-slate-950'
+  return 'text-white'
+})
+
+const navigationLinkClass = computed(() => {
+  if (isHeaderSolid.value) {
+    return 'text-slate-700 hover:text-brand-700 dark:text-slate-200 dark:hover:text-brand-300'
+  }
+  if (heroUsesDarkNavigation.value) return 'text-slate-950/90 hover:text-black'
+  return 'text-white/95 hover:text-white'
+})
+
+const headerSearchButtonClass = computed(() => {
+  if (isHeaderSolid.value) return 'bg-slate-100 text-slate-800 hover:bg-brand-50 hover:text-brand-700 dark:bg-slate-800 dark:text-white'
+  if (heroUsesDarkNavigation.value) return 'bg-white/55 text-slate-950 ring-1 ring-black/10 hover:bg-white/75'
+  return 'bg-white/15 text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/25'
+})
 
 const desktopLinks = [
-  { label: 'Home', to: '/home' },
-  { label: 'Listings', to: '/properties' },
-  { label: 'Bookings', to: '/my-bookings' },
-  { label: 'Alerts', to: '/notifications' },
-  { label: 'Profile', to: '/profile' },
+  { label: 'Home', to: '/home', icon: null },
+  { label: 'Listings', to: '/home#listings', icon: null },
+  { label: 'Add', to: '/add-property', icon: addCircleOutline },
+  { label: 'Bookings', to: '/my-bookings', icon: null },
+  { label: 'Alerts', to: '/notifications', icon: null },
+  { label: 'Account Center', to: '/profile', icon: null },
 ]
 
-const propertyTypes = ['House rent', 'Shop rent', 'Office space', 'Apartment', 'Flat', 'Duplex']
+const propertyTypes = ['House rent', 'Shop rent', 'Office space', 'Apartment', 'Flat', 'Duplex', 'Cars']
 
 const search = reactive({
   city: '',
@@ -194,48 +487,479 @@ const search = reactive({
   price: '',
 })
 
-const featuredProperties = [
+const appliedSearch = reactive({
+  city: '',
+  type: '',
+  price: '',
+})
+
+const designedFeaturedProperties = [
   {
+    key: 'designed-ocean-breeze-villa',
+    id: null,
     title: 'Ocean Breeze Villa',
     location: 'Lekki Phase 1, Lagos',
     beds: 4,
     parking: 2,
     baths: 4,
     price: 'NGN 4.5M',
+    numericPrice: 4_500_000,
+    paymentDuration: 'year',
+    propertyType: 'House rent',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
   },
   {
+    key: 'designed-jakson-house',
+    id: null,
     title: 'Jakson House',
     location: 'Wuse 2, Abuja',
     beds: 3,
     parking: 2,
     baths: 3,
     price: 'NGN 3.2M',
+    numericPrice: 3_200_000,
+    paymentDuration: 'year',
+    propertyType: 'House rent',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
   },
   {
+    key: 'designed-lakeside-cottage',
+    id: null,
     title: 'Lakeside Cottage',
     location: 'GRA, Port Harcourt',
     beds: 5,
     parking: 2,
     baths: 5,
     price: 'NGN 5.7M',
+    numericPrice: 5_700_000,
+    paymentDuration: 'year',
+    propertyType: 'House rent',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
   },
 ]
 
+const additionalDesignedProperties = [
+  {
+    key: 'designed-parkview-apartment',
+    id: null,
+    title: 'Parkview Apartment',
+    location: 'Ikoyi, Lagos',
+    beds: 3,
+    parking: 2,
+    baths: 3,
+    price: 'NGN 6.2M',
+    numericPrice: 6_200_000,
+    paymentDuration: 'year',
+    propertyType: 'Apartment',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
+  },
+  {
+    key: 'designed-cedar-court',
+    id: null,
+    title: 'Cedar Court',
+    location: 'Maitama, Abuja',
+    beds: 4,
+    parking: 2,
+    baths: 4,
+    price: 'NGN 7.5M',
+    numericPrice: 7_500_000,
+    paymentDuration: 'year',
+    propertyType: 'Duplex',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
+  },
+  {
+    key: 'designed-garden-city-flat',
+    id: null,
+    title: 'Garden City Flat',
+    location: 'Independence Layout, Enugu',
+    beds: 3,
+    parking: 1,
+    baths: 3,
+    price: 'NGN 2.8M',
+    numericPrice: 2_800_000,
+    paymentDuration: 'year',
+    propertyType: 'Flat',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
+  },
+  {
+    key: 'designed-palm-residence',
+    id: null,
+    title: 'Palm Residence',
+    location: 'Bodija, Ibadan',
+    beds: 4,
+    parking: 2,
+    baths: 4,
+    price: 'NGN 3.9M',
+    numericPrice: 3_900_000,
+    paymentDuration: 'year',
+    propertyType: 'House rent',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
+  },
+  {
+    key: 'designed-marina-view-home',
+    id: null,
+    title: 'Marina View Home',
+    location: 'Victoria Island, Lagos',
+    beds: 2,
+    parking: 1,
+    baths: 2,
+    price: 'NGN 5.1M',
+    numericPrice: 5_100_000,
+    paymentDuration: 'year',
+    propertyType: 'Apartment',
+    isAvailable: true,
+    image: homeHeroImage,
+    canSpanWide: true,
+    record: null,
+  },
+]
+
+const savedPropertyIds = computed(() => new Set(
+  savedRecords.value.map((record) => record.propertyId),
+))
+
+watch(
+  () => state.profile?.uid ?? state.user?.uid,
+  (userId) => {
+    refreshSavedProperties(userId)
+  },
+  { immediate: true },
+)
+
+const homepageProperties = computed(() => {
+  const currentUserId = state.user?.uid
+  const ownProperties = currentUserId
+    ? properties.value.filter((property) => property.ownerId === currentUserId)
+    : []
+  const approvedProperties = properties.value.filter(
+    (property) => property.status === 'approved' && property.ownerId !== currentUserId,
+  )
+  const liveProperties = [...ownProperties, ...approvedProperties].slice(0, 2)
+  const baseProperties = [
+    ...designedFeaturedProperties,
+    ...liveProperties.map((property) => ({
+      key: `property-${property.id}`,
+      id: property.id,
+      title: property.title,
+      location: [property.area, property.city, property.state].filter(Boolean).join(', '),
+      beds: property.bedrooms ?? 0,
+      parking: property.parking ? 1 : 0,
+      baths: property.bathrooms ?? 0,
+      price: formatCurrency(property.rentPrice),
+      numericPrice: property.rentPrice,
+      paymentDuration: property.paymentDuration,
+      propertyType: property.propertyType,
+      isAvailable: property.isAvailable,
+      image: property.images[0] || homeHeroImage,
+      shopSize: property.shopSize,
+      canSpanWide: false,
+      record: property,
+    })),
+    ...additionalDesignedProperties,
+  ]
+  const designedSources = [...designedFeaturedProperties, ...additionalDesignedProperties]
+  const duplicateCount = Math.max(0, 20 - baseProperties.length)
+  const duplicatedProperties = Array.from({ length: duplicateCount }, (_, index) => {
+    const source = designedSources[index % designedSources.length]
+
+    return {
+      ...source,
+      key: `duplicate-${index + 1}-${source.key}`,
+    }
+  })
+
+  return [...baseProperties, ...duplicatedProperties]
+})
+
+const displayedHomepageProperties = computed(() => {
+  const locationQuery = appliedSearch.city.trim().toLowerCase()
+
+  return homepageProperties.value.filter((property) => {
+    if (
+      locationQuery
+      && !`${property.title} ${property.location}`.toLowerCase().includes(locationQuery)
+    ) {
+      return false
+    }
+
+    if (appliedSearch.type && property.propertyType !== appliedSearch.type) {
+      return false
+    }
+
+    if (appliedSearch.price === 'budget' && property.numericPrice > 250_000) return false
+    if (
+      appliedSearch.price === 'mid'
+      && (property.numericPrice <= 250_000 || property.numericPrice > 1_000_000)
+    ) return false
+    if (appliedSearch.price === 'premium' && property.numericPrice <= 1_000_000) return false
+
+    return true
+  })
+})
+
+let carouselTimer: number | null = null
+let headerMenuCloseTimer: number | null = null
+let homeScrollElement: HTMLElement | null = null
+let wasHeroSearchVisible = false
+
+onMounted(async () => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  isCarouselPaused.value = prefersReducedMotion
+
+  if (!prefersReducedMotion) {
+    startCarousel()
+  }
+
+  await nextTick()
+  const ionContent = heroRef.value?.closest('ion-content') as
+    | (HTMLElement & { getScrollElement?: () => Promise<HTMLElement> })
+    | null
+
+  homeScrollElement = ionContent?.getScrollElement
+    ? await ionContent.getScrollElement()
+    : null
+  homeScrollElement?.addEventListener('scroll', updateHeaderState, { passive: true })
+  updateHeaderState()
+
+  if (router.currentRoute.value.hash === '#listings') {
+    window.requestAnimationFrame(() => scrollToListings('auto'))
+  }
+
+  try {
+    await ensureAuthReady()
+    await refreshProperties()
+  } catch {
+    // Keep the three designed cards available if live listings cannot be refreshed.
+  }
+})
+
+onBeforeUnmount(() => {
+  stopCarousel()
+  cancelHeaderMenuClose()
+  homeScrollElement?.removeEventListener('scroll', updateHeaderState)
+})
+
+function updateHeaderState() {
+  const heroHeight = heroRef.value?.offsetHeight ?? 640
+  const scrollTop = homeScrollElement?.scrollTop ?? 0
+  isHeaderSolid.value = scrollTop >= heroHeight - 64
+  isScrollingWithinHero.value = scrollTop > 10 && !isHeaderSolid.value
+
+  const searchRect = searchFormRef.value?.getBoundingClientRect()
+  const viewportHeight = homeScrollElement?.clientHeight ?? window.innerHeight
+  const heroSearchIsVisible = Boolean(
+    searchRect
+    && searchRect.bottom > 64
+    && searchRect.top < viewportHeight,
+  )
+  const heroSearchJustLeft = wasHeroSearchVisible && !heroSearchIsVisible
+  const hasSearchValues = Boolean(search.city.trim() || search.type || search.price)
+
+  showHeaderSearch.value = Boolean(searchRect && searchRect.bottom <= 64)
+
+  if (heroSearchIsVisible) {
+    if (!hasSearchValues) {
+      isHeaderSearchRequested.value = false
+    }
+    suspendHeaderSearch()
+  } else if (showHeaderSearch.value) {
+    if (heroSearchJustLeft && hasSearchValues) {
+      isHeaderSearchRequested.value = true
+    }
+
+    if (isHeaderSearchRequested.value) {
+      isHeaderSearchOpen.value = true
+    }
+  }
+
+  wasHeroSearchVisible = heroSearchIsVisible
+}
+
+async function openHeaderSearch() {
+  isHeaderSearchRequested.value = true
+  isHeaderSearchOpen.value = true
+  isHeaderMenuOpen.value = false
+  cancelHeaderMenuClose()
+  await nextTick()
+  headerSearchInputRef.value?.focus()
+}
+
+function closeHeaderSearch() {
+  cancelHeaderMenuClose()
+  isHeaderSearchRequested.value = false
+  isHeaderSearchOpen.value = false
+  isHeaderMenuOpen.value = false
+}
+
+function suspendHeaderSearch() {
+  if (!isHeaderSearchOpen.value && !isHeaderMenuOpen.value) return
+
+  cancelHeaderMenuClose()
+  isHeaderSearchOpen.value = false
+  isHeaderMenuOpen.value = false
+}
+
+function toggleHeaderMenu() {
+  if (isHeaderMenuOpen.value) {
+    cancelHeaderMenuClose()
+    isHeaderMenuOpen.value = false
+    return
+  }
+
+  isHeaderMenuOpen.value = true
+  scheduleHeaderMenuClose()
+}
+
+function scheduleHeaderMenuClose() {
+  cancelHeaderMenuClose()
+  if (!isHeaderMenuOpen.value) return
+
+  headerMenuCloseTimer = window.setTimeout(() => {
+    isHeaderMenuOpen.value = false
+    headerMenuCloseTimer = null
+  }, 3000)
+}
+
+function cancelHeaderMenuClose() {
+  if (headerMenuCloseTimer !== null) {
+    window.clearTimeout(headerMenuCloseTimer)
+    headerMenuCloseTimer = null
+  }
+}
+
+async function handleNavigationClick(to: string, event: MouseEvent) {
+  closeHeaderSearch()
+
+  if (to === '/home#listings') {
+    event.preventDefault()
+    scrollToListings('auto')
+    return
+  }
+
+  if (to !== '/home') return
+
+  event.preventDefault()
+  activeSlideIndex.value = 0
+
+  if (router.currentRoute.value.path !== '/home') {
+    await router.push('/home')
+    await nextTick()
+  }
+
+  homeScrollElement?.scrollTo({ top: 0, behavior: 'smooth' })
+  if (!isCarouselPaused.value) startCarousel()
+}
+
+function scrollToListings(behavior: ScrollBehavior = 'smooth') {
+  if (!homeScrollElement || !listingsRef.value) return
+
+  const targetTop = Math.max(
+    homeScrollElement.scrollTop + listingsRef.value.getBoundingClientRect().top - 64,
+    0,
+  )
+  homeScrollElement.scrollTo({ top: targetTop, behavior })
+}
+
+function submitHeaderSearch() {
+  closeHeaderSearch()
+  submitSearch()
+}
+
+function startCarousel() {
+  stopCarousel()
+  carouselTimer = window.setInterval(() => {
+    activeSlideIndex.value = (activeSlideIndex.value + 1) % heroSlides.length
+  }, 6500)
+}
+
+function stopCarousel() {
+  if (carouselTimer !== null) {
+    window.clearInterval(carouselTimer)
+    carouselTimer = null
+  }
+}
+
+function showSlide(index: number) {
+  activeSlideIndex.value = index
+  if (!isCarouselPaused.value) startCarousel()
+}
+
+function showPreviousSlide() {
+  showSlide((activeSlideIndex.value - 1 + heroSlides.length) % heroSlides.length)
+}
+
+function showNextSlide() {
+  showSlide((activeSlideIndex.value + 1) % heroSlides.length)
+}
+
+function toggleCarousel() {
+  isCarouselPaused.value = !isCarouselPaused.value
+  if (isCarouselPaused.value) {
+    stopCarousel()
+  } else {
+    startCarousel()
+  }
+}
+
 function submitSearch() {
-  const query: Record<string, string> = {}
+  appliedSearch.city = search.city.trim()
+  appliedSearch.type = search.type
+  appliedSearch.price = search.price
+  scrollToListings()
+}
 
-  if (search.city.trim()) {
-    query.search = search.city.trim()
+function clearListingSearch() {
+  search.city = ''
+  search.type = ''
+  search.price = ''
+  appliedSearch.city = ''
+  appliedSearch.type = ''
+  appliedSearch.price = ''
+}
+
+async function handleToggleSavedProperty(property: PropertyRecord) {
+  const userId = state.profile?.uid ?? state.user?.uid
+  const wasSaved = savedPropertyIds.value.has(property.id)
+  listingActionMessage.value = ''
+
+  try {
+    await toggleSavedProperty(userId, property)
+    listingActionMessage.value = wasSaved
+      ? `${property.title} was removed from your saved properties.`
+      : `${property.title} was added to your saved properties.`
+  } catch (error) {
+    listingActionMessage.value = error instanceof Error
+      ? error.message
+      : 'Could not update your saved properties.'
   }
+}
 
-  if (search.type) {
-    query.type = search.type
-  }
-
-  if (search.price) {
-    query.price = search.price
-  }
-
-  router.push({ path: '/properties', query })
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 </script>

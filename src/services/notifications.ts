@@ -16,7 +16,8 @@ import { auth, authMode, db, firebaseConfigError, functions, isFirebaseConfigure
 import { requestFirebaseMessagingToken } from '../lib/messaging'
 import { getPropertyById } from './properties'
 import { listBookingsForUser, markBookingReminderSent } from './bookings'
-import { getInspectionDateTime, type BookingRecord } from '../types/booking'
+import { getBookingStartDateTime, type BookingRecord } from '../types/booking'
+import { getBookingModeConfig } from './bookingModes'
 import type { NotificationRecord, NotificationTokenRecord } from '../types/notification'
 import type { PaymentRecord } from '../types/payment'
 import type { PropertyRecord } from '../types/property'
@@ -396,11 +397,18 @@ export async function createBookingConfirmationNotification(
   booking: BookingRecord,
   property: PropertyRecord,
 ) {
+  const config = getBookingModeConfig(booking.bookingMode)
+  const schedule = new Intl.DateTimeFormat('en-NG', {
+    timeZone: 'Africa/Lagos',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(getBookingStartDateTime(booking))
+
   return createNotificationRecord({
     userId: user.uid,
     type: 'booking_confirmation',
-    title: 'Inspection booking created',
-    body: `Your inspection for ${property.title} is scheduled for ${booking.inspectionDate} at ${booking.inspectionTime}.`,
+    title: `${config.primaryActionLabel} confirmed`,
+    body: `${property.title} is booked for ${schedule}.`,
     channel: 'in_app',
     relatedPropertyId: property.id,
     relatedBookingId: booking.id,
@@ -445,20 +453,21 @@ export async function runInspectionReminderScan(userId: string) {
       continue
     }
 
-    const inspectionTime = getInspectionDateTime(booking).getTime()
-    const timeUntilInspection = inspectionTime - now
+    const bookingTime = getBookingStartDateTime(booking).getTime()
+    const timeUntilInspection = bookingTime - now
 
     if (timeUntilInspection < 0 || timeUntilInspection > 24 * 60 * 60 * 1000) {
       continue
     }
 
     const property = await getPropertyById(booking.propertyId)
-    const title = property?.title ?? 'your property inspection'
+    const title = property?.title ?? 'your booking'
+    const config = getBookingModeConfig(booking.bookingMode)
     const notification = await createNotificationRecord({
       userId,
       type: 'inspection_reminder',
-      title: 'Inspection reminder',
-      body: `Your visit for ${title} is within the next 24 hours.`,
+      title: config.reminderTitle,
+      body: `${config.reminderLead} for ${title} begins within the next 24 hours.`,
       channel:
         supportsBrowserNotifications() && window.Notification.permission === 'granted'
           ? 'browser'

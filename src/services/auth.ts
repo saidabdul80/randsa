@@ -428,7 +428,7 @@ async function ensureFirebaseUserProfile(
   })
 }
 
-export function toDisplayError(error: unknown) {
+export function toDisplayError(error: unknown, context: 'default' | 'google' = 'default') {
   if (
     typeof error === 'object' &&
     error !== null &&
@@ -443,8 +443,9 @@ export function toDisplayError(error: unknown) {
       'wrong-password': 'The password is incorrect.',
       'invalid-credential': 'The email or password is incorrect.',
       'weak-password': 'Use a stronger password with at least 6 characters.',
-      'network-request-failed':
-        'Network error. Google sign-in could not reach Google services in time. Check your connection, allow Google scripts/popups, and try again.',
+      'network-request-failed': context === 'google'
+        ? 'Network error. Google sign-in could not reach Google services in time. Check your connection, allow Google scripts/popups, and try again.'
+        : 'Network error. Firebase Authentication could not be reached. Check your connection and try again.',
       'too-many-requests': 'Too many attempts. Please wait a little and try again.',
       'popup-closed-by-user':
         'The Google sign-in popup was closed before sign-in finished. If your browser closed it automatically, use Google redirect sign-in instead.',

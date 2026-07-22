@@ -10,6 +10,7 @@
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
+        :aria-label="item.label"
         class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[18px] px-1.5 py-2 text-[10px] font-semibold transition sm:min-w-[64px] sm:px-2 sm:text-[11px]"
         :class="
           isActive(item.matchers)
@@ -22,7 +23,7 @@
         "
       >
         <ion-icon :icon="item.icon" class="text-[1.15rem]" />
-        <span class="max-w-full truncate">{{ item.label }}</span>
+        <span class="min-h-6 max-w-full text-center leading-3">{{ item.label }}</span>
       </RouterLink>
     </div>
   </nav>
@@ -44,7 +45,7 @@ const route = useRoute()
 const navItems = [
   { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
   {
-    label: 'Search',
+    label: 'Explore',
     to: '/properties',
     icon: searchOutline,
     matchers: ['/properties', '/saved-properties'],
@@ -62,7 +63,7 @@ const navItems = [
     matchers: ['/my-bookings', '/booking', '/payment'],
   },
   {
-    label: 'Profile',
+    label: 'Account Center',
     to: '/profile',
     icon: personOutline,
     matchers: ['/profile', '/notifications'],

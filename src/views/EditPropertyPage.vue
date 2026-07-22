@@ -116,6 +116,13 @@ const propertyInput = computed<PropertyFormInput | null>(() => {
     images: property.value.images.map((image) => createRemotePropertyImage(image)),
     ownerPhone: property.value.ownerPhone,
     isAvailable: property.value.isAvailable,
+    availabilityConfig: property.value.availabilityConfig ?? {
+      agents: [],
+      limitedRemainingCapacity: 3,
+      blockedDates: [],
+      bufferMinutes: null,
+      minimumDurationMinutes: null,
+    },
   }
 })
 

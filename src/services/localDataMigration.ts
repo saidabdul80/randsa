@@ -4,12 +4,11 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
-  updateDoc,
 } from 'firebase/firestore'
 
 import { authMode, db, firebaseConfigError, isFirebaseConfigured } from '../lib/firebase'
 import { getAllStoredVerificationRecords } from './agentVerificationDb'
-import { listAllLocalBookings, buildFirestoreBookingPayload } from './bookings'
+import { cancelBooking, createBooking, listAllLocalBookings } from './bookings'
 import { getAllStoredProperties } from './propertyDb'
 import { normalizeVerificationRecord, type AgentVerificationRecord } from '../types/verification'
 import type { PropertyRecord } from '../types/property'
@@ -212,6 +211,7 @@ function buildFirestorePropertyPayload(property: PropertyRecord, profile: UserPr
     ownerPhone: property.ownerPhone,
     status: profile.role === 'admin' ? property.status : 'pending',
     isAvailable: property.isAvailable,
+    availabilityConfig: property.availabilityConfig,
     createdAt: toTimestampOrServerValue(property.createdAt),
     updatedAt: toTimestampOrServerValue(property.updatedAt),
   }
@@ -277,19 +277,38 @@ export async function migrateLocalDataForCurrentProfile(
         continue
       }
 
-      await setDoc(bookingRef, {
-        ...buildFirestoreBookingPayload({
-          ...booking,
-          status: 'pending',
-          reminderSent: false,
-        }),
-      })
+      const property = localProperties.find((item) => item.id === booking.propertyId)
+      if (!property) {
+        result.bookings.skipped += 1
+        continue
+      }
+
+      const migrated = await createBooking(
+        {
+          inspectionDate: booking.inspectionDate,
+          inspectionTime: booking.inspectionTime,
+          endDate: booking.endAt ? booking.endAt.slice(0, 10) : '',
+          endTime: booking.endAt
+            ? new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Africa/Lagos',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23',
+              }).format(new Date(booking.endAt))
+            : '',
+          durationMinutes: booking.durationMinutes,
+          quantity: booking.quantity,
+          categoryDetails: booking.categoryDetails,
+          requestId: booking.id.replace(/^booking-/, ''),
+          guestPhone: booking.guestPhone,
+          notes: booking.notes,
+        },
+        profile,
+        property,
+      )
 
       if (booking.status === 'cancelled') {
-        await updateDoc(bookingRef, {
-          status: 'cancelled',
-          updatedAt: toTimestampOrServerValue(booking.updatedAt),
-        })
+        await cancelBooking(migrated.id, profile.uid)
       }
 
       result.bookings.migrated += 1

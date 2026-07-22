@@ -25,3 +25,8 @@ typecheck-output.txt
 *.njsproj
 *.sln
 *.sw?
+
+# Local browser review artifacts
+.chrome-*/
+.*-review*.png
+.welcome-*.png

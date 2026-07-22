@@ -256,6 +256,7 @@ import { useRoute } from 'vue-router'
 
 import AppShell from '../components/layout/AppShell.vue'
 import { useAuth } from '../composables/useAuth'
+import { useBookings } from '../composables/useBookings'
 import { useNotifications } from '../composables/useNotifications'
 import { usePayments } from '../composables/usePayments'
 import { useProperties } from '../composables/useProperties'
@@ -273,12 +274,15 @@ import {
 
 const route = useRoute()
 const propertyId = computed(() => (route.params.propertyId as string | undefined) ?? '')
+const bookingId = computed(() => (typeof route.query.bookingId === 'string' ? route.query.bookingId : ''))
 const { state } = useAuth()
+const { getBookingById } = useBookings()
 const { findById } = useProperties()
 const { payments, isLoading, refreshForUser, startPayment, finishLocalPayment, verifyPayment } = usePayments()
 const { addPaymentConfirmation } = useNotifications()
 
 const property = ref<Awaited<ReturnType<typeof findById>>>(null)
+const selectedBooking = ref<Awaited<ReturnType<typeof getBookingById>>>(null)
 const selectedType = ref<PaymentType>('inspection_fee')
 const amount = ref(0)
 const activePayment = ref<PaymentRecord | null>(null)
@@ -290,9 +294,12 @@ const paymentTypeValues: PaymentType[] = [
   'rent_deposit',
   'full_rent_payment',
   'service_fee',
+  'booking_payment',
 ]
 
-const paymentOptions = computed(() => (property.value ? buildPaymentTypeOptions(property.value) : []))
+const paymentOptions = computed(() =>
+  property.value ? buildPaymentTypeOptions(property.value, selectedBooking.value) : [],
+)
 const recentPayments = computed(() => payments.value.slice(0, 6))
 const isStartingPayment = computed(() => isLoading.value && !activePayment.value)
 const isCompletingPayment = computed(() => isLoading.value && Boolean(activePayment.value))
@@ -305,14 +312,24 @@ const statusClassMap = {
 } as const
 
 watch(
-  propertyId,
-  async (value) => {
+  [propertyId, bookingId, () => state.profile?.uid],
+  async ([value, currentBookingId, userId]) => {
     property.value = value ? await findById(value) : null
+    selectedBooking.value = currentBookingId && userId ? await getBookingById(currentBookingId) : null
+
+    if (selectedBooking.value && selectedBooking.value.propertyId !== value) {
+      selectedBooking.value = null
+      setupTone.value = 'error'
+      setupMessage.value = 'The selected booking does not belong to this listing.'
+    }
     resetSuggestedAmount()
 
     if (value && state.profile) {
       const pending = payments.value.find(
-        (payment) => payment.propertyId === value && payment.status === 'pending',
+        (payment) =>
+          payment.propertyId === value &&
+          payment.status === 'pending' &&
+          (!currentBookingId || payment.bookingId === currentBookingId),
       )
 
       activePayment.value = pending ?? null
@@ -351,7 +368,12 @@ watch(
 
     if (!activePayment.value || activePayment.value.status !== 'pending') {
       activePayment.value =
-        items.find((payment) => payment.propertyId === property.value?.id && payment.status === 'pending') ??
+        items.find(
+          (payment) =>
+            payment.propertyId === property.value?.id
+            && payment.status === 'pending'
+            && (!bookingId.value || payment.bookingId === bookingId.value),
+        ) ??
         activePayment.value
     }
   },
@@ -379,7 +401,13 @@ async function handleCreatePayment() {
   setupMessage.value = ''
 
   try {
-    const payment = await startPayment(state.profile, property.value, selectedType.value, amount.value)
+    const payment = await startPayment(
+      state.profile,
+      property.value,
+      selectedType.value,
+      amount.value,
+      selectedType.value === 'booking_payment' ? selectedBooking.value?.id ?? null : null,
+    )
     activePayment.value = payment
     setupTone.value = 'success'
     setupMessage.value = isLocalPaymentBypassEnabled
@@ -439,6 +467,7 @@ async function handleOpenPaystackCheckout() {
         paymentId: activePayment.value.id,
         propertyId: property.value.id,
         paymentType: activePayment.value.paymentType,
+        bookingId: activePayment.value.bookingId,
         userId: state.profile.uid,
       },
     })
@@ -508,7 +537,9 @@ async function handleVerifyPendingPayment() {
 }
 
 function resetSuggestedAmount() {
-  amount.value = property.value ? getSuggestedPaymentAmount(property.value, selectedType.value) : 0
+  amount.value = property.value
+    ? getSuggestedPaymentAmount(property.value, selectedType.value, selectedBooking.value)
+    : 0
 }
 
 function formatDateTime(value: string) {

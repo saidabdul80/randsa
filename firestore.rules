@@ -188,7 +188,17 @@ service cloud.firestore {
         && request.resource.data.amount > 0
         && request.resource.data.paystackReference is string
         && request.resource.data.paystackReference.size() > 0
-        && request.resource.data.paymentType in ['inspection_fee', 'rent_deposit', 'full_rent_payment', 'service_fee']
+        && request.resource.data.paymentType in ['inspection_fee', 'rent_deposit', 'full_rent_payment', 'service_fee', 'booking_payment']
+        && (
+          request.resource.data.paymentType != 'booking_payment'
+          || (
+            request.resource.data.bookingId is string
+            && request.resource.data.bookingId.size() > 0
+            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.userId == request.auth.uid
+            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.propertyId == request.resource.data.propertyId
+            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.estimatedTotal == request.resource.data.amount
+          )
+        )
         && request.resource.data.status == 'pending'
         && request.resource.data.verificationMode == 'backend_required'
         && request.resource.data.verifiedAt == null;
@@ -199,37 +209,16 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow read: if userOwnsBooking() || isAdmin();
 
-      allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == 'pending'
-        && request.resource.data.reminderSent == false;
+      // Booking creation is authoritative in createUniversalBooking so availability
+      // is checked against every active reservation in one transaction.
+      allow create: if false;
 
       allow update: if isAdmin()
         || (
           userOwnsBooking()
-          && request.resource.data.userId == resource.data.userId
-          && request.resource.data.propertyId == resource.data.propertyId
-          && request.resource.data.agentId == resource.data.agentId
-          && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.inspectionDate == resource.data.inspectionDate
-          && request.resource.data.inspectionTime == resource.data.inspectionTime
-          && request.resource.data.paymentStatus == resource.data.paymentStatus
-          && (
-            (
-              request.resource.data.status == resource.data.status
-              && (
-                request.resource.data.reminderSent == resource.data.reminderSent
-                || (
-                  resource.data.reminderSent == false
-                  && request.resource.data.reminderSent == true
-                )
-              )
-            )
-            || (
-              request.resource.data.status == 'cancelled'
-              && request.resource.data.reminderSent == resource.data.reminderSent
-            )
-          )
+          && resource.data.status in ['pending', 'confirmed']
+          && request.resource.data.status == 'cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
         );
 
       allow delete: if isAdmin();

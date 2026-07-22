@@ -22,6 +22,10 @@
             <option value="residential">Residential</option>
             <option value="commercial">Commercial</option>
             <option value="land">Land</option>
+            <option value="vehicle">Vehicle</option>
+            <option value="event">Event space</option>
+            <option value="horse">Horse</option>
+            <option value="other">Other rental</option>
           </select>
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -69,6 +73,10 @@
             v-model="form.paymentDuration"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
           >
+            <option value="hourly">Hourly</option>
+            <option value="daily">Daily</option>
+            <option value="per_session">Per session</option>
+            <option value="fixed">Fixed rate</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="biannually">Biannually</option>
@@ -284,6 +292,12 @@ const propertyTypes: PropertyType[] = [
   'Flat',
   'Duplex',
   'Land',
+  'Car',
+  'Vehicle',
+  'Event space',
+  'Event centre',
+  'Horse rental',
+  'Other rental',
 ]
 
 const moneyFields = [
@@ -366,12 +380,21 @@ watch(
       form.waterAccess = false
     }
 
-    if (value === 'Shop rent') {
+    if (value === 'Shop rent' || value === 'Office space') {
       form.category = 'commercial'
     } else if (value === 'Land') {
       form.category = 'land'
-    } else if (value === 'Office space') {
-      form.category = 'commercial'
+    } else if (value === 'Car' || value === 'Vehicle') {
+      form.category = 'vehicle'
+      form.paymentDuration = 'daily'
+    } else if (value === 'Event space' || value === 'Event centre') {
+      form.category = 'event'
+      form.paymentDuration = 'fixed'
+    } else if (value === 'Horse rental') {
+      form.category = 'horse'
+      form.paymentDuration = 'per_session'
+    } else if (value === 'Other rental') {
+      form.category = 'other'
     } else {
       form.category = 'residential'
     }

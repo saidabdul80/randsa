@@ -29,7 +29,7 @@ export function createRouter() {
       {
         path: '/properties',
         name: 'properties',
-        component: () => import('../views/PropertyListPage.vue'),
+        redirect: (to) => ({ path: '/home', hash: '#listings', query: to.query }),
       },
       {
         path: '/properties/:propertyId',

@@ -102,6 +102,7 @@ function mapDocToPaymentRecord(
     id: paymentId,
     userId: data.userId ?? '',
     propertyId: data.propertyId ?? '',
+    bookingId: data.bookingId ? String(data.bookingId) : null,
     agentId: data.agentId ?? '',
     propertyTitle: data.propertyTitle ?? '',
     payerName: data.payerName ?? '',
@@ -184,6 +185,7 @@ export async function createPaymentRecord(
   property: PropertyRecord,
   paymentType: PaymentType,
   amount: number,
+  bookingId: string | null = null,
 ) {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Payment amount must be greater than zero.')
@@ -205,6 +207,7 @@ export async function createPaymentRecord(
     id: paymentId,
     userId: user.uid,
     propertyId: property.id,
+    bookingId,
     agentId: property.ownerId,
     propertyTitle: property.title,
     payerName: user.fullName,
@@ -230,6 +233,7 @@ export async function createPaymentRecord(
   await setDoc(doc(firestore, 'payments', paymentId), {
     userId: record.userId,
     propertyId: record.propertyId,
+    bookingId: record.bookingId,
     agentId: record.agentId,
     propertyTitle: record.propertyTitle,
     payerName: record.payerName,
