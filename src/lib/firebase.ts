@@ -38,7 +38,9 @@ export const firebaseConfigError = isFirebaseConfigured
   : `Missing Firebase environment values: ${missingKeys.join(', ')}`
 
 export const firebaseApp: FirebaseApp | null = isFirebaseConfigured
-  ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
+  ? getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig)
   : null
 
 export const auth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null

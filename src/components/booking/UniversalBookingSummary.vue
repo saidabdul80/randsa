@@ -125,8 +125,14 @@ function formatDateTime(value: string | undefined) {
   white-space: nowrap;
 }
 
-.is-ready { background: #e9f8f1; color: #08784f; }
-.is-pending { background: #fff6dc; color: #8a5b00; }
+.is-ready {
+  background: #e9f8f1;
+  color: #08784f;
+}
+.is-pending {
+  background: #fff6dc;
+  color: #8a5b00;
+}
 
 dl {
   display: grid;
@@ -143,6 +149,15 @@ dl div {
   padding: 10px 0;
 }
 
-dt { color: #738196; font-size: 11px; }
-dd { margin: 0; color: #102033; font-size: 11px; font-weight: 800; text-align: right; }
+dt {
+  color: #738196;
+  font-size: 11px;
+}
+dd {
+  margin: 0;
+  color: #102033;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
 </style>

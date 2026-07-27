@@ -1,17 +1,28 @@
 <template>
-  <div class="rounded-[22px] border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+  <div
+    class="rounded-[22px] border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+  >
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">Firebase Storage path tester</p>
+        <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+          Firebase Storage path tester
+        </p>
         <p class="mt-2 max-w-2xl text-sm leading-6 text-emerald-800 dark:text-emerald-100/90">
           This dev-only panel uploads real files to the exact rule paths we just deployed:
-          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70">users/{userId}/{fileName}</code>,
-          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70">agent-verifications/{agentId}/{fileName}</code>,
-          and
-          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70">properties/{ownerId}/{propertyId}/{fileName}</code>.
+          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70"
+            >users/{userId}/{fileName}</code
+          >,
+          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70"
+            >agent-verifications/{agentId}/{fileName}</code
+          >, and
+          <code class="rounded bg-white/70 px-2 py-1 text-xs dark:bg-slate-900/70"
+            >properties/{ownerId}/{propertyId}/{fileName}</code
+          >.
         </p>
       </div>
-      <span class="rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-emerald-700 dark:bg-slate-900/70 dark:text-emerald-200">
+      <span
+        class="rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-emerald-700 dark:bg-slate-900/70 dark:text-emerald-200"
+      >
         Dev test
       </span>
     </div>
@@ -30,14 +41,15 @@
           Uploads a real file to your own profile folder.
         </p>
         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Target: <span class="font-semibold">users/{{ profile?.uid ?? 'userId' }}/&lt;file&gt;</span>
+          Target:
+          <span class="font-semibold">users/{{ profile?.uid ?? 'userId' }}/&lt;file&gt;</span>
         </p>
         <input
           class="mt-4 block w-full rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-semibold file:text-emerald-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:file:bg-emerald-500/20 dark:file:text-emerald-100"
           type="file"
           accept="image/*,.pdf,.txt"
           @change="handleFileSelect('user', $event)"
-        >
+        />
         <button
           type="button"
           class="mt-4 w-full rounded-[16px] bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
@@ -46,9 +58,15 @@
         >
           {{ activeUpload === 'user' ? 'Uploading...' : 'Test user upload' }}
         </button>
-        <p v-if="results.user" class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100">
-          Uploaded to <span class="font-semibold">{{ results.user.fullPath }}</span>.
-          <a :href="results.user.downloadURL" target="_blank" rel="noreferrer" class="underline">Open file</a>
+        <p
+          v-if="results.user"
+          class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100"
+        >
+          Uploaded to <span class="font-semibold">{{ results.user.fullPath }}</span
+          >.
+          <a :href="results.user.downloadURL" target="_blank" rel="noreferrer" class="underline"
+            >Open file</a
+          >
         </p>
       </section>
 
@@ -58,14 +76,17 @@
           Uploads a real file to the verification folder for the signed-in user.
         </p>
         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Target: <span class="font-semibold">agent-verifications/{{ profile?.uid ?? 'agentId' }}/&lt;file&gt;</span>
+          Target:
+          <span class="font-semibold"
+            >agent-verifications/{{ profile?.uid ?? 'agentId' }}/&lt;file&gt;</span
+          >
         </p>
         <input
           class="mt-4 block w-full rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-semibold file:text-emerald-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:file:bg-emerald-500/20 dark:file:text-emerald-100"
           type="file"
           accept="image/*,.pdf,.txt"
           @change="handleFileSelect('agent', $event)"
-        >
+        />
         <button
           type="button"
           class="mt-4 w-full rounded-[16px] bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
@@ -74,9 +95,15 @@
         >
           {{ activeUpload === 'agent' ? 'Uploading...' : 'Test verification upload' }}
         </button>
-        <p v-if="results.agent" class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100">
-          Uploaded to <span class="font-semibold">{{ results.agent.fullPath }}</span>.
-          <a :href="results.agent.downloadURL" target="_blank" rel="noreferrer" class="underline">Open file</a>
+        <p
+          v-if="results.agent"
+          class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100"
+        >
+          Uploaded to <span class="font-semibold">{{ results.agent.fullPath }}</span
+          >.
+          <a :href="results.agent.downloadURL" target="_blank" rel="noreferrer" class="underline"
+            >Open file</a
+          >
         </p>
       </section>
 
@@ -85,7 +112,9 @@
         <p class="mt-2 text-sm leading-6 text-mist dark:text-slate-300">
           Uploads a real file to a property folder for landlords, agents, and admins.
         </p>
-        <label class="mt-4 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+        <label
+          class="mt-4 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400"
+        >
           Property ID
         </label>
         <input
@@ -93,27 +122,40 @@
           type="text"
           placeholder="property-test-001"
           class="mt-2 w-full rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-        >
+        />
         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Target: <span class="font-semibold">properties/{{ profile?.uid ?? 'ownerId' }}/{{ propertyId || 'propertyId' }}/&lt;file&gt;</span>
+          Target:
+          <span class="font-semibold"
+            >properties/{{ profile?.uid ?? 'ownerId' }}/{{
+              propertyId || 'propertyId'
+            }}/&lt;file&gt;</span
+          >
         </p>
         <input
           class="mt-4 block w-full rounded-[16px] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-semibold file:text-emerald-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:file:bg-emerald-500/20 dark:file:text-emerald-100"
           type="file"
           accept="image/*,.pdf,.txt"
           @change="handleFileSelect('property', $event)"
-        >
+        />
         <button
           type="button"
           class="mt-4 w-full rounded-[16px] bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="!canUpload || !selectedPropertyFile || !propertyId.trim() || activeUpload === 'property'"
+          :disabled="
+            !canUpload || !selectedPropertyFile || !propertyId.trim() || activeUpload === 'property'
+          "
           @click="runPropertyUpload"
         >
           {{ activeUpload === 'property' ? 'Uploading...' : 'Test property upload' }}
         </button>
-        <p v-if="results.property" class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100">
-          Uploaded to <span class="font-semibold">{{ results.property.fullPath }}</span>.
-          <a :href="results.property.downloadURL" target="_blank" rel="noreferrer" class="underline">Open file</a>
+        <p
+          v-if="results.property"
+          class="mt-3 break-words text-xs leading-5 text-emerald-800 dark:text-emerald-100"
+        >
+          Uploaded to <span class="font-semibold">{{ results.property.fullPath }}</span
+          >.
+          <a :href="results.property.downloadURL" target="_blank" rel="noreferrer" class="underline"
+            >Open file</a
+          >
         </p>
       </section>
     </div>
@@ -121,9 +163,11 @@
     <div
       v-if="message"
       class="mt-4 rounded-[18px] px-4 py-3 text-sm"
-      :class="messageTone === 'error'
-        ? 'border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100'
-        : 'border border-emerald-200 bg-emerald-100/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100'"
+      :class="
+        messageTone === 'error'
+          ? 'border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100'
+          : 'border border-emerald-200 bg-emerald-100/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100'
+      "
     >
       {{ message }}
     </div>
@@ -166,7 +210,9 @@ const results = reactive<{
   property: null,
 })
 
-const canUpload = computed(() => Boolean(props.profile) && authMode === 'firebase' && isFirebaseConfigured)
+const canUpload = computed(
+  () => Boolean(props.profile) && authMode === 'firebase' && isFirebaseConfigured
+)
 const setupMessage = computed(() => {
   if (!isFirebaseConfigured) {
     return 'Firebase web config is missing. Add the VITE_FIREBASE_* values and restart the dev server before testing uploads.'
@@ -259,7 +305,11 @@ async function runPropertyUpload() {
   activeUpload.value = 'property'
 
   try {
-    results.property = await uploadPropertyFile(props.profile, propertyId.value, selectedPropertyFile.value)
+    results.property = await uploadPropertyFile(
+      props.profile,
+      propertyId.value,
+      selectedPropertyFile.value
+    )
     setSuccess(`Property path upload worked: ${results.property.fullPath}`)
   } catch (error) {
     setError(error)

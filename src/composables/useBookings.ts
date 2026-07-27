@@ -1,6 +1,11 @@
 import { computed, ref } from 'vue'
 
-import { cancelBooking, createBooking, getBookingById, listBookingsForUser } from '../services/bookings'
+import {
+  cancelBooking,
+  createBooking,
+  getBookingById,
+  listBookingsForUser,
+} from '../services/bookings'
 import type { BookingInput, BookingRecord } from '../types/booking'
 import type { PropertyRecord } from '../types/property'
 import type { UserProfile } from '../types/user'

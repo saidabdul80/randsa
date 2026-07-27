@@ -40,14 +40,14 @@ export function createOsmTileLayer() {
 
 export function hasCoordinates(
   latitude: number | null | undefined,
-  longitude: number | null | undefined,
+  longitude: number | null | undefined
 ): boolean {
   return typeof latitude === 'number' && typeof longitude === 'number'
 }
 
 export function getMapCenter(
   latitude: number | null | undefined,
-  longitude: number | null | undefined,
+  longitude: number | null | undefined
 ): [number, number] {
   if (!hasCoordinates(latitude, longitude)) {
     return defaultMapCenter

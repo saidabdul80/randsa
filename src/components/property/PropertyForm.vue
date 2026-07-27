@@ -11,7 +11,7 @@
             v-model="form.title"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             placeholder="Example: Newly renovated 2-bedroom flat"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Category
@@ -65,7 +65,7 @@
             type="number"
             min="0"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Payment duration
@@ -84,8 +84,14 @@
             <option value="custom">Custom</option>
           </select>
         </label>
-        <label class="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
-          <input v-model="form.isAvailable" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600">
+        <label
+          class="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+        >
+          <input
+            v-model="form.isAvailable"
+            type="checkbox"
+            class="h-4 w-4 rounded border-slate-300 text-brand-600"
+          />
           Property is currently available
         </label>
       </div>
@@ -101,28 +107,28 @@
           <input
             v-model="form.state"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           City
           <input
             v-model="form.city"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Area
           <input
             v-model="form.area"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Contact phone
           <input
             v-model="form.ownerPhone"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200 md:col-span-2">
           Full address
@@ -162,7 +168,7 @@
             type="number"
             min="0"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
-          >
+          />
         </label>
       </div>
       <div class="mt-4 grid gap-3 md:grid-cols-2">
@@ -171,7 +177,11 @@
           :key="feature.key"
           class="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
         >
-          <input v-model="form[feature.key]" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600">
+          <input
+            v-model="form[feature.key]"
+            type="checkbox"
+            class="h-4 w-4 rounded border-slate-300 text-brand-600"
+          />
           {{ feature.label }}
         </label>
       </div>
@@ -189,7 +199,7 @@
             v-model="form.shopSize"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             placeholder="Example: 120 sqm"
-          >
+          />
         </label>
       </div>
       <div class="mt-4 grid gap-3 md:grid-cols-2">
@@ -198,7 +208,11 @@
           :key="feature.key"
           class="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
         >
-          <input v-model="form[feature.key]" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-600">
+          <input
+            v-model="form[feature.key]"
+            type="checkbox"
+            class="h-4 w-4 rounded border-slate-300 text-brand-600"
+          />
           {{ feature.label }}
         </label>
       </div>
@@ -215,7 +229,7 @@
             v-model="amenitiesText"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             placeholder="Security, Borehole, Parking, POP ceiling"
-          >
+          />
         </label>
         <PropertyImageUploader
           v-model="form.images"
@@ -275,7 +289,7 @@ const props = withDefaults(
     initialValue: undefined,
     submitLabel: 'Save property',
     isSubmitting: false,
-  },
+  }
 )
 
 const emit = defineEmits<{
@@ -330,14 +344,16 @@ const commercialFeatureToggles = [
 ] as const
 
 function mergeInitialValue(initialValue?: Partial<PropertyFormInput>) {
-  const incomingImages = (initialValue?.images ?? []) as Array<PropertyFormInput['images'][number] | string>
+  const incomingImages = (initialValue?.images ?? []) as Array<
+    PropertyFormInput['images'][number] | string
+  >
 
   return {
     ...createEmptyPropertyInput(),
     ...initialValue,
     amenities: initialValue?.amenities ?? [],
     images: incomingImages.map((image) =>
-      typeof image === 'string' ? createRemotePropertyImage(image) : image,
+      typeof image === 'string' ? createRemotePropertyImage(image) : image
     ),
   }
 }
@@ -353,7 +369,7 @@ watch(
     Object.assign(form, mergeInitialValue(value))
     amenitiesText.value = (value?.amenities ?? []).join(', ')
   },
-  { deep: true },
+  { deep: true }
 )
 
 const showResidentialFields = computed(() => showsResidentialRoomFields(form.propertyType))
@@ -398,7 +414,7 @@ watch(
     } else {
       form.category = 'residential'
     }
-  },
+  }
 )
 
 function handleSubmit() {

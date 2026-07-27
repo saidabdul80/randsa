@@ -1,11 +1,14 @@
 <template>
   <div class="grid gap-4">
-    <div class="rounded-[24px] border border-slate-200 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+    <div
+      class="rounded-[24px] border border-slate-200 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/60"
+    >
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Map picker</p>
           <p class="mt-2 text-sm leading-6 text-mist dark:text-slate-300">
-            Tap the map or drag the marker to place the property accurately. OpenStreetMap is the current free tile provider, and the tile source can be swapped later if needed.
+            Tap the map or drag the marker to place the property accurately. OpenStreetMap is the
+            current free tile provider, and the tile source can be swapped later if needed.
           </p>
         </div>
         <button
@@ -28,7 +31,7 @@
             step="any"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             @input="handleCoordinateInput('latitude', $event)"
-          >
+          />
         </label>
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Longitude
@@ -38,11 +41,13 @@
             step="any"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             @input="handleCoordinateInput('longitude', $event)"
-          >
+          />
         </label>
       </div>
 
-      <div class="mt-4 rounded-[20px] bg-slate-50 px-4 py-4 text-sm text-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+      <div
+        class="mt-4 rounded-[20px] bg-slate-50 px-4 py-4 text-sm text-slate-700 dark:bg-slate-900/70 dark:text-slate-200"
+      >
         <p class="font-semibold">Current location summary</p>
         <p class="mt-2 leading-6">
           {{ locationSummary }}
@@ -114,7 +119,7 @@ onMounted(() => {
     scrollWheelZoom: false,
   }).setView(
     getMapCenter(props.latitude, props.longitude),
-    hasCoordinates(props.latitude, props.longitude) ? 15 : defaultPickerZoom,
+    hasCoordinates(props.latitude, props.longitude) ? 15 : defaultPickerZoom
   )
 
   createOsmTileLayer().addTo(map.value)
@@ -136,7 +141,7 @@ watch(
   () => [props.latitude, props.longitude] as const,
   () => {
     syncMarker()
-  },
+  }
 )
 
 function resetToDefaultCenter() {
@@ -165,7 +170,10 @@ function setCoordinates(latitude: number, longitude: number, recenter = false) {
   emit('update:longitude', Number(longitude.toFixed(6)))
 
   if (recenter) {
-    map.value?.setView([latitude, longitude], Math.max(map.value?.getZoom() ?? defaultPickerZoom, 15))
+    map.value?.setView(
+      [latitude, longitude],
+      Math.max(map.value?.getZoom() ?? defaultPickerZoom, 15)
+    )
   }
 }
 

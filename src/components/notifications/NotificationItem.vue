@@ -1,9 +1,11 @@
 <template>
   <article
     class="group relative px-4 py-5 transition sm:px-5"
-    :class="notification.readAt
-      ? 'bg-white hover:bg-slate-50/70 dark:bg-slate-900 dark:hover:bg-slate-800/60'
-      : 'bg-brand-50/45 hover:bg-brand-50/70 dark:bg-brand-500/[0.06] dark:hover:bg-brand-500/[0.10]'"
+    :class="
+      notification.readAt
+        ? 'bg-white hover:bg-slate-50/70 dark:bg-slate-900 dark:hover:bg-slate-800/60'
+        : 'bg-brand-50/45 hover:bg-brand-50/70 dark:bg-brand-500/[0.06] dark:hover:bg-brand-500/[0.10]'
+    "
   >
     <span
       v-if="!notification.readAt"
@@ -50,7 +52,9 @@
           <span class="rounded-md px-2.5 py-1 text-[11px] font-semibold" :class="toneClasses.badge">
             {{ typeLabel }}
           </span>
-          <span class="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <span
+            class="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
             {{ channelLabel }}
           </span>
           <button
@@ -125,7 +129,7 @@ const toneMap = {
 }
 
 const notificationIcon = computed(() =>
-  props.notification.channel === 'browser' ? browsersOutline : iconMap[props.notification.type],
+  props.notification.channel === 'browser' ? browsersOutline : iconMap[props.notification.type]
 )
 const toneClasses = computed(() => toneMap[props.notification.type])
 const typeLabel = computed(() => formatNotificationTypeLabel(props.notification.type))
@@ -134,6 +138,6 @@ const formattedDate = computed(() =>
   new Intl.DateTimeFormat('en-NG', {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(props.notification.createdAt)),
+  }).format(new Date(props.notification.createdAt))
 )
 </script>

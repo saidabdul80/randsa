@@ -31,25 +31,13 @@
 
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
-import {
-  addCircleOutline,
-  calendarOutline,
-  homeOutline,
-  personOutline,
-  searchOutline,
-} from 'ionicons/icons'
+import { addCircleOutline, calendarOutline, homeOutline, personOutline } from 'ionicons/icons'
 import { RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
 
 const navItems = [
   { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
-  {
-    label: 'Explore',
-    to: '/properties',
-    icon: searchOutline,
-    matchers: ['/properties', '/saved-properties'],
-  },
   {
     label: 'Add',
     to: '/add-property',

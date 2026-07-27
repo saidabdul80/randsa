@@ -31,10 +31,14 @@ interface AvailabilityResponse {
 const CACHE_DURATION_MS = 30_000
 const cache = new Map<string, { expiresAt: number; bookings: BookingAvailabilityBlock[] }>()
 
-function mapLocalBooking(booking: ReturnType<typeof listAllLocalBookings>[number]): BookingAvailabilityBlock {
-  const startAt = booking.startAt || new Date(`${booking.inspectionDate}T${booking.inspectionTime}`).toISOString()
+function mapLocalBooking(
+  booking: ReturnType<typeof listAllLocalBookings>[number]
+): BookingAvailabilityBlock {
+  const startAt =
+    booking.startAt || new Date(`${booking.inspectionDate}T${booking.inspectionTime}`).toISOString()
   const durationMinutes = booking.durationMinutes || 30
-  const endAt = booking.endAt || new Date(new Date(startAt).getTime() + durationMinutes * 60_000).toISOString()
+  const endAt =
+    booking.endAt || new Date(new Date(startAt).getTime() + durationMinutes * 60_000).toISOString()
 
   return {
     id: booking.id,
@@ -52,7 +56,7 @@ function mapLocalBooking(booking: ReturnType<typeof listAllLocalBookings>[number
 
 export async function loadKnownListingBookings(
   propertyId: string,
-  options: { force?: boolean } = {},
+  options: { force?: boolean } = {}
 ) {
   const cached = cache.get(propertyId)
   if (!options.force && cached && cached.expiresAt > Date.now()) {
@@ -71,7 +75,7 @@ export async function loadKnownListingBookings(
 
     const callable = httpsCallable<{ propertyId: string }, AvailabilityResponse>(
       functions,
-      'getBookingAvailability',
+      'getBookingAvailability'
     )
     const response = await callable({ propertyId })
     bookings = response.data.bookings
@@ -90,7 +94,7 @@ export function bookingRangesOverlap(
   firstEndAt: string,
   secondStartAt: string,
   secondEndAt: string,
-  bufferMinutes = 0,
+  bufferMinutes = 0
 ) {
   const bufferMs = bufferMinutes * 60_000
   const firstStart = new Date(firstStartAt).getTime() - bufferMs
@@ -103,16 +107,14 @@ export function bookingRangesOverlap(
 export function findBookingConflict(
   input: BookingInput,
   property: PropertyRecord,
-  bookings: BookingAvailabilityBlock[],
+  bookings: BookingAvailabilityBlock[]
 ) {
   const selection = normalizeBookingSelection(input, property)
   const config = getBookingModeConfig(resolveBookingMode(property))
   const bufferMinutes = property.availabilityConfig?.bufferMinutes ?? config.bufferMinutes
 
   const activeBookings = bookings.filter(
-    (booking) =>
-      booking.status !== 'cancelled' &&
-      booking.status !== 'completed',
+    (booking) => booking.status !== 'cancelled' && booking.status !== 'completed'
   )
 
   if (usesTimeSlotTimeline(selection.bookingMode)) {
@@ -122,27 +124,28 @@ export function findBookingConflict(
     const everyAgentIsOccupied = agentIds.every((agentId) =>
       activeBookings.some(
         (booking) =>
-          booking.agentId === agentId
-          && bookingRangesOverlap(
+          booking.agentId === agentId &&
+          bookingRangesOverlap(
             selection.startAt,
             selection.endAt,
             booking.startAt,
             booking.endAt,
-            bufferMinutes,
-          ),
-      ),
+            bufferMinutes
+          )
+      )
     )
-    return everyAgentIsOccupied ? activeBookings[0] ?? null : null
+    return everyAgentIsOccupied ? (activeBookings[0] ?? null) : null
   }
 
-  return activeBookings.find(
-    (booking) =>
+  return (
+    activeBookings.find((booking) =>
       bookingRangesOverlap(
         selection.startAt,
         selection.endAt,
         booking.startAt,
         booking.endAt,
-        bufferMinutes,
-      ),
-  ) ?? null
+        bufferMinutes
+      )
+    ) ?? null
+  )
 }

@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -12,7 +13,14 @@ import {
 } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 
-import { auth, authMode, db, firebaseConfigError, functions, isFirebaseConfigured } from '../lib/firebase'
+import {
+  auth,
+  authMode,
+  db,
+  firebaseConfigError,
+  functions,
+  isFirebaseConfigured,
+} from '../lib/firebase'
 import { requestFirebaseMessagingToken } from '../lib/messaging'
 import { getPropertyById } from './properties'
 import { listBookingsForUser, markBookingReminderSent } from './bookings'
@@ -38,7 +46,7 @@ function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before using notifications.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before using notifications.'
     )
   }
 
@@ -48,7 +56,7 @@ function ensureFirestoreReady() {
 function ensureFunctionsReady() {
   if (!functions) {
     throw new Error(
-      'Firebase Functions is not configured yet. Add your Firebase app config before sending notifications.',
+      'Firebase Functions is not configured yet. Add your Firebase app config before sending notifications.'
     )
   }
 
@@ -141,7 +149,7 @@ function hasDuplicateNotification(
   candidate: Pick<
     NotificationRecord,
     'userId' | 'type' | 'relatedBookingId' | 'relatedPaymentId' | 'relatedPropertyId'
-  >,
+  >
 ) {
   return notifications.some(
     (notification) =>
@@ -149,7 +157,7 @@ function hasDuplicateNotification(
       notification.type === candidate.type &&
       notification.relatedBookingId === candidate.relatedBookingId &&
       notification.relatedPaymentId === candidate.relatedPaymentId &&
-      notification.relatedPropertyId === candidate.relatedPropertyId,
+      notification.relatedPropertyId === candidate.relatedPropertyId
   )
 }
 
@@ -167,7 +175,7 @@ function mapFirestoreNotificationRecord(
     createdAt?: unknown
     deliveredAt?: unknown
     readAt?: unknown
-  },
+  }
 ) {
   return {
     id: notificationId,
@@ -190,7 +198,7 @@ function mapFirestoreNotificationTokenRecord(
   userId: string,
   data: Partial<NotificationTokenRecord> & {
     createdAt?: unknown
-  },
+  }
 ) {
   return {
     id: tokenId,
@@ -203,19 +211,68 @@ function mapFirestoreNotificationTokenRecord(
 
 export async function listNotificationsForUser(userId: string) {
   if (authMode === 'local') {
-    return sortNotifications(readNotifications().filter((notification) => notification.userId === userId))
+    return sortNotifications(
+      readNotifications().filter((notification) => notification.userId === userId)
+    )
   }
 
   const firestore = ensureFirestoreReady()
   const notificationsQuery = query(
     collection(firestore, 'notifications'),
     where('userId', '==', userId),
-    orderBy('createdAt', 'desc'),
+    orderBy('createdAt', 'desc')
   )
   const snapshot = await getDocs(notificationsQuery)
   return snapshot.docs.map((notificationDoc) =>
-    mapFirestoreNotificationRecord(notificationDoc.id, notificationDoc.data() as Partial<NotificationRecord>),
+    mapFirestoreNotificationRecord(
+      notificationDoc.id,
+      notificationDoc.data() as Partial<NotificationRecord>
+    )
   )
+}
+
+export function watchAllNotificationsForAdmin(
+  onChange: (records: NotificationRecord[]) => void,
+  onError: (error: Error) => void
+) {
+  if (authMode === 'local') {
+    const emitCurrent = () => onChange(sortNotifications(readNotifications()))
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === LOCAL_NOTIFICATIONS_KEY) emitCurrent()
+    }
+    emitCurrent()
+    window.addEventListener('storage', handleStorage)
+    const intervalId = window.setInterval(emitCurrent, 15000)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.clearInterval(intervalId)
+    }
+  }
+
+  try {
+    const firestore = ensureFirestoreReady()
+    const notificationsQuery = query(
+      collection(firestore, 'notifications'),
+      orderBy('createdAt', 'desc')
+    )
+    return onSnapshot(
+      notificationsQuery,
+      (snapshot) => {
+        onChange(
+          snapshot.docs.map((notificationDoc) =>
+            mapFirestoreNotificationRecord(
+              notificationDoc.id,
+              notificationDoc.data() as Partial<NotificationRecord>
+            )
+          )
+        )
+      },
+      (error) => onError(error)
+    )
+  } catch (error) {
+    onError(error instanceof Error ? error : new Error('Could not watch admin notifications.'))
+    return () => undefined
+  }
 }
 
 export async function listNotificationTokensForUser(userId: string) {
@@ -224,14 +281,17 @@ export async function listNotificationTokensForUser(userId: string) {
   }
 
   const firestore = ensureFirestoreReady()
-  const tokensQuery = query(collection(firestore, 'users', userId, 'tokens'), orderBy('createdAt', 'desc'))
+  const tokensQuery = query(
+    collection(firestore, 'users', userId, 'tokens'),
+    orderBy('createdAt', 'desc')
+  )
   const snapshot = await getDocs(tokensQuery)
   return snapshot.docs.map((tokenDoc) =>
     mapFirestoreNotificationTokenRecord(
       tokenDoc.id,
       userId,
-      tokenDoc.data() as Partial<NotificationTokenRecord>,
-    ),
+      tokenDoc.data() as Partial<NotificationTokenRecord>
+    )
   )
 }
 
@@ -256,7 +316,7 @@ export async function registerNotificationToken(userId: string) {
       return mapFirestoreNotificationTokenRecord(
         existing.id,
         userId,
-        existing.data() as Partial<NotificationTokenRecord>,
+        existing.data() as Partial<NotificationTokenRecord>
       )
     }
 
@@ -273,7 +333,7 @@ export async function registerNotificationToken(userId: string) {
     return mapFirestoreNotificationTokenRecord(
       createdSnapshot.id,
       userId,
-      createdSnapshot.data() as Partial<NotificationTokenRecord>,
+      createdSnapshot.data() as Partial<NotificationTokenRecord>
     )
   }
 
@@ -298,7 +358,7 @@ export async function registerNotificationToken(userId: string) {
 }
 
 export async function createNotificationRecord(
-  input: Omit<NotificationRecord, 'id' | 'createdAt' | 'deliveredAt' | 'readAt'>,
+  input: Omit<NotificationRecord, 'id' | 'createdAt' | 'deliveredAt' | 'readAt'>
 ) {
   if (authMode !== 'local') {
     const functionsInstance = ensureFunctionsReady()
@@ -319,7 +379,7 @@ export async function createNotificationRecord(
         notification.type === input.type &&
         notification.relatedBookingId === input.relatedBookingId &&
         notification.relatedPaymentId === input.relatedPaymentId &&
-        notification.relatedPropertyId === input.relatedPropertyId,
+        notification.relatedPropertyId === input.relatedPropertyId
     )!
   }
 
@@ -357,7 +417,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 
     const notification = mapFirestoreNotificationRecord(
       snapshot.id,
-      snapshot.data() as Partial<NotificationRecord>,
+      snapshot.data() as Partial<NotificationRecord>
     )
 
     if (notification.userId !== userId) {
@@ -369,7 +429,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 
   const notifications = readNotifications()
   const index = notifications.findIndex(
-    (notification) => notification.id === notificationId && notification.userId === userId,
+    (notification) => notification.id === notificationId && notification.userId === userId
   )
 
   if (index === -1) {
@@ -395,7 +455,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 export async function createBookingConfirmationNotification(
   user: UserProfile,
   booking: BookingRecord,
-  property: PropertyRecord,
+  property: PropertyRecord
 ) {
   const config = getBookingModeConfig(booking.bookingMode)
   const schedule = new Intl.DateTimeFormat('en-NG', {
@@ -416,7 +476,10 @@ export async function createBookingConfirmationNotification(
   })
 }
 
-export async function createPaymentConfirmationNotification(user: UserProfile, payment: PaymentRecord) {
+export async function createPaymentConfirmationNotification(
+  user: UserProfile,
+  payment: PaymentRecord
+) {
   return createNotificationRecord({
     userId: user.uid,
     type: 'payment_confirmation',

@@ -2,13 +2,12 @@
   <AppShell
     :show-header="false"
     :show-bottom-nav="false"
-    content-class="min-h-full w-full bg-white text-ink dark:bg-slate-950 dark:text-white"
+    content-class="min-h-full w-full text-ink dark:bg-slate-950 dark:text-white"
   >
-    <header
-      class="fixed inset-x-0 top-0 z-40 transition duration-300"
-      :class="headerSurfaceClass"
-    >
-      <div class="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 lg:px-12">
+    <header class="fixed inset-x-0 top-0 z-40 transition duration-300" :class="headerSurfaceClass">
+      <div
+        class="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-5 sm:px-8 lg:px-12"
+      >
         <RouterLink
           to="/home"
           class="text-2xl font-extrabold tracking-normal transition"
@@ -19,9 +18,11 @@
         </RouterLink>
         <nav
           class="hidden min-w-0 items-center text-sm font-semibold md:flex"
-          :class="isHeaderSearchOpen
-            ? 'relative flex-1 justify-center'
-            : 'absolute left-1/2 -translate-x-1/2 justify-center'"
+          :class="
+            isHeaderSearchOpen
+              ? 'relative flex-1 justify-center'
+              : 'absolute left-1/2 -translate-x-1/2 justify-center'
+          "
           aria-label="Home navigation"
           @keydown.esc="closeHeaderSearch"
         >
@@ -79,7 +80,12 @@
                     class="flex items-center gap-2 px-4 py-2.5 transition hover:bg-slate-100 dark:hover:bg-slate-800"
                     @click="handleNavigationClick(link.to, $event)"
                   >
-                    <IonIcon v-if="link.icon" :icon="link.icon" class="text-lg text-brand-600" aria-hidden="true" />
+                    <IonIcon
+                      v-if="link.icon"
+                      :icon="link.icon"
+                      class="text-lg text-brand-600"
+                      aria-hidden="true"
+                    />
                     {{ link.label }}
                   </RouterLink>
                 </div>
@@ -90,50 +96,68 @@
                 role="search"
                 @submit.prevent="submitHeaderSearch"
               >
-              <label class="flex h-full min-w-0 flex-[1.1] items-center px-2 lg:px-3">
-                <IonIcon :icon="locationOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
-                <input
-                  ref="headerSearchInputRef"
-                  v-model="search.city"
-                  type="search"
-                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none placeholder:text-slate-400 lg:text-sm"
-                  placeholder="City or street"
-                  aria-label="City or street"
-                >
-              </label>
+                <label class="flex h-full min-w-0 flex-[1.1] items-center px-2 lg:px-3">
+                  <IonIcon
+                    :icon="locationOutline"
+                    class="mr-2 shrink-0 text-base text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    ref="headerSearchInputRef"
+                    v-model="search.city"
+                    type="search"
+                    class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none placeholder:text-slate-400 lg:text-sm"
+                    placeholder="City or street"
+                    aria-label="City or street"
+                  />
+                </label>
 
-              <label class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3">
-                <IonIcon :icon="homeOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
-                <select
-                  v-model="search.type"
-                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
-                  aria-label="Type of rent"
+                <label
+                  class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3"
                 >
-                  <option value="">Type of rent</option>
-                  <option v-for="type in propertyTypes" :key="`header-${type}`" :value="type">{{ type }}</option>
-                </select>
-              </label>
+                  <IonIcon
+                    :icon="homeOutline"
+                    class="mr-2 shrink-0 text-base text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <select
+                    v-model="search.type"
+                    class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
+                    aria-label="Type of rent"
+                  >
+                    <option value="">Type of rent</option>
+                    <option v-for="type in propertyTypes" :key="`header-${type}`" :value="type">
+                      {{ type }}
+                    </option>
+                  </select>
+                </label>
 
-              <label class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3">
-                <IonIcon :icon="cashOutline" class="mr-2 shrink-0 text-base text-slate-400" aria-hidden="true" />
-                <select
-                  v-model="search.price"
-                  class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
-                  aria-label="Price"
+                <label
+                  class="flex h-7 min-w-0 flex-1 items-center border-l border-slate-200 px-2 lg:px-3"
                 >
-                  <option value="">Price</option>
-                  <option value="budget">Budget: NGN 5,000 - NGN 250,000</option>
-                  <option value="mid">Mid range: NGN 250,000 - NGN 1M</option>
-                  <option value="premium">Premium: NGN 1M and above</option>
-                </select>
-              </label>
+                  <IonIcon
+                    :icon="cashOutline"
+                    class="mr-2 shrink-0 text-base text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <select
+                    v-model="search.price"
+                    class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
+                    aria-label="Price"
+                  >
+                    <option value="">Price</option>
+                    <option value="budget">Budget: NGN 5,000 - NGN 250,000</option>
+                    <option value="mid">Mid range: NGN 250,000 - NGN 1M</option>
+                    <option value="premium">Premium: NGN 1M and above</option>
+                  </select>
+                </label>
 
-              <button
-                type="submit"
-                class="flex h-8 shrink-0 items-center justify-center rounded-full bg-ink px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:px-4"
-              >
-                Explore
-              </button>
+                <button
+                  type="submit"
+                  class="flex h-8 shrink-0 items-center justify-center rounded-full bg-ink px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:px-4"
+                >
+                  Explore
+                </button>
               </form>
 
               <button
@@ -147,16 +171,17 @@
                 <IonIcon :icon="closeOutline" class="text-xl" aria-hidden="true" />
               </button>
             </div>
-
           </div>
         </nav>
         <div class="flex items-center gap-2">
           <RouterLink
             to="/add-property"
             class="inline-flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden"
-            :class="isHeaderSolid || heroUsesDarkNavigation
-              ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200'
-              : 'bg-white text-brand-700'"
+            :class="
+              isHeaderSolid || heroUsesDarkNavigation
+                ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200'
+                : 'bg-white text-brand-700'
+            "
             title="Add property"
             aria-label="Add property"
           >
@@ -186,27 +211,37 @@
         :alt="slide.alt"
         class="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
         :class="activeSlideIndex === index ? 'opacity-100' : 'opacity-0'"
-      >
+      />
       <div
         class="absolute inset-x-0 bottom-0 bg-gradient-to-r transition-colors duration-500"
-        :class="heroUsesDarkNavigation
-          ? 'top-20 from-slate-950/68 via-slate-950/24 to-transparent'
-          : 'top-0 from-slate-950/82 via-slate-950/38 to-slate-950/16'"
+        :class="
+          heroUsesDarkNavigation
+            ? 'top-20 from-slate-950/68 via-slate-950/24 to-transparent'
+            : 'top-0 from-slate-950/82 via-slate-950/38 to-slate-950/16'
+        "
       />
-      <div class="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/54 to-transparent" />
+      <div
+        class="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-slate-950/54 to-transparent"
+      />
 
-      <div class="relative mx-auto flex min-h-[640px] w-full max-w-7xl flex-col px-5 pb-7 pt-24 sm:min-h-[700px] sm:px-8 lg:px-12">
+      <div
+        class="relative mx-auto flex min-h-[640px] w-full max-w-7xl flex-col px-5 pb-7 pt-24 sm:min-h-[700px] sm:px-8 lg:px-12"
+      >
         <div class="flex flex-1 flex-col justify-center pb-10 pt-8 sm:pt-14">
           <div class="max-w-3xl">
             <p
               class="mb-4 inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] ring-1 backdrop-blur-md"
-              :class="heroUsesDarkNavigation
-                ? 'bg-slate-950/48 text-slate-950 ring-white/30'
-                : 'bg-white/12 text-white ring-white/18'"
+              :class="
+                heroUsesDarkNavigation
+                  ? 'bg-slate-950/48 text-slate-950 ring-white/30'
+                  : 'bg-white/12 text-white ring-white/18'
+              "
             >
               {{ activeSlide.eyebrow }}
             </p>
-            <h1 class="max-w-3xl font-display text-5xl font-bold leading-[1.06] tracking-normal text-white sm:text-6xl lg:text-7xl">
+            <h1
+              class="max-w-3xl font-display text-5xl font-bold leading-[1.06] tracking-normal text-white sm:text-6xl lg:text-7xl"
+            >
               {{ activeSlide.title }}
             </h1>
             <p class="mt-6 max-w-2xl text-lg font-medium leading-8 text-white/86 sm:text-xl">
@@ -228,7 +263,9 @@
               :key="`${slide.title}-control`"
               type="button"
               class="h-2.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-              :class="activeSlideIndex === index ? 'w-8 bg-white' : 'w-2.5 bg-white/45 hover:bg-white/70'"
+              :class="
+                activeSlideIndex === index ? 'w-8 bg-white' : 'w-2.5 bg-white/45 hover:bg-white/70'
+              "
               :aria-label="`Show slide ${index + 1}: ${slide.eyebrow}`"
               :aria-current="activeSlideIndex === index ? 'true' : undefined"
               @click="showSlide(index)"
@@ -256,16 +293,20 @@
             class="mx-auto mt-5 grid w-full max-w-4xl gap-1 overflow-hidden rounded-[22px] bg-white p-2 shadow-xl shadow-slate-950/20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto] sm:items-center sm:rounded-full"
             @submit.prevent="submitSearch"
           >
-            <label class="flex min-h-11 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full">
+            <label
+              class="flex min-h-11 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full"
+            >
               <ion-icon :icon="locationOutline" class="text-xl text-slate-400" />
               <input
                 v-model="search.city"
                 type="text"
                 class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-500 sm:text-base"
                 placeholder="City or street"
-              >
+              />
             </label>
-            <label class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
+            <label
+              class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
+            >
               <ion-icon :icon="homeOutline" class="text-xl text-slate-400" />
               <select
                 v-model="search.type"
@@ -275,7 +316,9 @@
                 <option v-for="type in propertyTypes" :key="type" :value="type">{{ type }}</option>
               </select>
             </label>
-            <label class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l">
+            <label
+              class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
+            >
               <ion-icon :icon="cashOutline" class="text-xl text-slate-400" />
               <select
                 v-model="search.price"
@@ -305,8 +348,12 @@
     >
       <div class="flex items-end justify-between gap-4">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">RANDSA listings</p>
-          <h2 class="mt-2 text-3xl font-extrabold tracking-normal text-ink dark:text-white sm:text-4xl">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">
+            RANDSA listings
+          </p>
+          <h2
+            class="mt-2 text-3xl font-extrabold tracking-normal text-ink dark:text-white sm:text-4xl"
+          >
             Property Listings
           </h2>
         </div>
@@ -328,12 +375,18 @@
         class="mt-6"
         :listings="displayedHomepageProperties"
         :saved-property-ids="savedPropertyIds"
+        :compared-property-ids="comparedPropertyIds"
         :is-saving="isSavedActionLoading"
+        :show-listing-actions="true"
         @toggle-saved="handleToggleSavedProperty"
+        @quick-view="openQuickView"
+        @toggle-compare="handleToggleCompare"
       />
       <div v-else class="mt-8 border-y border-slate-200 py-12 text-center dark:border-slate-800">
         <h3 class="text-lg font-bold text-ink dark:text-white">No matching listings</h3>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">Clear the current filters to see all properties.</p>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">
+          Clear the current filters to see all properties.
+        </p>
         <button
           type="button"
           class="mt-5 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800"
@@ -342,7 +395,34 @@
           Clear filters
         </button>
       </div>
+
+      <RecentlyViewedProperties
+        :properties="recentlyViewedProperties"
+        @clear="clearRecentlyViewed"
+        @quick-view="openQuickView"
+      />
     </section>
+
+    <ListingQuickView
+      :is-open="Boolean(quickViewProperty)"
+      :property="quickViewProperty"
+      :is-saved="Boolean(quickViewProperty && savedPropertyIds.has(quickViewProperty.id))"
+      :is-compared="Boolean(quickViewProperty && comparedPropertyIds.has(quickViewProperty.id))"
+      :is-saving="isSavedActionLoading"
+      @close="quickViewProperty = null"
+      @toggle-saved="handleToggleSavedProperty"
+      @toggle-compare="handleToggleCompare"
+    />
+
+    <PropertyComparisonTray
+      placement="marketplace"
+      :properties="comparedProperties"
+      :saved-property-ids="savedPropertyIds"
+      :saving-property-id="savingPropertyId"
+      @remove="removeComparison"
+      @clear="clearComparison"
+      @toggle-saved="handleToggleSavedProperty"
+    />
   </AppShell>
 </template>
 
@@ -366,12 +446,17 @@ import {
 
 import AppShell from '../components/layout/AppShell.vue'
 import AdaptiveMarketplaceGrid from '../components/property/AdaptiveMarketplaceGrid.vue'
+import ListingQuickView from '../components/property/ListingQuickView.vue'
+import RecentlyViewedProperties from '../components/property/RecentlyViewedProperties.vue'
+import PropertyComparisonTray from '../components/property/details/PropertyComparisonTray.vue'
 import heroCarImage from '../assets/randsa-hero-car.png'
 import heroEventImage from '../assets/randsa-hero-event.png'
 import homeHeroImage from '../assets/randsa-hero-home.png'
 import heroHorsesImage from '../assets/randsa-hero-horses.png'
 import { ensureAuthReady, useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
+import { usePropertyComparison } from '../composables/usePropertyComparison'
+import { useRecentlyViewedProperties } from '../composables/useRecentlyViewedProperties'
 import { useSavedProperties } from '../composables/useSavedProperties'
 import type { PropertyRecord } from '../types/property'
 
@@ -384,6 +469,18 @@ const {
   refresh: refreshSavedProperties,
   toggleSavedProperty,
 } = useSavedProperties()
+const {
+  selectedPropertyIds,
+  toggle: toggleComparison,
+  remove: removeComparison,
+  clear: clearComparison,
+  prune: pruneComparison,
+} = usePropertyComparison()
+const {
+  recentlyViewedIds,
+  remember: rememberRecentlyViewed,
+  clear: clearRecentlyViewed,
+} = useRecentlyViewedProperties()
 const heroRef = ref<HTMLElement | null>(null)
 const searchFormRef = ref<HTMLFormElement | null>(null)
 const listingsRef = ref<HTMLElement | null>(null)
@@ -397,12 +494,15 @@ const isHeaderSearchOpen = ref(false)
 const isHeaderSearchRequested = ref(false)
 const isHeaderMenuOpen = ref(false)
 const listingActionMessage = ref('')
+const quickViewProperty = ref<PropertyRecord | null>(null)
+const savingPropertyId = ref('')
 
 const heroSlides = [
   {
     eyebrow: 'Home rentals',
     title: 'Finding Your New Home Is Simple',
-    description: 'High-quality rental listings with search, inspection booking, payments, and reminders in one polished flow.',
+    description:
+      'High-quality rental listings with search, inspection booking, payments, and reminders in one polished flow.',
     image: homeHeroImage,
     alt: 'Modern rental home glowing at dusk',
     navigationText: 'light',
@@ -418,7 +518,8 @@ const heroSlides = [
   {
     eyebrow: 'Event rentals',
     title: 'A Setting Worth Celebrating',
-    description: 'Rent an elegant event setting for celebrations, receptions, and memorable gatherings.',
+    description:
+      'Rent an elegant event setting for celebrations, receptions, and memorable gatherings.',
     image: heroEventImage,
     alt: 'Elegant outdoor event marquee prepared for a celebration',
     navigationText: 'light',
@@ -426,7 +527,8 @@ const heroSlides = [
   {
     eyebrow: 'Equestrian rentals',
     title: 'Ride Into Something Memorable',
-    description: 'Rent a calm countryside horse experience for a day that feels refreshingly different.',
+    description:
+      'Rent a calm countryside horse experience for a day that feels refreshingly different.',
     image: heroHorsesImage,
     alt: 'Two beautiful horses standing together on a green field',
     navigationText: 'dark',
@@ -465,8 +567,10 @@ const navigationLinkClass = computed(() => {
 })
 
 const headerSearchButtonClass = computed(() => {
-  if (isHeaderSolid.value) return 'bg-slate-100 text-slate-800 hover:bg-brand-50 hover:text-brand-700 dark:bg-slate-800 dark:text-white'
-  if (heroUsesDarkNavigation.value) return 'bg-white/55 text-slate-950 ring-1 ring-black/10 hover:bg-white/75'
+  if (isHeaderSolid.value)
+    return 'bg-slate-100 text-slate-800 hover:bg-brand-50 hover:text-brand-700 dark:bg-slate-800 dark:text-white'
+  if (heroUsesDarkNavigation.value)
+    return 'bg-white/55 text-slate-950 ring-1 ring-black/10 hover:bg-white/75'
   return 'bg-white/15 text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/25'
 })
 
@@ -479,7 +583,15 @@ const desktopLinks = [
   { label: 'Account Center', to: '/profile', icon: null },
 ]
 
-const propertyTypes = ['House rent', 'Shop rent', 'Office space', 'Apartment', 'Flat', 'Duplex', 'Cars']
+const propertyTypes = [
+  'House rent',
+  'Shop rent',
+  'Office space',
+  'Apartment',
+  'Flat',
+  'Duplex',
+  'Cars',
+]
 
 const search = reactive({
   city: '',
@@ -635,16 +747,44 @@ const additionalDesignedProperties = [
   },
 ]
 
-const savedPropertyIds = computed(() => new Set(
-  savedRecords.value.map((record) => record.propertyId),
-))
+const savedPropertyIds = computed(
+  () => new Set(savedRecords.value.map((record) => record.propertyId))
+)
+const comparedPropertyIds = computed(() => new Set(selectedPropertyIds.value))
+const marketplacePropertyRecords = computed(() => {
+  const currentUserId = state.user?.uid
+
+  return properties.value.filter(
+    (property) => property.status === 'approved' || property.ownerId === currentUserId
+  )
+})
+const comparedProperties = computed(() =>
+  selectedPropertyIds.value
+    .map((propertyId) =>
+      marketplacePropertyRecords.value.find((property) => property.id === propertyId)
+    )
+    .filter((property): property is PropertyRecord => Boolean(property))
+)
+const recentlyViewedProperties = computed(() =>
+  recentlyViewedIds.value
+    .map((propertyId) =>
+      marketplacePropertyRecords.value.find((property) => property.id === propertyId)
+    )
+    .filter((property): property is PropertyRecord => Boolean(property))
+    .slice(0, 5)
+)
 
 watch(
   () => state.profile?.uid ?? state.user?.uid,
   (userId) => {
     refreshSavedProperties(userId)
   },
-  { immediate: true },
+  { immediate: true }
+)
+
+watch(
+  () => marketplacePropertyRecords.value.map((property) => property.id).join('|'),
+  () => pruneComparison(marketplacePropertyRecords.value.map((property) => property.id))
 )
 
 const homepageProperties = computed(() => {
@@ -653,7 +793,7 @@ const homepageProperties = computed(() => {
     ? properties.value.filter((property) => property.ownerId === currentUserId)
     : []
   const approvedProperties = properties.value.filter(
-    (property) => property.status === 'approved' && property.ownerId !== currentUserId,
+    (property) => property.status === 'approved' && property.ownerId !== currentUserId
   )
   const liveProperties = [...ownProperties, ...approvedProperties].slice(0, 2)
   const baseProperties = [
@@ -697,8 +837,8 @@ const displayedHomepageProperties = computed(() => {
 
   return homepageProperties.value.filter((property) => {
     if (
-      locationQuery
-      && !`${property.title} ${property.location}`.toLowerCase().includes(locationQuery)
+      locationQuery &&
+      !`${property.title} ${property.location}`.toLowerCase().includes(locationQuery)
     ) {
       return false
     }
@@ -709,9 +849,10 @@ const displayedHomepageProperties = computed(() => {
 
     if (appliedSearch.price === 'budget' && property.numericPrice > 250_000) return false
     if (
-      appliedSearch.price === 'mid'
-      && (property.numericPrice <= 250_000 || property.numericPrice > 1_000_000)
-    ) return false
+      appliedSearch.price === 'mid' &&
+      (property.numericPrice <= 250_000 || property.numericPrice > 1_000_000)
+    )
+      return false
     if (appliedSearch.price === 'premium' && property.numericPrice <= 1_000_000) return false
 
     return true
@@ -733,12 +874,9 @@ onMounted(async () => {
 
   await nextTick()
   const ionContent = heroRef.value?.closest('ion-content') as
-    | (HTMLElement & { getScrollElement?: () => Promise<HTMLElement> })
-    | null
+    (HTMLElement & { getScrollElement?: () => Promise<HTMLElement> }) | null
 
-  homeScrollElement = ionContent?.getScrollElement
-    ? await ionContent.getScrollElement()
-    : null
+  homeScrollElement = ionContent?.getScrollElement ? await ionContent.getScrollElement() : null
   homeScrollElement?.addEventListener('scroll', updateHeaderState, { passive: true })
   updateHeaderState()
 
@@ -769,9 +907,7 @@ function updateHeaderState() {
   const searchRect = searchFormRef.value?.getBoundingClientRect()
   const viewportHeight = homeScrollElement?.clientHeight ?? window.innerHeight
   const heroSearchIsVisible = Boolean(
-    searchRect
-    && searchRect.bottom > 64
-    && searchRect.top < viewportHeight,
+    searchRect && searchRect.bottom > 64 && searchRect.top < viewportHeight
   )
   const heroSearchJustLeft = wasHeroSearchVisible && !heroSearchIsVisible
   const hasSearchValues = Boolean(search.city.trim() || search.type || search.price)
@@ -876,7 +1012,7 @@ function scrollToListings(behavior: ScrollBehavior = 'smooth') {
 
   const targetTop = Math.max(
     homeScrollElement.scrollTop + listingsRef.value.getBoundingClientRect().top - 64,
-    0,
+    0
   )
   homeScrollElement.scrollTo({ top: targetTop, behavior })
 }
@@ -942,6 +1078,7 @@ async function handleToggleSavedProperty(property: PropertyRecord) {
   const userId = state.profile?.uid ?? state.user?.uid
   const wasSaved = savedPropertyIds.value.has(property.id)
   listingActionMessage.value = ''
+  savingPropertyId.value = property.id
 
   try {
     await toggleSavedProperty(userId, property)
@@ -949,10 +1086,26 @@ async function handleToggleSavedProperty(property: PropertyRecord) {
       ? `${property.title} was removed from your saved properties.`
       : `${property.title} was added to your saved properties.`
   } catch (error) {
-    listingActionMessage.value = error instanceof Error
-      ? error.message
-      : 'Could not update your saved properties.'
+    listingActionMessage.value =
+      error instanceof Error ? error.message : 'Could not update your saved properties.'
+  } finally {
+    savingPropertyId.value = ''
   }
+}
+
+function openQuickView(property: PropertyRecord) {
+  quickViewProperty.value = property
+  rememberRecentlyViewed(property.id)
+}
+
+function handleToggleCompare(property: PropertyRecord) {
+  const result = toggleComparison(property.id)
+  listingActionMessage.value =
+    result === 'limit'
+      ? 'You can compare up to three listings.'
+      : result === 'added'
+        ? `${property.title} was added to comparison.`
+        : `${property.title} was removed from comparison.`
 }
 
 function formatCurrency(value: number) {

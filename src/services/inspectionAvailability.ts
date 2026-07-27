@@ -4,11 +4,7 @@ import {
   type BookingAvailabilityBlock,
 } from './bookingAvailability'
 
-export type InspectionAvailabilityState =
-  | 'available'
-  | 'limited'
-  | 'fully_booked'
-  | 'disabled'
+export type InspectionAvailabilityState = 'available' | 'limited' | 'fully_booked' | 'disabled'
 
 export interface InspectionVacationPeriod {
   startDate: string
@@ -60,7 +56,7 @@ const KNOWN_BOOKINGS_CACHE_DURATION_MS = 30_000
 const knownBookingsCache = new Map<string, KnownBookingsCacheEntry>()
 
 export function createDefaultInspectionAvailabilityConfig(
-  primaryAgentId: string,
+  primaryAgentId: string
 ): InspectionAvailabilityConfig {
   return {
     agents: [
@@ -83,7 +79,7 @@ export function createDefaultInspectionAvailabilityConfig(
 export async function loadKnownPropertyInspectionBookings(
   _userId: string,
   propertyId: string,
-  options: { force?: boolean } = {},
+  options: { force?: boolean } = {}
 ) {
   const cacheKey = `${_userId}:${propertyId}`
   const cached = knownBookingsCache.get(cacheKey)
@@ -111,7 +107,7 @@ export function calculateInspectionDateAvailability(
   dateIso: string,
   config: InspectionAvailabilityConfig,
   propertyBookings: BookingAvailabilityBlock[],
-  now = new Date(),
+  now = new Date()
 ): InspectionDateAvailability {
   const date = parseIsoDate(dateIso)
   const today = startOfDay(now)
@@ -121,13 +117,15 @@ export function calculateInspectionDateAvailability(
     return buildUnavailableDate(dateIso, 'Past date', estimatedDurationMinutes)
   }
 
-  const scheduledAgents = config.agents.filter((agent) => isAgentScheduledForDate(agent, dateIso, date))
+  const scheduledAgents = config.agents.filter((agent) =>
+    isAgentScheduledForDate(agent, dateIso, date)
+  )
 
   if (!scheduledAgents.length) {
     return buildUnavailableDate(
       dateIso,
       'Inspections are unavailable on this date',
-      estimatedDurationMinutes,
+      estimatedDurationMinutes
     )
   }
 
@@ -135,7 +133,7 @@ export function calculateInspectionDateAvailability(
     (booking) =>
       booking.inspectionDate === dateIso &&
       booking.status !== 'cancelled' &&
-      booking.status !== 'completed',
+      booking.status !== 'completed'
   )
   const slotMap = new Map<
     string,
@@ -158,14 +156,15 @@ export function calculateInspectionDateAvailability(
       slot.totalAgentCapacity += 1
       totalCapacity += 1
 
-      const isPastTime = dateIso === formatIsoDate(now) && timeToMinutes(value) <= currentMinutes(now)
+      const isPastTime =
+        dateIso === formatIsoDate(now) && timeToMinutes(value) <= currentMinutes(now)
       const isOccupied = agentBookings.some((booking) =>
         timeRangesOverlap(
           value,
           agent.inspectionDurationMinutes,
           booking.inspectionTime,
-          agent.inspectionDurationMinutes,
-        ),
+          agent.inspectionDurationMinutes
+        )
       )
 
       if (!reachedDailyLimit && !isPastTime && !isOccupied) {
@@ -245,7 +244,7 @@ export function formatInspectionDuration(minutes: number) {
 function buildUnavailableDate(
   date: string,
   description: string,
-  estimatedDurationMinutes: number,
+  estimatedDurationMinutes: number
 ): InspectionDateAvailability {
   return {
     date,
@@ -266,7 +265,7 @@ function isAgentScheduledForDate(agent: InspectionAgentSchedule, dateIso: string
   }
 
   return !agent.vacationPeriods.some(
-    (period) => dateIso >= period.startDate && dateIso <= period.endDate,
+    (period) => dateIso >= period.startDate && dateIso <= period.endDate
   )
 }
 
@@ -291,7 +290,7 @@ function timeRangesOverlap(
   firstStart: string,
   firstDuration: number,
   secondStart: string,
-  secondDuration: number,
+  secondDuration: number
 ) {
   const firstStartMinutes = timeToMinutes(firstStart)
   const secondStartMinutes = timeToMinutes(secondStart)

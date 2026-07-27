@@ -1,11 +1,6 @@
 import bookingModeData from '../../shared/booking-modes.json'
 
-import type {
-  BookingInput,
-  BookingMode,
-  BookingPricingUnit,
-  BookingRecord,
-} from '../types/booking'
+import type { BookingInput, BookingMode, BookingPricingUnit, BookingRecord } from '../types/booking'
 import type { PaymentDuration, PropertyRecord } from '../types/property'
 
 export type BookingSelectionKind = 'time_slot' | 'date_time_range' | 'same_day_range'
@@ -53,7 +48,14 @@ const inspectionAliases = [
 ]
 const commercialAliases = ['shop', 'shop rent', 'office', 'office space']
 const vehicleAliases = ['car', 'cars', 'vehicle', 'vehicles', 'car rental', 'vehicle rental']
-const eventAliases = ['event', 'event space', 'event spaces', 'event centre', 'event center', 'venue']
+const eventAliases = [
+  'event',
+  'event space',
+  'event spaces',
+  'event centre',
+  'event center',
+  'venue',
+]
 const horseAliases = ['horse', 'horses', 'horse rental', 'horse rentals', 'equestrian']
 
 function normalizeCategory(value: unknown) {
@@ -69,7 +71,7 @@ function includesAlias(value: string, aliases: string[]) {
 }
 
 export function resolveBookingMode(
-  listing: Pick<PropertyRecord, 'propertyType' | 'category'> | null | undefined,
+  listing: Pick<PropertyRecord, 'propertyType' | 'category'> | null | undefined
 ): BookingMode {
   const propertyType = normalizeCategory(listing?.propertyType)
   const category = normalizeCategory(listing?.category)
@@ -111,7 +113,7 @@ export function usesTimeSlotTimeline(mode: BookingMode) {
 
 export function getBookingPricingUnit(
   paymentDuration: PaymentDuration,
-  mode: BookingMode,
+  mode: BookingMode
 ): BookingPricingUnit {
   const unitMap: Partial<Record<PaymentDuration, BookingPricingUnit>> = {
     hourly: 'per_hour',
@@ -127,7 +129,7 @@ export function getBookingPricingUnit(
 
   return isInspectionMode(mode)
     ? 'per_inspection'
-    : unitMap[paymentDuration] ?? getBookingModeConfig(mode).defaultPricingUnit
+    : (unitMap[paymentDuration] ?? getBookingModeConfig(mode).defaultPricingUnit)
 }
 
 function parseLocalDateTime(date: string, time: string) {
@@ -143,7 +145,7 @@ export function calculateBookingPrice(
   property: Pick<PropertyRecord, 'rentPrice' | 'inspectionFee' | 'paymentDuration'>,
   mode: BookingMode,
   durationMinutes: number,
-  quantity = 1,
+  quantity = 1
 ) {
   const pricingUnit = getBookingPricingUnit(property.paymentDuration, mode)
   const safeQuantity = Math.max(1, Math.floor(quantity || 1))
@@ -173,22 +175,24 @@ export function calculateBookingPrice(
 
 export function normalizeBookingSelection(
   input: BookingInput,
-  property: PropertyRecord,
+  property: PropertyRecord
 ): NormalizedBookingSelection {
   const bookingMode = resolveBookingMode(property)
   const config = getBookingModeConfig(bookingMode)
   const startAt = parseLocalDateTime(input.inspectionDate, input.inspectionTime)
 
   if (!startAt) {
-    throw new Error(`Select a valid ${config.dateLabel.toLowerCase()} and ${config.startTimeLabel.toLowerCase()}.`)
+    throw new Error(
+      `Select a valid ${config.dateLabel.toLowerCase()} and ${config.startTimeLabel.toLowerCase()}.`
+    )
   }
 
   let endAt: Date
   if (usesTimeSlotTimeline(bookingMode)) {
     const configuredDuration = property.availabilityConfig?.agents?.[0]?.inspectionDurationMinutes
     endAt = new Date(
-      startAt.getTime()
-      + (input.durationMinutes ?? configuredDuration ?? config.defaultDurationMinutes) * 60_000,
+      startAt.getTime() +
+        (input.durationMinutes ?? configuredDuration ?? config.defaultDurationMinutes) * 60_000
     )
   } else {
     const endDate = config.selectionKind === 'same_day_range' ? input.inspectionDate : input.endDate
@@ -229,8 +233,8 @@ export function validateUniversalBookingInput(input: BookingInput, property: Pro
     throw new Error('Choose a booking time in the future.')
   }
 
-  const minimumDuration = property.availabilityConfig?.minimumDurationMinutes
-    ?? config.minimumDurationMinutes
+  const minimumDuration =
+    property.availabilityConfig?.minimumDurationMinutes ?? config.minimumDurationMinutes
   if (selection.durationMinutes < minimumDuration) {
     throw new Error(`The minimum booking duration is ${minimumDuration} minutes.`)
   }
@@ -238,7 +242,7 @@ export function validateUniversalBookingInput(input: BookingInput, property: Pro
   const endDate = input.endDate || input.inspectionDate
   if (
     (property.availabilityConfig?.blockedDates ?? []).some(
-      (date) => date >= input.inspectionDate && date <= endDate,
+      (date) => date >= input.inspectionDate && date <= endDate
     )
   ) {
     throw new Error('The selected booking period includes an unavailable date.')

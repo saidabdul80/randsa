@@ -5,10 +5,15 @@
   >
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div>
-        <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">Local data cleanup</p>
-        <h3 class="mt-2 text-lg font-bold text-ink dark:text-white">Migrate older browser-only records into Firebase</h3>
+        <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">
+          Local data cleanup
+        </p>
+        <h3 class="mt-2 text-lg font-bold text-ink dark:text-white">
+          Migrate older browser-only records into Firebase
+        </h3>
         <p class="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">
-          This moves local properties, bookings, and agent verification records owned by the current signed-in account into Firestore so they appear across devices and admin review screens.
+          This moves local properties, bookings, and agent verification records owned by the current
+          signed-in account into Firestore so they appear across devices and admin review screens.
         </p>
       </div>
 
@@ -24,21 +29,28 @@
 
     <div v-if="preview" class="mt-5 grid gap-3 md:grid-cols-3">
       <article class="rounded-[20px] bg-white/80 px-4 py-4 dark:bg-slate-950/60">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">Properties</p>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
+          Properties
+        </p>
         <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">
           {{ preview.properties.eligible }} eligible of {{ preview.properties.detected }} detected
         </p>
       </article>
       <article class="rounded-[20px] bg-white/80 px-4 py-4 dark:bg-slate-950/60">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">Bookings</p>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
+          Bookings
+        </p>
         <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">
           {{ preview.bookings.eligible }} eligible of {{ preview.bookings.detected }} detected
         </p>
       </article>
       <article class="rounded-[20px] bg-white/80 px-4 py-4 dark:bg-slate-950/60">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">Verification</p>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
+          Verification
+        </p>
         <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">
-          {{ preview.verifications.eligible }} eligible of {{ preview.verifications.detected }} detected
+          {{ preview.verifications.eligible }} eligible of
+          {{ preview.verifications.detected }} detected
         </p>
       </article>
     </div>
@@ -46,9 +58,11 @@
     <div
       v-if="message"
       class="mt-4 rounded-[20px] border px-4 py-4 text-sm"
-      :class="messageTone === 'success'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
-        : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'"
+      :class="
+        messageTone === 'success'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+          : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'
+      "
     >
       {{ message }}
     </div>
@@ -117,7 +131,7 @@ watch(
         error instanceof Error ? error.message : 'Could not inspect local records for migration.'
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 async function handleMigrate() {

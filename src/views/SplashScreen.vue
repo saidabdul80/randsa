@@ -284,7 +284,10 @@ const showcaseItems = [
   background: #ffffff;
   color: #1f6fe7;
   box-shadow: 0 12px 28px -20px rgba(16, 32, 51, 0.6);
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .category-item:hover .category-icon {
@@ -315,8 +318,12 @@ const showcaseItems = [
   font-size: 14px;
   font-weight: 800;
   text-decoration: none;
-  transition: transform 200ms ease, background-color 200ms ease, border-color 200ms ease,
-    box-shadow 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
 }
 
 .continue-button {
@@ -399,7 +406,9 @@ const showcaseItems = [
   box-shadow: 0 22px 50px -34px rgba(16, 32, 51, 0.55);
   animation: card-enter 480ms ease-out both;
   animation-delay: var(--delay);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .showcase-card:hover {

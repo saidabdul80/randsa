@@ -1,13 +1,26 @@
 <template>
-  <div ref="gridRef" class="adaptive-marketplace-grid" role="list" aria-label="Property listings">
+  <div
+    ref="gridRef"
+    class="adaptive-marketplace-grid"
+    :class="`adaptive-marketplace-grid--${displayMode}`"
+    role="list"
+    aria-label="Property listings"
+  >
     <MarketplaceListingCard
       v-for="item in resolvedListings"
       :key="item.listing.key"
       :listing="item.listing"
       :layout="item.layout"
       :is-saved="Boolean(item.listing.id && savedPropertyIds.has(item.listing.id))"
+      :is-compared="Boolean(item.listing.id && comparedPropertyIds?.has(item.listing.id))"
+      :is-highlighted="item.listing.id === highlightedPropertyId"
       :is-saving="isSaving"
+      :show-listing-actions="showListingActions"
+      :display-mode="displayMode"
       @toggle-saved="$emit('toggle-saved', $event)"
+      @quick-view="$emit('quick-view', $event)"
+      @toggle-compare="$emit('toggle-compare', $event)"
+      @highlight="$emit('highlight', $event)"
     />
   </div>
 </template>
@@ -52,14 +65,29 @@ interface ListingLayout {
   emphasis: 'standard' | 'featured'
 }
 
-const props = defineProps<{
-  listings: MarketplaceListing[]
-  savedPropertyIds: Set<string>
-  isSaving: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    listings: MarketplaceListing[]
+    savedPropertyIds: Set<string>
+    comparedPropertyIds?: Set<string>
+    highlightedPropertyId?: string
+    isSaving: boolean
+    showListingActions?: boolean
+    displayMode?: 'grid' | 'list' | 'split'
+  }>(),
+  {
+    comparedPropertyIds: undefined,
+    highlightedPropertyId: '',
+    showListingActions: false,
+    displayMode: 'grid',
+  }
+)
 
 defineEmits<{
   'toggle-saved': [property: PropertyRecord]
+  'quick-view': [property: PropertyRecord]
+  'toggle-compare': [property: PropertyRecord]
+  highlight: [propertyId: string]
 }>()
 
 const gridRef = ref<HTMLElement | null>(null)
@@ -67,9 +95,8 @@ let cardResizeObserver: ResizeObserver | null = null
 let layoutFrame: number | null = null
 
 const resolvedListings = computed(() => {
-  const wideLimit = props.listings.length < 4
-    ? 0
-    : Math.max(1, Math.round(props.listings.length * 0.2))
+  const wideLimit =
+    props.listings.length < 4 ? 0 : Math.max(1, Math.round(props.listings.length * 0.2))
   const desktopWideCards = resolveWideCards(props.listings, 4, wideLimit)
   const largeDesktopWideCards = resolveWideCards(props.listings, 5, wideLimit)
   const narrowWideIndex = props.listings.findIndex((listing) => listing.canSpanWide)
@@ -81,9 +108,8 @@ const resolvedListings = computed(() => {
     const useDesktopWideLayout = desktopPosition !== null
     const useLargeDesktopWideLayout = largeDesktopPosition !== null
     const useNarrowWideLayout = index === narrowWideIndex && wideLimit > 0
-    const usesAnyWideLayout = useDesktopWideLayout
-      || useLargeDesktopWideLayout
-      || useNarrowWideLayout
+    const usesAnyWideLayout =
+      useDesktopWideLayout || useLargeDesktopWideLayout || useNarrowWideLayout
 
     return {
       listing,
@@ -105,7 +131,7 @@ const resolvedListings = computed(() => {
 watch(
   () => props.listings.map((listing) => listing.key).join('|'),
   () => reconnectObserver(),
-  { flush: 'post' },
+  { flush: 'post' }
 )
 
 onMounted(() => {
@@ -127,11 +153,7 @@ function resolveVariant(identity: string): MarketplaceVariant {
   return 'property'
 }
 
-function resolveWideCards(
-  listings: MarketplaceListing[],
-  columnCount: 4 | 5,
-  wideLimit: number,
-) {
+function resolveWideCards(listings: MarketplaceListing[], columnCount: 4 | 5, wideLimit: number) {
   const wideCards = new Map<number, 'left' | 'right'>()
   if (!wideLimit) return wideCards
 
@@ -142,10 +164,11 @@ function resolveWideCards(
 
   listings.forEach((listing, index) => {
     const desiredCursor = placeOnLeft ? 0 : columnCount - 2
-    const canUseWideCard = listing.canSpanWide
-      && columnCursor === desiredCursor
-      && index - lastWideIndex >= minimumGap
-      && wideCards.size < wideLimit
+    const canUseWideCard =
+      listing.canSpanWide &&
+      columnCursor === desiredCursor &&
+      index - lastWideIndex >= minimumGap &&
+      wideCards.size < wideLimit
 
     if (canUseWideCard) {
       wideCards.set(index, placeOnLeft ? 'left' : 'right')
@@ -201,28 +224,40 @@ function updateMasonryRows() {
   if (!grid) return
 
   const gridStyle = window.getComputedStyle(grid)
-  const rowHeight = Number.parseFloat(gridStyle.gridAutoRows) || 8
-  const rowGap = Number.parseFloat(gridStyle.rowGap) || 16
-  const columnCount = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+  const rowHeight = Number.parseFloat(gridStyle.gridAutoRows) || 1
+  const itemGap = Number.parseFloat(gridStyle.getPropertyValue('--marketplace-masonry-gap')) || 16
+  const columnCount =
+    Number.parseInt(gridStyle.getPropertyValue('--marketplace-column-count'), 10) || 2
 
   const measurements = Array.from(
     grid.querySelectorAll<HTMLElement>('.marketplace-card'),
     (card) => {
-      const cardHeight = card.getBoundingClientRect().height
-      const rowSpan = Math.max(1, Math.ceil((cardHeight + rowGap) / (rowHeight + rowGap)))
-      return { card, rowSpan }
-    },
-  )
+      const cardLayout = resolveRenderedCardLayout(card, columnCount)
+      const span = Math.min(cardLayout.span, columnCount)
+
+      card.classList.toggle('marketplace-card--rendered-wide', span === 2)
+      card.style.gridColumn = `span ${span}`
+      card.style.gridRow = 'auto'
+
+      return { card, cardLayout, span }
+    }
+  ).map(({ card, cardLayout, span }) => {
+    const cardHeight = card.getBoundingClientRect().height
+    const rowSpan = Math.max(1, Math.ceil((cardHeight + itemGap) / rowHeight))
+    return { card, cardLayout, span, rowSpan }
+  })
 
   const columnEndRows = Array.from({ length: columnCount }, () => 1)
   let columnCursor = 0
 
-  measurements.forEach(({ card, rowSpan }) => {
-    const cardLayout = resolveRenderedCardLayout(card, columnCount)
-    const span = Math.min(cardLayout.span, columnCount)
-    const columnStart = span === 2
-      ? resolveWideColumnStart(cardLayout.position, columnCount, columnCursor)
-      : columnCursor
+  measurements.forEach(({ card, cardLayout, span, rowSpan }) => {
+    const columnStart = resolveMasonryColumnStart(
+      cardLayout.position,
+      span,
+      columnCount,
+      columnEndRows,
+      columnCursor
+    )
     const rowStart = Math.max(...columnEndRows.slice(columnStart, columnStart + span))
     const nextColumnEnd = rowStart + rowSpan
 
@@ -263,25 +298,45 @@ function resolveRenderedCardLayout(card: HTMLElement, columnCount: number) {
   return { span: Number(card.dataset.mobileSpan) || 1, position: null }
 }
 
-function resolveWideColumnStart(
+function resolveMasonryColumnStart(
   position: string | null,
+  span: number,
   columnCount: number,
-  columnCursor: number,
+  columnEndRows: number[],
+  columnCursor: number
 ) {
-  if (position === 'left') return 0
-  if (position === 'right') return columnCount - 2
-  return Math.min(columnCursor, columnCount - 2)
+  const starts = Array.from({ length: columnCount - span + 1 }, (_, index) => index)
+  const earliestRow = Math.min(
+    ...starts.map((start) => Math.max(...columnEndRows.slice(start, start + span)))
+  )
+  const earliestStarts = starts.filter(
+    (start) => Math.max(...columnEndRows.slice(start, start + span)) === earliestRow
+  )
+  const preferredStart = position === 'left' ? 0 : position === 'right' ? columnCount - span : null
+
+  if (preferredStart !== null && earliestStarts.includes(preferredStart)) {
+    return preferredStart
+  }
+
+  return earliestStarts.reduce((best, start) => {
+    const bestDistance = (best - columnCursor + columnCount) % columnCount
+    const startDistance = (start - columnCursor + columnCount) % columnCount
+    return startDistance < bestDistance ? start : best
+  })
 }
 </script>
 
 <style scoped>
 .adaptive-marketplace-grid {
+  --marketplace-column-count: 2;
+  --marketplace-masonry-gap: 16px;
+
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-flow: row;
-  grid-auto-rows: 8px;
+  grid-auto-rows: 1px;
   column-gap: 12px;
-  row-gap: 16px;
+  row-gap: 0;
   align-items: start;
 }
 
@@ -294,21 +349,51 @@ function resolveWideColumnStart(
 
 @media (min-width: 768px) {
   .adaptive-marketplace-grid {
+    --marketplace-column-count: 3;
+
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .adaptive-marketplace-grid--list {
+    --marketplace-column-count: 1;
+
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
   .adaptive-marketplace-grid {
+    --marketplace-column-count: 4;
+    --marketplace-masonry-gap: 18px;
+
     grid-template-columns: repeat(4, minmax(0, 1fr));
     column-gap: 18px;
-    row-gap: 18px;
+  }
+
+  .adaptive-marketplace-grid--split {
+    --marketplace-column-count: 2;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1255px) {
   .adaptive-marketplace-grid {
+    --marketplace-column-count: 5;
+
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .adaptive-marketplace-grid--list {
+    --marketplace-column-count: 1;
+
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adaptive-marketplace-grid--split {
+    --marketplace-column-count: 2;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

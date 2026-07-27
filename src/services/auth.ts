@@ -160,7 +160,7 @@ function getFirebaseServices() {
   if (!isFirebaseConfigured || !auth || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before using authentication.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before using authentication.'
     )
   }
 
@@ -188,7 +188,10 @@ function buildDisplayNameFromUser(user: User) {
     return trimmedName
   }
 
-  const emailName = user.email?.split('@')[0]?.replace(/[._-]+/g, ' ').trim()
+  const emailName = user.email
+    ?.split('@')[0]
+    ?.replace(/[._-]+/g, ' ')
+    .trim()
 
   if (emailName) {
     return emailName
@@ -346,10 +349,7 @@ function signInWithPopupWithTimeout(auth: Auth, provider: GoogleAuthProvider, ti
 
 function shouldFallbackGooglePopupToRedirect(error: unknown) {
   const code =
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof error.code === 'string'
+    typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
       ? error.code
       : ''
 
@@ -371,7 +371,7 @@ async function finalizeGoogleSignInCredential(
   options?: {
     phone?: string
     role?: Exclude<UserRole, 'admin'>
-  },
+  }
 ) {
   const isNewUser = Boolean(getAdditionalUserInfo(credential)?.isNewUser)
 
@@ -391,7 +391,7 @@ async function ensureFirebaseUserProfile(
   options?: {
     phone?: string
     role?: Exclude<UserRole, 'admin'>
-  },
+  }
 ) {
   const { db } = getFirebaseServices()
   const snapshot = await getDoc(doc(db, 'users', user.uid))
@@ -443,16 +443,18 @@ export function toDisplayError(error: unknown, context: 'default' | 'google' = '
       'wrong-password': 'The password is incorrect.',
       'invalid-credential': 'The email or password is incorrect.',
       'weak-password': 'Use a stronger password with at least 6 characters.',
-      'network-request-failed': context === 'google'
-        ? 'Network error. Google sign-in could not reach Google services in time. Check your connection, allow Google scripts/popups, and try again.'
-        : 'Network error. Firebase Authentication could not be reached. Check your connection and try again.',
+      'network-request-failed':
+        context === 'google'
+          ? 'Network error. Google sign-in could not reach Google services in time. Check your connection, allow Google scripts/popups, and try again.'
+          : 'Network error. Firebase Authentication could not be reached. Check your connection and try again.',
       'too-many-requests': 'Too many attempts. Please wait a little and try again.',
       'popup-closed-by-user':
         'The Google sign-in popup was closed before sign-in finished. If your browser closed it automatically, use Google redirect sign-in instead.',
       'popup-blocked': 'The browser blocked the Google sign-in popup. Allow popups and try again.',
       'popup-timeout':
         'Google popup sign-in took too long to respond. Use Google redirect sign-in or continue with email and password for now.',
-      'cancelled-popup-request': 'Another sign-in popup is already open. Finish that one or try again.',
+      'cancelled-popup-request':
+        'Another sign-in popup is already open. Finish that one or try again.',
       'account-exists-with-different-credential':
         'This email already exists with a different sign-in method. Try signing in with the original method first.',
     }
@@ -538,7 +540,7 @@ export async function loginUser(email: string, password: string) {
   if (authMode === 'local') {
     const normalizedEmail = email.trim().toLowerCase()
     const matchedUser = readLocalUsers().find(
-      (user) => user.email === normalizedEmail && user.password === password,
+      (user) => user.email === normalizedEmail && user.password === password
     )
 
     if (!matchedUser) {
@@ -600,7 +602,7 @@ export async function signInWithGoogle(options?: {
         clearGoogleRedirectContext()
         clearGoogleFlowState()
         throw new Error(
-          'Google sign-in could not finish in popup mode. Check your connection, allow Google popups/cookies, and try again.',
+          'Google sign-in could not finish in popup mode. Check your connection, allow Google popups/cookies, and try again.'
         )
       }
     }
@@ -781,7 +783,7 @@ export async function getUserProfilesByIds(userIds: string[]) {
       } catch {
         return null
       }
-    }),
+    })
   )
 
   return profiles.reduce<Record<string, UserProfile>>((result, profile) => {
@@ -818,6 +820,6 @@ export async function listAllUserProfiles() {
     sanitizeProfile({
       uid: userDoc.id,
       ...(userDoc.data() as Partial<UserProfile>),
-    }),
+    })
   )
 }

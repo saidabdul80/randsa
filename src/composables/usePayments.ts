@@ -33,7 +33,7 @@ export function usePayments() {
     property: PropertyRecord,
     paymentType: PaymentType,
     amount: number,
-    bookingId: string | null = null,
+    bookingId: string | null = null
   ) {
     isLoading.value = true
     error.value = ''
@@ -53,7 +53,7 @@ export function usePayments() {
   async function finishLocalPayment(
     paymentId: string,
     userId: string,
-    status: 'success' | 'failed',
+    status: 'success' | 'failed'
   ) {
     isLoading.value = true
     error.value = ''
@@ -71,11 +71,7 @@ export function usePayments() {
     }
   }
 
-  async function verifyPayment(
-    paymentId: string,
-    userId: string,
-    reference: string,
-  ) {
+  async function verifyPayment(paymentId: string, userId: string, reference: string) {
     isLoading.value = true
     error.value = ''
 

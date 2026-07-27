@@ -32,9 +32,17 @@ export interface ListingFormConfig {
 
 const propertyMoneyFields: ListingMoneyFieldConfig[] = [
   { key: 'rentPrice', label: 'Rent price', help: 'The main rental amount.' },
-  { key: 'inspectionFee', label: 'Inspection fee', help: 'Enter zero when no inspection fee applies.' },
+  {
+    key: 'inspectionFee',
+    label: 'Inspection fee',
+    help: 'Enter zero when no inspection fee applies.',
+  },
   { key: 'agencyFee', label: 'Agency fee', help: 'Enter zero when no agency fee applies.' },
-  { key: 'cautionFee', label: 'Caution fee', help: 'Refundable or protective deposit, when applicable.' },
+  {
+    key: 'cautionFee',
+    label: 'Caution fee',
+    help: 'Refundable or protective deposit, when applicable.',
+  },
 ]
 
 const configurations: Record<PropertyCategory, ListingFormConfig> = {
@@ -64,7 +72,15 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
       'Access road and nearby landmarks',
       'The type of tenant the property suits',
     ],
-    imageGuidance: ['Exterior', 'Living room', 'Bedrooms', 'Kitchen', 'Bathrooms', 'Compound', 'Street view'],
+    imageGuidance: [
+      'Exterior',
+      'Living room',
+      'Bedrooms',
+      'Kitchen',
+      'Bathrooms',
+      'Compound',
+      'Street view',
+    ],
   },
   commercial: {
     category: 'commercial',
@@ -101,9 +117,26 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
     propertyTypes: ['Land'],
     paymentDurations: ['fixed', 'monthly', 'yearly', 'custom'],
     moneyFields: [propertyMoneyFields[0], propertyMoneyFields[2], propertyMoneyFields[3]],
-    suggestedAmenities: ['Road access', 'Fenced', 'Survey available', 'Water access', 'Electricity nearby'],
-    descriptionPrompts: ['Land size and shape', 'Road and utility access', 'Nearby landmarks', 'Suitable use and known conditions'],
-    imageGuidance: ['Full plot', 'Boundary points', 'Road access', 'Surrounding area', 'Nearby landmarks'],
+    suggestedAmenities: [
+      'Road access',
+      'Fenced',
+      'Survey available',
+      'Water access',
+      'Electricity nearby',
+    ],
+    descriptionPrompts: [
+      'Land size and shape',
+      'Road and utility access',
+      'Nearby landmarks',
+      'Suitable use and known conditions',
+    ],
+    imageGuidance: [
+      'Full plot',
+      'Boundary points',
+      'Road access',
+      'Surrounding area',
+      'Nearby landmarks',
+    ],
   },
   vehicle: {
     category: 'vehicle',
@@ -163,7 +196,15 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
       'Power supply, parking, chairs, and tables',
       'Setup access, opening time, and closing rules',
     ],
-    imageGuidance: ['Main hall', 'Stage', 'Seating', 'Exterior', 'Parking', 'Restrooms', 'Changing rooms'],
+    imageGuidance: [
+      'Main hall',
+      'Stage',
+      'Seating',
+      'Exterior',
+      'Parking',
+      'Restrooms',
+      'Changing rooms',
+    ],
   },
   horse: {
     category: 'horse',
@@ -173,7 +214,11 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
     propertyTypes: ['Horse rental'],
     paymentDurations: ['hourly', 'per_session', 'daily', 'custom'],
     moneyFields: [
-      { key: 'rentPrice', label: 'Session rate', help: 'The amount for the selected session unit.' },
+      {
+        key: 'rentPrice',
+        label: 'Session rate',
+        help: 'The amount for the selected session unit.',
+      },
       { key: 'cautionFee', label: 'Security deposit', help: 'Enter zero when no deposit applies.' },
     ],
     suggestedAmenities: [
@@ -204,9 +249,25 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
       { key: 'rentPrice', label: 'Rental rate', help: 'The amount for the selected pricing unit.' },
       { key: 'cautionFee', label: 'Security deposit', help: 'Enter zero when no deposit applies.' },
     ],
-    suggestedAmenities: ['Delivery available', 'Setup included', 'Support included', 'Flexible pickup'],
-    descriptionPrompts: ['Item condition and quantity', 'What is included', 'Pickup or delivery arrangement', 'Rental conditions and return expectations'],
-    imageGuidance: ['Full item', 'Multiple angles', 'Included accessories', 'Condition details', 'Packaging or storage'],
+    suggestedAmenities: [
+      'Delivery available',
+      'Setup included',
+      'Support included',
+      'Flexible pickup',
+    ],
+    descriptionPrompts: [
+      'Item condition and quantity',
+      'What is included',
+      'Pickup or delivery arrangement',
+      'Rental conditions and return expectations',
+    ],
+    imageGuidance: [
+      'Full item',
+      'Multiple angles',
+      'Included accessories',
+      'Condition details',
+      'Packaging or storage',
+    ],
   },
 }
 
@@ -216,14 +277,13 @@ export const listingCategoryOptions = Object.values(configurations).map((config)
 }))
 
 export function categoryForPropertyType(propertyType: PropertyType): PropertyCategory {
-  const match = Object.values(configurations).find((config) => config.propertyTypes.includes(propertyType))
+  const match = Object.values(configurations).find((config) =>
+    config.propertyTypes.includes(propertyType)
+  )
   return match?.category ?? 'other'
 }
 
-export function resolveListingFormConfig(
-  category: PropertyCategory,
-  propertyType?: PropertyType,
-) {
+export function resolveListingFormConfig(category: PropertyCategory, propertyType?: PropertyType) {
   if (propertyType) {
     const resolvedCategory = categoryForPropertyType(propertyType)
     if (resolvedCategory === category) return configurations[resolvedCategory]

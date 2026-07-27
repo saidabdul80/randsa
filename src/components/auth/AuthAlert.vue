@@ -21,15 +21,18 @@ const props = withDefaults(
   }>(),
   {
     tone: 'info',
-  },
+  }
 )
 
-const toneIcon = computed(() => ({
-  info: informationCircleOutline,
-  warning: warningOutline,
-  error: alertCircleOutline,
-  success: checkmarkCircleOutline,
-})[props.tone])
+const toneIcon = computed(
+  () =>
+    ({
+      info: informationCircleOutline,
+      warning: warningOutline,
+      error: alertCircleOutline,
+      success: checkmarkCircleOutline,
+    })[props.tone]
+)
 </script>
 
 <style scoped>

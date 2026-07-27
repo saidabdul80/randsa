@@ -2,11 +2,7 @@ import type { PropertyRecord } from './property'
 import type { BookingRecord } from './booking'
 
 export type PaymentType =
-  | 'inspection_fee'
-  | 'rent_deposit'
-  | 'full_rent_payment'
-  | 'service_fee'
-  | 'booking_payment'
+  'inspection_fee' | 'rent_deposit' | 'full_rent_payment' | 'service_fee' | 'booking_payment'
 
 export type PaymentStatus = 'pending' | 'success' | 'failed'
 export type PaymentVerificationMode = 'local_bypass' | 'backend_required' | 'backend_verified'
@@ -80,7 +76,7 @@ export function formatNaira(value: number) {
 export function getSuggestedPaymentAmount(
   property: PropertyRecord,
   type: PaymentType,
-  booking: BookingRecord | null = null,
+  booking: BookingRecord | null = null
 ) {
   if (type === 'booking_payment') {
     return booking?.estimatedTotal ?? 0
@@ -103,14 +99,14 @@ export function getSuggestedPaymentAmount(
 
 export function buildPaymentTypeOptions(
   property: PropertyRecord,
-  booking: BookingRecord | null = null,
+  booking: BookingRecord | null = null
 ): PaymentTypeOption[] {
   return (Object.keys(paymentLabelMap) as PaymentType[])
     .filter((type) => type !== 'booking_payment' || Boolean(booking?.estimatedTotal))
     .map((type) => ({
-    type,
-    label: paymentLabelMap[type],
-    description: paymentDescriptionMap[type],
-    amount: getSuggestedPaymentAmount(property, type, booking),
-  }))
+      type,
+      label: paymentLabelMap[type],
+      description: paymentDescriptionMap[type],
+      amount: getSuggestedPaymentAmount(property, type, booking),
+    }))
 }

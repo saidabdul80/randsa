@@ -57,21 +57,24 @@ function startReadyFallbackTimer() {
     return
   }
 
-  readyFallbackTimer = window.setTimeout(() => {
-    if (state.isReady) {
-      return
-    }
+  readyFallbackTimer = window.setTimeout(
+    () => {
+      if (state.isReady) {
+        return
+      }
 
-    state.isLoading = false
+      state.isLoading = false
 
-    if (!state.error) {
-      state.error =
-        getPendingGoogleAuthMessage() ||
-        'Authentication is taking longer than expected. The app is continuing with a safe fallback state.'
-    }
+      if (!state.error) {
+        state.error =
+          getPendingGoogleAuthMessage() ||
+          'Authentication is taking longer than expected. The app is continuing with a safe fallback state.'
+      }
 
-    markReady()
-  }, hasPendingGoogleAuthFlow() ? 12000 : 4000)
+      markReady()
+    },
+    hasPendingGoogleAuthFlow() ? 12000 : 4000
+  )
 }
 
 async function syncAuthState() {
@@ -192,7 +195,7 @@ export function initializeAuthState() {
         state.error = toDisplayError(error)
         state.isLoading = false
         markReady()
-      },
+      }
     )
   })()
 }

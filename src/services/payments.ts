@@ -14,7 +14,12 @@ import { httpsCallable } from 'firebase/functions'
 import { authMode, db, firebaseConfigError, functions, isFirebaseConfigured } from '../lib/firebase'
 import { isLocalPaymentBypassEnabled, paystackPublicKey } from '../lib/payments'
 import type { PropertyRecord } from '../types/property'
-import type { VerifyPaymentResult, PaymentRecord, PaymentStatus, PaymentType } from '../types/payment'
+import type {
+  VerifyPaymentResult,
+  PaymentRecord,
+  PaymentStatus,
+  PaymentType,
+} from '../types/payment'
 import type { UserProfile } from '../types/user'
 
 const LOCAL_PAYMENTS_KEY = 'randsa.local.payments'
@@ -61,7 +66,7 @@ function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before using payments.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before using payments.'
     )
   }
 
@@ -71,7 +76,7 @@ function ensureFirestoreReady() {
 function ensureFunctionsReady() {
   if (!functions) {
     throw new Error(
-      'Firebase Functions is not configured yet. Add your Firebase app config before verifying payments.',
+      'Firebase Functions is not configured yet. Add your Firebase app config before verifying payments.'
     )
   }
 
@@ -92,7 +97,7 @@ function mapDocToPaymentRecord(
     createdAt?: unknown
     verifiedAt?: unknown
     gatewayVerifiedAt?: unknown
-  },
+  }
 ) {
   const createdAt = normalizeTimestampLike(data.createdAt) ?? ''
   const verifiedAt = normalizeTimestampLike(data.verifiedAt)
@@ -111,7 +116,8 @@ function mapDocToPaymentRecord(
     paymentType: (data.paymentType ?? 'inspection_fee') as PaymentType,
     paystackReference: data.paystackReference ?? '',
     status: (data.status ?? 'pending') as PaymentStatus,
-    verificationMode: (data.verificationMode ?? 'backend_required') as PaymentRecord['verificationMode'],
+    verificationMode: (data.verificationMode ??
+      'backend_required') as PaymentRecord['verificationMode'],
     createdAt,
     verifiedAt,
     gatewayStatus: data.gatewayStatus ? String(data.gatewayStatus) : null,
@@ -121,9 +127,15 @@ function mapDocToPaymentRecord(
 
 async function getPaymentsByQuery(constraints: ReturnType<typeof where>[]) {
   const firestore = ensureFirestoreReady()
-  const paymentQuery = query(collection(firestore, 'payments'), ...constraints, orderBy('createdAt', 'desc'))
+  const paymentQuery = query(
+    collection(firestore, 'payments'),
+    ...constraints,
+    orderBy('createdAt', 'desc')
+  )
   const snapshot = await getDocs(paymentQuery)
-  return snapshot.docs.map((paymentDoc) => mapDocToPaymentRecord(paymentDoc.id, paymentDoc.data() as Partial<PaymentRecord>))
+  return snapshot.docs.map((paymentDoc) =>
+    mapDocToPaymentRecord(paymentDoc.id, paymentDoc.data() as Partial<PaymentRecord>)
+  )
 }
 
 export async function listPaymentsForUser(userId: string) {
@@ -146,26 +158,23 @@ export async function listPaymentsForUserAndProperty(userId: string, propertyId:
   if (authMode === 'local') {
     return sortPayments(
       readPayments().filter(
-        (payment) => payment.userId === userId && payment.propertyId === propertyId,
-      ),
+        (payment) => payment.userId === userId && payment.propertyId === propertyId
+      )
     )
   }
 
-  return getPaymentsByQuery([
-    where('userId', '==', userId),
-    where('propertyId', '==', propertyId),
-  ])
+  return getPaymentsByQuery([where('userId', '==', userId), where('propertyId', '==', propertyId)])
 }
 
 export async function findLatestPaymentForUserProperty(
   userId: string,
   propertyId: string,
-  paymentType?: PaymentType,
+  paymentType?: PaymentType
 ) {
   const payments = await listPaymentsForUserAndProperty(userId, propertyId)
   return paymentType
-    ? payments.find((payment) => payment.paymentType === paymentType) ?? null
-    : payments[0] ?? null
+    ? (payments.find((payment) => payment.paymentType === paymentType) ?? null)
+    : (payments[0] ?? null)
 }
 
 export async function getPaymentById(paymentId: string) {
@@ -185,7 +194,7 @@ export async function createPaymentRecord(
   property: PropertyRecord,
   paymentType: PaymentType,
   amount: number,
-  bookingId: string | null = null,
+  bookingId: string | null = null
 ) {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Payment amount must be greater than zero.')
@@ -197,7 +206,7 @@ export async function createPaymentRecord(
 
   if (!isLocalPaymentBypassEnabled && !paystackPublicKey) {
     throw new Error(
-      'Paystack public key is missing. Add VITE_PAYSTACK_PUBLIC_KEY before creating a live payment reference.',
+      'Paystack public key is missing. Add VITE_PAYSTACK_PUBLIC_KEY before creating a live payment reference.'
     )
   }
 
@@ -255,17 +264,17 @@ export async function createPaymentRecord(
 export async function completeLocalPayment(
   paymentId: string,
   userId: string,
-  status: Extract<PaymentStatus, 'success' | 'failed'>,
+  status: Extract<PaymentStatus, 'success' | 'failed'>
 ) {
   if (!isLocalPaymentBypassEnabled) {
     throw new Error(
-      'Local payment completion is disabled. The next step is wiring real backend verification with Paystack.',
+      'Local payment completion is disabled. The next step is wiring real backend verification with Paystack.'
     )
   }
 
   const payments = readPayments()
   const targetIndex = payments.findIndex(
-    (payment) => payment.id === paymentId && payment.userId === userId,
+    (payment) => payment.id === paymentId && payment.userId === userId
   )
 
   if (targetIndex === -1) {
@@ -288,7 +297,9 @@ export async function completeLocalPayment(
 
 export async function verifyPaymentWithBackend(paymentId: string, reference: string) {
   if (authMode === 'local') {
-    throw new Error('Backend payment verification is unavailable while local payment bypass is active.')
+    throw new Error(
+      'Backend payment verification is unavailable while local payment bypass is active.'
+    )
   }
 
   const functionsInstance = ensureFunctionsReady()

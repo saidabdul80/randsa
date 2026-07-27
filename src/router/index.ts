@@ -18,7 +18,6 @@ export function createRouter() {
         path: '/login',
         name: 'login',
         component: () => import('../views/LoginPage.vue'),
-        meta: { guestOnly: true },
       },
       {
         path: '/register',
@@ -29,7 +28,7 @@ export function createRouter() {
       {
         path: '/properties',
         name: 'properties',
-        redirect: (to) => ({ path: '/home', hash: '#listings', query: to.query }),
+        redirect: () => ({ path: '/home', hash: '#listings' }),
       },
       {
         path: '/properties/:propertyId',
@@ -108,7 +107,7 @@ export function createRouter() {
       to.meta.guestOnly ||
       to.meta.requiresAdmin ||
       to.meta.requiresPropertyManager ||
-      to.meta.requiresAgent,
+      to.meta.requiresAgent
     )
 
     if (needsResolvedAuth) {

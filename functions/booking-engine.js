@@ -12,7 +12,14 @@ const INSPECTION_ALIASES = [
 ]
 const COMMERCIAL_ALIASES = ['shop', 'shop rent', 'office', 'office space']
 const VEHICLE_ALIASES = ['car', 'cars', 'vehicle', 'vehicles', 'car rental', 'vehicle rental']
-const EVENT_ALIASES = ['event', 'event space', 'event spaces', 'event centre', 'event center', 'venue']
+const EVENT_ALIASES = [
+  'event',
+  'event space',
+  'event spaces',
+  'event centre',
+  'event center',
+  'venue',
+]
 const HORSE_ALIASES = ['horse', 'horses', 'horse rental', 'horse rentals', 'equestrian']
 
 function normalizeCategory(value) {
@@ -31,11 +38,14 @@ function resolveBookingMode(listing) {
   const propertyType = normalizeCategory(listing?.propertyType)
   const category = normalizeCategory(listing?.category)
 
-  if (includesAlias(propertyType, COMMERCIAL_ALIASES) || category === 'commercial') return 'commercial_inspection'
-  if (includesAlias(propertyType, VEHICLE_ALIASES) || category === 'vehicle') return 'vehicle_rental'
+  if (includesAlias(propertyType, COMMERCIAL_ALIASES) || category === 'commercial')
+    return 'commercial_inspection'
+  if (includesAlias(propertyType, VEHICLE_ALIASES) || category === 'vehicle')
+    return 'vehicle_rental'
   if (includesAlias(propertyType, EVENT_ALIASES) || category === 'event') return 'event_booking'
   if (includesAlias(propertyType, HORSE_ALIASES) || category === 'horse') return 'horse_session'
-  if (includesAlias(propertyType, INSPECTION_ALIASES) || category === 'residential') return 'property_inspection'
+  if (includesAlias(propertyType, INSPECTION_ALIASES) || category === 'residential')
+    return 'property_inspection'
   return 'generic_rental'
 }
 
@@ -53,9 +63,10 @@ function usesTimeSlotTimeline(mode) {
 
 function getAvailabilityConfig(property, mode) {
   const modeConfig = getBookingModeConfig(mode)
-  const source = property?.availabilityConfig && typeof property.availabilityConfig === 'object'
-    ? property.availabilityConfig
-    : {}
+  const source =
+    property?.availabilityConfig && typeof property.availabilityConfig === 'object'
+      ? property.availabilityConfig
+      : {}
   const sourceAgents = Array.isArray(source.agents) ? source.agents : []
   const defaultAgent = {
     agentId: String(property?.ownerId || ''),
@@ -74,29 +85,45 @@ function getAvailabilityConfig(property, mode) {
     workingDays: Array.isArray(agent?.workingDays)
       ? agent.workingDays.map(Number).filter((day) => day >= 0 && day <= 6)
       : defaultAgent.workingDays,
-    startTime: /^\d{2}:\d{2}$/.test(String(agent?.startTime || '')) ? agent.startTime : defaultAgent.startTime,
-    endTime: /^\d{2}:\d{2}$/.test(String(agent?.endTime || '')) ? agent.endTime : defaultAgent.endTime,
+    startTime: /^\d{2}:\d{2}$/.test(String(agent?.startTime || ''))
+      ? agent.startTime
+      : defaultAgent.startTime,
+    endTime: /^\d{2}:\d{2}$/.test(String(agent?.endTime || ''))
+      ? agent.endTime
+      : defaultAgent.endTime,
     slotIntervalMinutes: Math.max(1, Number(agent?.slotIntervalMinutes) || 30),
-    inspectionDurationMinutes: Math.max(1, Number(agent?.inspectionDurationMinutes) || modeConfig.defaultDurationMinutes),
-    maximumInspectionsPerDay: Math.max(1, Number(agent?.maximumInspectionsPerDay) || defaultAgent.maximumInspectionsPerDay),
-    unavailableDates: Array.isArray(agent?.unavailableDates) ? agent.unavailableDates.map(String) : [],
+    inspectionDurationMinutes: Math.max(
+      1,
+      Number(agent?.inspectionDurationMinutes) || modeConfig.defaultDurationMinutes
+    ),
+    maximumInspectionsPerDay: Math.max(
+      1,
+      Number(agent?.maximumInspectionsPerDay) || defaultAgent.maximumInspectionsPerDay
+    ),
+    unavailableDates: Array.isArray(agent?.unavailableDates)
+      ? agent.unavailableDates.map(String)
+      : [],
     vacationPeriods: Array.isArray(agent?.vacationPeriods) ? agent.vacationPeriods : [],
   }))
 
   return {
     agents,
     blockedDates: Array.isArray(source.blockedDates) ? source.blockedDates.map(String) : [],
-    bufferMinutes: source.bufferMinutes === null || source.bufferMinutes === undefined
-      ? modeConfig.bufferMinutes
-      : Math.max(0, Number(source.bufferMinutes) || 0),
-    minimumDurationMinutes: source.minimumDurationMinutes === null || source.minimumDurationMinutes === undefined
-      ? modeConfig.minimumDurationMinutes
-      : Math.max(1, Number(source.minimumDurationMinutes) || modeConfig.minimumDurationMinutes),
+    bufferMinutes:
+      source.bufferMinutes === null || source.bufferMinutes === undefined
+        ? modeConfig.bufferMinutes
+        : Math.max(0, Number(source.bufferMinutes) || 0),
+    minimumDurationMinutes:
+      source.minimumDurationMinutes === null || source.minimumDurationMinutes === undefined
+        ? modeConfig.minimumDurationMinutes
+        : Math.max(1, Number(source.minimumDurationMinutes) || modeConfig.minimumDurationMinutes),
   }
 }
 
 function timeToMinutes(value) {
-  const [hours = 0, minutes = 0] = String(value || '').split(':').map(Number)
+  const [hours = 0, minutes = 0] = String(value || '')
+    .split(':')
+    .map(Number)
   return hours * 60 + minutes
 }
 
@@ -108,9 +135,15 @@ function getEligibleAgentSchedules(property, selection, input) {
   const startMinute = timeToMinutes(input?.inspectionTime)
 
   return availability.agents.filter((agent) => {
-    if (!agent.agentId || !agent.workingDays.includes(day) || agent.unavailableDates.includes(date)) return false
+    if (!agent.agentId || !agent.workingDays.includes(day) || agent.unavailableDates.includes(date))
+      return false
     if (availability.blockedDates.includes(date)) return false
-    if (agent.vacationPeriods.some((period) => date >= String(period.startDate || '') && date <= String(period.endDate || ''))) return false
+    if (
+      agent.vacationPeriods.some(
+        (period) => date >= String(period.startDate || '') && date <= String(period.endDate || '')
+      )
+    )
+      return false
     if (startMinute < timeToMinutes(agent.startTime)) return false
     if (startMinute + selection.durationMinutes > timeToMinutes(agent.endTime)) return false
     return startMinute % agent.slotIntervalMinutes === 0
@@ -165,21 +198,27 @@ function normalizeBookingSelection(input, property) {
   const bookingMode = resolveBookingMode(property)
   const config = getBookingModeConfig(bookingMode)
   const startAt = parseBookingDateTime(input?.inspectionDate, input?.inspectionTime)
-  if (!startAt) throw new Error(`Select a valid ${config.dateLabel.toLowerCase()} and ${config.startTimeLabel.toLowerCase()}.`)
+  if (!startAt)
+    throw new Error(
+      `Select a valid ${config.dateLabel.toLowerCase()} and ${config.startTimeLabel.toLowerCase()}.`
+    )
 
   let endAt
   if (usesTimeSlotTimeline(bookingMode)) {
     const availability = getAvailabilityConfig(property, bookingMode)
     const configuredDuration = availability.agents[0]?.inspectionDurationMinutes
     const requestedDuration = Number(input?.durationMinutes)
-    const duration = Number.isFinite(requestedDuration) && requestedDuration > 0
-      ? requestedDuration
-      : configuredDuration || config.defaultDurationMinutes
+    const duration =
+      Number.isFinite(requestedDuration) && requestedDuration > 0
+        ? requestedDuration
+        : configuredDuration || config.defaultDurationMinutes
     endAt = new Date(startAt.getTime() + duration * 60000)
   } else {
-    const endDate = config.selectionKind === 'same_day_range' ? input?.inspectionDate : input?.endDate
+    const endDate =
+      config.selectionKind === 'same_day_range' ? input?.inspectionDate : input?.endDate
     endAt = parseBookingDateTime(endDate, input?.endTime)
-    if (!endAt) throw new Error(`Select a valid ${config.endTimeLabel?.toLowerCase() || 'end time'}.`)
+    if (!endAt)
+      throw new Error(`Select a valid ${config.endTimeLabel?.toLowerCase() || 'end time'}.`)
   }
 
   const durationMinutes = Math.max(0, Math.round((endAt.getTime() - startAt.getTime()) / 60000))
@@ -195,15 +234,20 @@ function normalizeBookingSelection(input, property) {
 }
 
 function validateBookingSelection(input, property, now = new Date()) {
-  if (property?.isAvailable !== true) throw new Error('This listing is not currently available for booking.')
-  if (!String(input?.guestPhone || '').trim()) throw new Error('Add a customer phone number before saving the booking.')
+  if (property?.isAvailable !== true)
+    throw new Error('This listing is not currently available for booking.')
+  if (!String(input?.guestPhone || '').trim())
+    throw new Error('Add a customer phone number before saving the booking.')
 
   const selection = normalizeBookingSelection(input, property)
   const config = getBookingModeConfig(selection.bookingMode)
   const availability = getAvailabilityConfig(property, selection.bookingMode)
-  if (selection.startAt.getTime() <= now.getTime()) throw new Error('Choose a booking time in the future.')
+  if (selection.startAt.getTime() <= now.getTime())
+    throw new Error('Choose a booking time in the future.')
   if (selection.durationMinutes < availability.minimumDurationMinutes) {
-    throw new Error(`The minimum booking duration is ${availability.minimumDurationMinutes} minutes.`)
+    throw new Error(
+      `The minimum booking duration is ${availability.minimumDurationMinutes} minutes.`
+    )
   }
 
   const endDate = String(input?.endDate || input?.inspectionDate || '')
@@ -222,12 +266,18 @@ function validateBookingSelection(input, property, now = new Date()) {
 
 function rangesOverlap(firstStart, firstEnd, secondStart, secondEnd, bufferMinutes = 0) {
   const bufferMs = bufferMinutes * 60000
-  return firstStart.getTime() - bufferMs < secondEnd.getTime()
-    && secondStart.getTime() < firstEnd.getTime() + bufferMs
+  return (
+    firstStart.getTime() - bufferMs < secondEnd.getTime() &&
+    secondStart.getTime() < firstEnd.getTime() + bufferMs
+  )
 }
 
 function getBookingRange(data) {
-  let startAt = data?.startAt?.toDate ? data.startAt.toDate() : data?.startAt ? new Date(data.startAt) : null
+  let startAt = data?.startAt?.toDate
+    ? data.startAt.toDate()
+    : data?.startAt
+      ? new Date(data.startAt)
+      : null
   if (!startAt || Number.isNaN(startAt.getTime())) {
     startAt = parseBookingDateTime(data?.inspectionDate, data?.inspectionTime)
   }
@@ -235,14 +285,21 @@ function getBookingRange(data) {
 
   let endAt = data?.endAt?.toDate ? data.endAt.toDate() : data?.endAt ? new Date(data.endAt) : null
   const durationMinutes = Math.max(1, Number(data?.durationMinutes) || 30)
-  if (!endAt || Number.isNaN(endAt.getTime())) endAt = new Date(startAt.getTime() + durationMinutes * 60000)
+  if (!endAt || Number.isNaN(endAt.getTime()))
+    endAt = new Date(startAt.getTime() + durationMinutes * 60000)
 
   return { startAt, endAt, durationMinutes }
 }
 
 function sanitizeCategoryDetails(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-  const allowedKeys = ['pickupLocation', 'returnLocation', 'expectedGuests', 'eventType', 'activityType']
+  const allowedKeys = [
+    'pickupLocation',
+    'returnLocation',
+    'expectedGuests',
+    'eventType',
+    'activityType',
+  ]
   const result = {}
   for (const key of allowedKeys) {
     const item = value[key]

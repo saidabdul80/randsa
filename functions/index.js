@@ -99,24 +99,30 @@ async function assertPaymentMatchesProperty(payment) {
     bookingSnapshot = await db.collection('bookings').doc(bookingId).get()
     const booking = bookingSnapshot.data()
     if (
-      !bookingSnapshot.exists
-      || booking?.userId !== payment.userId
-      || booking?.propertyId !== propertyId
+      !bookingSnapshot.exists ||
+      booking?.userId !== payment.userId ||
+      booking?.propertyId !== propertyId
     ) {
-      throw new HttpsError('failed-precondition', 'Booking payment did not match the selected booking.')
+      throw new HttpsError(
+        'failed-precondition',
+        'Booking payment did not match the selected booking.'
+      )
     }
     expectedAmount = Number(booking.estimatedTotal || 0)
   }
   const recordedAmount = Number(payment.amount || 0)
 
   if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
-    throw new HttpsError('failed-precondition', 'The selected payment type is not configured for this property.')
+    throw new HttpsError(
+      'failed-precondition',
+      'The selected payment type is not configured for this property.'
+    )
   }
 
   if (recordedAmount !== expectedAmount) {
     throw new HttpsError(
       'failed-precondition',
-      `Payment amount mismatch. Expected ${expectedAmount} NGN for ${paymentType} but received ${recordedAmount} NGN.`,
+      `Payment amount mismatch. Expected ${expectedAmount} NGN for ${paymentType} but received ${recordedAmount} NGN.`
     )
   }
 
@@ -146,19 +152,22 @@ function mapBookingSnapshot(snapshot) {
     durationMinutes: Number(data.durationMinutes || range?.durationMinutes || 30),
     quantity: Math.max(1, Number(data.quantity || 1)),
     pricingUnit: data.pricingUnit || 'per_inspection',
-    estimatedTotal: data.estimatedTotal === null || data.estimatedTotal === undefined
-      ? null
-      : Number(data.estimatedTotal),
-    categoryDetails: data.categoryDetails && typeof data.categoryDetails === 'object'
-      ? data.categoryDetails
-      : {},
+    estimatedTotal:
+      data.estimatedTotal === null || data.estimatedTotal === undefined
+        ? null
+        : Number(data.estimatedTotal),
+    categoryDetails:
+      data.categoryDetails && typeof data.categoryDetails === 'object' ? data.categoryDetails : {},
     status: data.status || 'pending',
     paymentStatus: data.paymentStatus || 'pending',
     reminderSent: data.reminderSent === true,
     guestPhone: data.guestPhone || '',
     notes: data.notes || '',
     createdAt: normalizeTimestamp(data.createdAt) || new Date().toISOString(),
-    updatedAt: normalizeTimestamp(data.updatedAt) || normalizeTimestamp(data.createdAt) || new Date().toISOString(),
+    updatedAt:
+      normalizeTimestamp(data.updatedAt) ||
+      normalizeTimestamp(data.createdAt) ||
+      new Date().toISOString(),
   }
 }
 
@@ -177,7 +186,8 @@ async function assertPropertyVisibleToUser(propertySnapshot, userId) {
 
 function toHttpsBookingError(error) {
   if (error instanceof HttpsError) return error
-  const message = error instanceof Error ? error.message : 'The booking request could not be validated.'
+  const message =
+    error instanceof Error ? error.message : 'The booking request could not be validated.'
   return new HttpsError('failed-precondition', message)
 }
 
@@ -209,7 +219,11 @@ async function ensureBookingConfirmationNotification(booking, propertyTitle) {
 }
 
 function sanitizeIdSegment(value) {
-  return String(value || 'none').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) || 'none'
+  return (
+    String(value || 'none')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .slice(0, 80) || 'none'
+  )
 }
 
 function buildNotificationId(input) {
@@ -281,12 +295,19 @@ async function createNotificationDocument(input) {
 }
 
 async function getNotificationChannelForUser(userId) {
-  const tokensSnapshot = await db.collection('users').doc(userId).collection('tokens').limit(1).get()
+  const tokensSnapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('tokens')
+    .limit(1)
+    .get()
   return tokensSnapshot.empty ? 'in_app' : 'browser'
 }
 
 function isBookingEligibleForReminder(data) {
-  return data && data.reminderSent !== true && data.status !== 'cancelled' && data.status !== 'completed'
+  return (
+    data && data.reminderSent !== true && data.status !== 'cancelled' && data.status !== 'completed'
+  )
 }
 
 function getTimeUntilInspectionMs(data) {
@@ -306,7 +327,11 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
 
     const timeUntilInspection = getTimeUntilInspectionMs(data)
 
-    if (!Number.isFinite(timeUntilInspection) || timeUntilInspection < 0 || timeUntilInspection > 24 * 60 * 60 * 1000) {
+    if (
+      !Number.isFinite(timeUntilInspection) ||
+      timeUntilInspection < 0 ||
+      timeUntilInspection > 24 * 60 * 60 * 1000
+    ) {
       continue
     }
 
@@ -355,7 +380,11 @@ exports.getBookingAvailability = onCall({ invoker: 'public' }, async (request) =
   const propertySnapshot = await db.collection('properties').doc(propertyId).get()
   await assertPropertyVisibleToUser(propertySnapshot, request.auth.uid)
 
-  const snapshot = await db.collection('bookings').where('propertyId', '==', propertyId).limit(500).get()
+  const snapshot = await db
+    .collection('bookings')
+    .where('propertyId', '==', propertyId)
+    .limit(500)
+    .get()
   const bookings = snapshot.docs
     .filter((document) => {
       const status = document.data()?.status
@@ -402,14 +431,17 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
     const existingPropertySnapshot = await db.collection('properties').doc(propertyId).get()
     await ensureBookingConfirmationNotification(
       existingBooking,
-      existingPropertySnapshot.data()?.title || 'Your listing',
+      existingPropertySnapshot.data()?.title || 'Your listing'
     )
     return { booking: existingBooking }
   }
 
   const propertyRef = db.collection('properties').doc(propertyId)
   const initialPropertySnapshot = await propertyRef.get()
-  const initialProperty = await assertPropertyVisibleToUser(initialPropertySnapshot, request.auth.uid)
+  const initialProperty = await assertPropertyVisibleToUser(
+    initialPropertySnapshot,
+    request.auth.uid
+  )
   const requestingUserSnapshot = await db.collection('users').doc(request.auth.uid).get()
   const requestingUserIsAdmin = requestingUserSnapshot.data()?.role === 'admin'
   let initialSelection
@@ -427,7 +459,9 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
   const latestInspectionPayment = paymentSnapshot.docs
     .map((document) => document.data())
     .filter((payment) => payment.paymentType === 'inspection_fee')
-    .sort((left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0))[0]
+    .sort(
+      (left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0)
+    )[0]
   const initialPaymentStatus = isInspectionMode(initialSelection.bookingMode)
     ? latestInspectionPayment?.status || 'pending'
     : 'pending'
@@ -449,9 +483,9 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         throw new HttpsError('not-found', 'The selected listing was not found.')
       }
       if (
-        property.status !== 'approved'
-        && property.ownerId !== request.auth.uid
-        && !requestingUserIsAdmin
+        property.status !== 'approved' &&
+        property.ownerId !== request.auth.uid &&
+        !requestingUserIsAdmin
       ) {
         throw new HttpsError('permission-denied', 'This listing is not available to your account.')
       }
@@ -468,13 +502,13 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
       for (const document of activeBookingDocs) {
         const data = document.data() || {}
         if (
-          isInspectionMode(selection.bookingMode)
-          && data.userId === request.auth.uid
-          && isInspectionMode(data.bookingMode || 'property_inspection')
+          isInspectionMode(selection.bookingMode) &&
+          data.userId === request.auth.uid &&
+          isInspectionMode(data.bookingMode || 'property_inspection')
         ) {
           throw new HttpsError(
             'already-exists',
-            'You already have an active inspection booking for this listing. Cancel it first if you need a new time.',
+            'You already have an active inspection booking for this listing. Cancel it first if you need a new time.'
           )
         }
       }
@@ -484,21 +518,25 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         const eligibleAgents = getEligibleAgentSchedules(property, selection, input)
         const availableAgent = eligibleAgents.find((agent) => {
           const agentBookings = activeBookingDocs.filter(
-            (document) => String(document.data()?.agentId || property.ownerId || '') === agent.agentId,
+            (document) =>
+              String(document.data()?.agentId || property.ownerId || '') === agent.agentId
           )
           const bookingsOnDate = agentBookings.filter(
-            (document) => document.data()?.inspectionDate === input.inspectionDate,
+            (document) => document.data()?.inspectionDate === input.inspectionDate
           )
           if (bookingsOnDate.length >= agent.maximumInspectionsPerDay) return false
 
           return !agentBookings.some((document) => {
             const existingRange = getBookingRange(document.data())
-            return existingRange && rangesOverlap(
-              selection.startAt,
-              selection.endAt,
-              existingRange.startAt,
-              existingRange.endAt,
-              availabilityConfig.bufferMinutes,
+            return (
+              existingRange &&
+              rangesOverlap(
+                selection.startAt,
+                selection.endAt,
+                existingRange.startAt,
+                existingRange.endAt,
+                availabilityConfig.bufferMinutes
+              )
             )
           })
         })
@@ -506,7 +544,7 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         if (!availableAgent) {
           throw new HttpsError(
             'already-exists',
-            'This time is no longer available. Please select another option.',
+            'This time is no longer available. Please select another option.'
           )
         }
         assignedAgentId = availableAgent.agentId
@@ -514,18 +552,18 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         for (const document of activeBookingDocs) {
           const existingRange = getBookingRange(document.data())
           if (
-            existingRange
-            && rangesOverlap(
+            existingRange &&
+            rangesOverlap(
               selection.startAt,
               selection.endAt,
               existingRange.startAt,
               existingRange.endAt,
-              availabilityConfig.bufferMinutes,
+              availabilityConfig.bufferMinutes
             )
           ) {
             throw new HttpsError(
               'already-exists',
-              'This time is no longer available. Please select another option.',
+              'This time is no longer available. Please select another option.'
             )
           }
         }
@@ -550,8 +588,12 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         status: 'pending',
         paymentStatus: initialPaymentStatus,
         reminderSent: false,
-        guestPhone: String(input.guestPhone || '').trim().slice(0, 40),
-        notes: String(input.notes || '').trim().slice(0, 2000),
+        guestPhone: String(input.guestPhone || '')
+          .trim()
+          .slice(0, 40),
+        notes: String(input.notes || '')
+          .trim()
+          .slice(0, 2000),
         requestId,
         schemaVersion: 2,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -607,7 +649,10 @@ async function sendBrowserNotification(userId, notification) {
     .map((result, index) => ({ result, ref: tokenDocs[index].ref }))
     .filter(({ result }) => {
       const code = result.error?.code || ''
-      return code.includes('registration-token-not-registered') || code.includes('invalid-registration-token')
+      return (
+        code.includes('registration-token-not-registered') ||
+        code.includes('invalid-registration-token')
+      )
     })
     .map(({ ref }) => ref)
 
@@ -650,7 +695,10 @@ exports.verifyPaystackPayment = onCall(
     }
 
     if (payment.paystackReference !== reference) {
-      throw new HttpsError('invalid-argument', 'The provided Paystack reference does not match the payment record.')
+      throw new HttpsError(
+        'invalid-argument',
+        'The provided Paystack reference does not match the payment record.'
+      )
     }
 
     if (payment.status === 'success' && payment.verificationMode === 'backend_verified') {
@@ -667,17 +715,20 @@ exports.verifyPaystackPayment = onCall(
     if (!secret) {
       throw new HttpsError(
         'failed-precondition',
-        'PAYSTACK_SECRET_KEY is missing. Set the Firebase Functions secret before verifying payments.',
+        'PAYSTACK_SECRET_KEY is missing. Set the Firebase Functions secret before verifying payments.'
       )
     }
 
-    const verifyResponse = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${secret}`,
-        'Content-Type': 'application/json',
-      },
-    })
+    const verifyResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
 
     if (!verifyResponse.ok) {
       const body = await verifyResponse.text()
@@ -690,45 +741,53 @@ exports.verifyPaystackPayment = onCall(
     const gatewayAmount = Number(gatewayData?.amount || 0)
     const gatewayCurrency = String(gatewayData?.currency || '').toUpperCase()
     const gatewayReference = String(gatewayData?.reference || '').trim()
-    const gatewayCustomerEmail = String(gatewayData?.customer?.email || '').trim().toLowerCase()
+    const gatewayCustomerEmail = String(gatewayData?.customer?.email || '')
+      .trim()
+      .toLowerCase()
     const metadataPaymentId = String(gatewayData?.metadata?.paymentId || '').trim()
     const expectedGatewayAmount = Math.round(expectedAmount * 100)
-    const expectedEmail = String(payment.payerEmail || '').trim().toLowerCase()
+    const expectedEmail = String(payment.payerEmail || '')
+      .trim()
+      .toLowerCase()
 
     if (!gatewayData || gatewayReference !== reference) {
-      throw new HttpsError('failed-precondition', 'Paystack returned an unexpected verification response.')
+      throw new HttpsError(
+        'failed-precondition',
+        'Paystack returned an unexpected verification response.'
+      )
     }
 
     if (gatewayAmount !== expectedGatewayAmount) {
       throw new HttpsError(
         'failed-precondition',
-        `Amount mismatch. Expected ${expectedGatewayAmount} kobo but received ${gatewayAmount} kobo.`,
+        `Amount mismatch. Expected ${expectedGatewayAmount} kobo but received ${gatewayAmount} kobo.`
       )
     }
 
     if (gatewayCurrency && gatewayCurrency !== 'NGN') {
       throw new HttpsError(
         'failed-precondition',
-        `Currency mismatch. Expected NGN but received ${gatewayCurrency}.`,
+        `Currency mismatch. Expected NGN but received ${gatewayCurrency}.`
       )
     }
 
     if (expectedEmail && gatewayCustomerEmail && gatewayCustomerEmail !== expectedEmail) {
       throw new HttpsError(
         'failed-precondition',
-        'Paystack customer email did not match the payment record email.',
+        'Paystack customer email did not match the payment record email.'
       )
     }
 
     if (metadataPaymentId && metadataPaymentId !== paymentId) {
       throw new HttpsError(
         'failed-precondition',
-        'Paystack metadata payment ID did not match the payment record.',
+        'Paystack metadata payment ID did not match the payment record.'
       )
     }
 
     const nextStatus = gatewayStatus === 'success' ? 'success' : 'failed'
-    const verifiedAt = gatewayStatus === 'success' ? admin.firestore.FieldValue.serverTimestamp() : null
+    const verifiedAt =
+      gatewayStatus === 'success' ? admin.firestore.FieldValue.serverTimestamp() : null
 
     await paymentRef.update({
       status: nextStatus,
@@ -755,7 +814,7 @@ exports.verifyPaystackPayment = onCall(
       payment: mapPaymentSnapshot(updatedSnapshot),
       gatewayStatus,
     }
-  },
+  }
 )
 
 exports.createNotificationRecord = onCall(async (request) => {
@@ -769,20 +828,40 @@ exports.createNotificationRecord = onCall(async (request) => {
     title: String(request.data?.title || '').trim(),
     body: String(request.data?.body || '').trim(),
     channel: String(request.data?.channel || 'in_app').trim(),
-    relatedPropertyId: request.data?.relatedPropertyId ? String(request.data.relatedPropertyId).trim() : null,
-    relatedBookingId: request.data?.relatedBookingId ? String(request.data.relatedBookingId).trim() : null,
-    relatedPaymentId: request.data?.relatedPaymentId ? String(request.data.relatedPaymentId).trim() : null,
+    relatedPropertyId: request.data?.relatedPropertyId
+      ? String(request.data.relatedPropertyId).trim()
+      : null,
+    relatedBookingId: request.data?.relatedBookingId
+      ? String(request.data.relatedBookingId).trim()
+      : null,
+    relatedPaymentId: request.data?.relatedPaymentId
+      ? String(request.data.relatedPaymentId).trim()
+      : null,
   }
 
   if (!input.userId || !input.type || !input.title || !input.body) {
-    throw new HttpsError('invalid-argument', 'Notification user, type, title, and body are required.')
+    throw new HttpsError(
+      'invalid-argument',
+      'Notification user, type, title, and body are required.'
+    )
   }
 
   if (request.auth.uid !== input.userId) {
-    throw new HttpsError('permission-denied', 'You can only create notifications for your own account.')
+    throw new HttpsError(
+      'permission-denied',
+      'You can only create notifications for your own account.'
+    )
   }
 
-  if (!['inspection_reminder', 'booking_confirmation', 'payment_confirmation', 'rent_due_reminder', 'admin_message'].includes(input.type)) {
+  if (
+    ![
+      'inspection_reminder',
+      'booking_confirmation',
+      'payment_confirmation',
+      'rent_due_reminder',
+      'admin_message',
+    ].includes(input.type)
+  ) {
     throw new HttpsError('invalid-argument', 'Unsupported notification type.')
   }
 
@@ -832,5 +911,5 @@ exports.processInspectionReminders = onSchedule(
       processed: bookingsSnapshot.size,
       created: created.length,
     }
-  },
+  }
 )

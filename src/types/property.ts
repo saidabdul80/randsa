@@ -2,13 +2,7 @@ import type { UserRole } from './user'
 
 export type PropertyStatus = 'pending' | 'approved' | 'rejected'
 export type PropertyCategory =
-  | 'residential'
-  | 'commercial'
-  | 'land'
-  | 'vehicle'
-  | 'event'
-  | 'horse'
-  | 'other'
+  'residential' | 'commercial' | 'land' | 'vehicle' | 'event' | 'horse' | 'other'
 export type PaymentDuration =
   | 'hourly'
   | 'daily'

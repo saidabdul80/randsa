@@ -34,13 +34,14 @@ function openDraftDatabase() {
     }
 
     request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not open property draft storage.'))
+    request.onerror = () =>
+      reject(request.error ?? new Error('Could not open property draft storage.'))
   })
 }
 
 async function useDraftStore<T>(
   mode: IDBTransactionMode,
-  operation: (store: IDBObjectStore) => IDBRequest<T>,
+  operation: (store: IDBObjectStore) => IDBRequest<T>
 ) {
   const database = await openDraftDatabase()
 
@@ -49,20 +50,20 @@ async function useDraftStore<T>(
     const request = operation(transaction.objectStore(STORE_NAME))
 
     request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not complete the draft request.'))
+    request.onerror = () =>
+      reject(request.error ?? new Error('Could not complete the draft request.'))
     transaction.oncomplete = () => database.close()
-    transaction.onerror = () => reject(transaction.error ?? new Error('The draft transaction failed.'))
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error('The draft transaction failed.'))
   })
 }
 
 function prepareImageForStorage(image: PropertyImageInput): PropertyImageInput {
-  return image.source === 'local'
-    ? { ...image, previewUrl: '' }
-    : { ...image }
+  return image.source === 'local' ? { ...image, previewUrl: '' } : { ...image }
 }
 
 function prepareAvailabilityForStorage(
-  availabilityConfig: PropertyAvailabilityConfig,
+  availabilityConfig: PropertyAvailabilityConfig
 ): PropertyAvailabilityConfig {
   return {
     limitedRemainingCapacity: availabilityConfig.limitedRemainingCapacity,
@@ -95,7 +96,7 @@ function draftId(userId: string) {
 export async function savePropertyWizardDraft(
   userId: string,
   value: PropertyFormInput,
-  step: number,
+  step: number
 ) {
   const draft: PropertyWizardDraft = {
     id: draftId(userId),
@@ -116,7 +117,7 @@ export async function savePropertyWizardDraft(
 
 export async function loadPropertyWizardDraft(userId: string) {
   const draft = await useDraftStore<PropertyWizardDraft | undefined>('readonly', (store) =>
-    store.get(draftId(userId)),
+    store.get(draftId(userId))
   )
 
   if (!draft) return null

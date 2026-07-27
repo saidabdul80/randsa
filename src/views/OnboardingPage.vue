@@ -7,12 +7,17 @@
   >
     <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
       <div class="glass-panel overflow-hidden p-8 sm:p-10">
-        <div class="inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
+        <div
+          class="inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700"
+        >
           Modern property browsing
         </div>
-        <h2 class="page-heading mt-5">Browse homes, shops, offices, and apartments with confidence.</h2>
+        <h2 class="page-heading mt-5">
+          Browse homes, shops, offices, and apartments with confidence.
+        </h2>
         <p class="mt-4 max-w-2xl text-sm leading-7 text-mist dark:text-slate-300">
-          RANDSA brings rental search, listing management, inspection booking, and trust workflows into one mobile-friendly experience.
+          RANDSA brings rental search, listing management, inspection booking, and trust workflows
+          into one mobile-friendly experience.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <RouterLink
@@ -31,11 +36,7 @@
       </div>
 
       <div class="grid gap-4">
-        <article
-          v-for="item in onboardingItems"
-          :key="item.title"
-          class="glass-panel p-6"
-        >
+        <article v-for="item in onboardingItems" :key="item.title" class="glass-panel p-6">
           <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">{{ item.tag }}</p>
           <h3 class="mt-3 text-lg font-bold text-ink dark:text-white">{{ item.title }}</h3>
           <p class="mt-2 text-sm leading-7 text-mist dark:text-slate-300">{{ item.copy }}</p>

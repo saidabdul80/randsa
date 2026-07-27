@@ -27,7 +27,7 @@
           :fetchpriority="activeSlide === 0 ? 'high' : 'auto'"
           decoding="async"
           @error="handleImageError"
-        >
+        />
 
         <div class="auth-featured-copy">
           <span class="auth-featured-category">{{ currentSlide.category }}</span>
@@ -68,7 +68,12 @@
     </div>
 
     <div v-if="slides.length > 1" class="auth-featured-controls">
-      <button type="button" aria-label="Previous featured rental" title="Previous" @click="previousSlide">
+      <button
+        type="button"
+        aria-label="Previous featured rental"
+        title="Previous"
+        @click="previousSlide"
+      >
         <IonIcon :icon="chevronBackOutline" aria-hidden="true" />
       </button>
       <button type="button" aria-label="Next featured rental" title="Next" @click="nextSlide">
@@ -215,7 +220,7 @@ function getRentalCategory(property: PublicCarouselProperty): RentalCategoryCopy
   if (
     ['residential', 'house', 'home', 'apartment'].includes(category) ||
     ['house', 'villa', 'apartment', 'self', 'flat', 'duplex', 'bedroom'].some((term) =>
-      propertyType.includes(term),
+      propertyType.includes(term)
     )
   ) {
     return { key: 'home', label: 'Homes', tagline: 'Find your perfect home.' }
@@ -229,10 +234,13 @@ function getPropertyLocation(property: PublicCarouselProperty) {
     .map((part) => part.trim())
     .filter(Boolean)
 
-  return locationParts.filter(
-    (part, index) =>
-      locationParts.findIndex((candidate) => candidate.toLowerCase() === part.toLowerCase()) === index,
-  ).join(', ')
+  return locationParts
+    .filter(
+      (part, index) =>
+        locationParts.findIndex((candidate) => candidate.toLowerCase() === part.toLowerCase()) ===
+        index
+    )
+    .join(', ')
 }
 
 function formatPropertyPrice(property: PublicCarouselProperty) {
@@ -325,7 +333,10 @@ async function loadFeaturedListings() {
     void preloadSlide(1)
     restartSlideshow()
   } catch (error) {
-    console.warn('RANDSA featured listings are unavailable; using local authentication slides.', error)
+    console.warn(
+      'RANDSA featured listings are unavailable; using local authentication slides.',
+      error
+    )
   } finally {
     if (!isUnmounted) isLoadingListings.value = false
   }
@@ -521,7 +532,12 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 1;
   inset: 0;
-  background: linear-gradient(180deg, var(--auth-panel) 0%, transparent 28%, rgba(7, 19, 33, 0.76) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--auth-panel) 0%,
+    transparent 28%,
+    rgba(7, 19, 33, 0.76) 100%
+  );
   content: '';
   pointer-events: none;
 }
@@ -630,7 +646,9 @@ onBeforeUnmount(() => {
   font-size: 8px;
   font-weight: 850;
   text-decoration: none;
-  transition: background-color 190ms ease, transform 190ms ease;
+  transition:
+    background-color 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-featured-link:hover {
@@ -664,7 +682,10 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.58);
   padding: 0;
   cursor: pointer;
-  transition: width 190ms ease, border-radius 190ms ease, background-color 190ms ease;
+  transition:
+    width 190ms ease,
+    border-radius 190ms ease,
+    background-color 190ms ease;
 }
 
 .auth-featured-dots .auth-featured-dot--active {
@@ -694,7 +715,9 @@ onBeforeUnmount(() => {
   font-size: 16px;
   cursor: pointer;
   backdrop-filter: blur(10px);
-  transition: background-color 190ms ease, transform 190ms ease;
+  transition:
+    background-color 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-featured-controls button:hover {
@@ -752,12 +775,29 @@ onBeforeUnmount(() => {
     left: 14px;
   }
 
-  .auth-featured-copy h2 { font-size: 14px; }
-  .auth-featured-meta { display: grid; gap: 2px; margin-top: 4px; }
-  .auth-featured-link { margin-top: 5px; }
-  .auth-featured-dots { top: 12px; right: 14px; }
-  .auth-featured-controls { right: 14px; bottom: 12px; }
-  .auth-featured-controls button { width: 33px; height: 33px; }
+  .auth-featured-copy h2 {
+    font-size: 14px;
+  }
+  .auth-featured-meta {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .auth-featured-link {
+    margin-top: 5px;
+  }
+  .auth-featured-dots {
+    top: 12px;
+    right: 14px;
+  }
+  .auth-featured-controls {
+    right: 14px;
+    bottom: 12px;
+  }
+  .auth-featured-controls button {
+    width: 33px;
+    height: 33px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

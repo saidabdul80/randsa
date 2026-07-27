@@ -1,7 +1,12 @@
 <template>
   <AuthHubLayout>
     <section class="auth-card" aria-labelledby="auth-card-title">
-      <div v-if="activeMode !== 'profile'" class="auth-mode-tabs" role="tablist" aria-label="Authentication mode">
+      <div
+        v-if="activeMode !== 'profile'"
+        class="auth-mode-tabs"
+        role="tablist"
+        aria-label="Authentication mode"
+      >
         <button
           type="button"
           role="tab"
@@ -33,7 +38,9 @@
         <div :key="activeMode" class="auth-mode-content">
           <template v-if="activeMode === 'sign-in'">
             <header class="auth-card-header">
-              <span class="auth-card-icon"><IonIcon :icon="logInOutline" aria-hidden="true" /></span>
+              <span class="auth-card-icon"
+                ><IonIcon :icon="logInOutline" aria-hidden="true"
+              /></span>
               <div>
                 <h2 id="auth-card-title">Welcome back <span aria-hidden="true">&#128075;</span></h2>
                 <p>Sign in to continue to your RANDSA account.</p>
@@ -104,7 +111,9 @@
                 @click="handleGoogleRedirectLogin"
               >
                 <IonIcon :icon="openOutline" aria-hidden="true" />
-                {{ isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead' }}
+                {{
+                  isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead'
+                }}
               </button>
             </div>
 
@@ -129,7 +138,9 @@
 
           <template v-else-if="activeMode === 'register'">
             <header class="auth-card-header">
-              <span class="auth-card-icon"><IonIcon :icon="personAddOutline" aria-hidden="true" /></span>
+              <span class="auth-card-icon"
+                ><IonIcon :icon="personAddOutline" aria-hidden="true"
+              /></span>
               <div>
                 <h2 id="auth-card-title">Create your account</h2>
                 <p>Choose how you will use RANDSA, then add your account details.</p>
@@ -163,7 +174,11 @@
               </div>
             </div>
 
-            <form class="auth-form auth-register-form" novalidate @submit.prevent="handleRegisterSubmit">
+            <form
+              class="auth-form auth-register-form"
+              novalidate
+              @submit.prevent="handleRegisterSubmit"
+            >
               <div class="auth-form-grid">
                 <AuthField
                   v-model="registerForm.fullName"
@@ -254,7 +269,11 @@
                 @click="handleGoogleRegister"
               >
                 <span class="google-mark" aria-hidden="true">G</span>
-                {{ isGoogleSubmitting ? 'Connecting to Google...' : `Continue with Google as ${selectedRoleTitle}` }}
+                {{
+                  isGoogleSubmitting
+                    ? 'Connecting to Google...'
+                    : `Continue with Google as ${selectedRoleTitle}`
+                }}
               </button>
               <button
                 type="button"
@@ -263,7 +282,9 @@
                 @click="handleGoogleRedirectRegister"
               >
                 <IonIcon :icon="openOutline" aria-hidden="true" />
-                {{ isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead' }}
+                {{
+                  isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead'
+                }}
               </button>
             </div>
 
@@ -288,7 +309,9 @@
 
           <template v-else>
             <header class="auth-card-header">
-              <span class="auth-card-icon"><IonIcon :icon="personCircleOutline" aria-hidden="true" /></span>
+              <span class="auth-card-icon"
+                ><IonIcon :icon="personCircleOutline" aria-hidden="true"
+              /></span>
               <div>
                 <h2 id="auth-card-title">Complete your account</h2>
                 <p>Finish the account details required by the existing RANDSA setup flow.</p>
@@ -296,7 +319,8 @@
             </header>
 
             <AuthAlert tone="info" role="status">
-              You are already signed in. Saving this form updates your existing account details instead of creating another account.
+              You are already signed in. Saving this form updates your existing account details
+              instead of creating another account.
             </AuthAlert>
 
             <form class="auth-form" novalidate @submit.prevent="handleProfileCompletion">
@@ -418,7 +442,7 @@ const props = withDefaults(
   {
     initialMode: 'sign-in',
     allowProfileCompletion: false,
-  },
+  }
 )
 
 const route = useRoute()
@@ -467,10 +491,10 @@ const googleHelperMessage = ref(getPendingGoogleAuthMessage())
 const profile = computed(() => state.profile)
 const isBusy = computed(() => isSubmitting.value || isGoogleSubmitting.value)
 const googleDisabled = computed(
-  () => isBusy.value || isLocalAuthBypassEnabled || Boolean(firebaseConfigError),
+  () => isBusy.value || isLocalAuthBypassEnabled || Boolean(firebaseConfigError)
 )
 const selectedRoleTitle = computed(
-  () => roles.find((role) => role.value === registerForm.role)?.title ?? 'I want to rent',
+  () => roles.find((role) => role.value === registerForm.role)?.title ?? 'I want to rent'
 )
 const currentRoleTitle = computed(() => {
   const role = profile.value?.role ?? registerForm.role
@@ -482,7 +506,7 @@ watch(
   () => props.initialMode,
   (mode) => {
     if (!isAuthenticated.value) activeMode.value = mode
-  },
+  }
 )
 
 watch(
@@ -494,7 +518,7 @@ watch(
       activeMode.value = props.initialMode
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -506,7 +530,7 @@ watch(
     registerForm.email = value.email || state.user?.email || ''
     registerForm.role = value.role === 'admin' ? 'tenant' : value.role
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -521,7 +545,7 @@ watch(
     statusMessage.value = 'Google sign-in completed. Redirecting...'
     await router.replace(redirect)
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 function setMode(mode: GuestAuthMode) {
@@ -730,7 +754,8 @@ async function handleProfileCompletion() {
 
   if (!profile.value) {
     statusTone.value = 'error'
-    statusMessage.value = 'Your signed-in account is still loading. Please wait a moment and try again.'
+    statusMessage.value =
+      'Your signed-in account is still loading. Please wait a moment and try again.'
     return
   }
 
@@ -784,7 +809,10 @@ async function handleProfileCompletion() {
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
-  transition: background-color 190ms ease, color 190ms ease, box-shadow 190ms ease;
+  transition:
+    background-color 190ms ease,
+    color 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .auth-mode-tabs .auth-mode-tab--active {
@@ -862,8 +890,12 @@ async function handleProfileCompletion() {
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease,
-    background-color 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 .auth-primary-button {
@@ -1019,7 +1051,10 @@ async function handleProfileCompletion() {
   color: var(--auth-text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 190ms ease, background-color 190ms ease, transform 190ms ease;
+  transition:
+    border-color 190ms ease,
+    background-color 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-role-option:hover {
@@ -1094,7 +1129,9 @@ async function handleProfileCompletion() {
 
 .auth-mode-enter-active,
 .auth-mode-leave-active {
-  transition: opacity 190ms ease, transform 190ms ease;
+  transition:
+    opacity 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-mode-enter-from {
@@ -1108,7 +1145,9 @@ async function handleProfileCompletion() {
 }
 
 @keyframes auth-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-mode-tabs button:focus-visible,
@@ -1128,15 +1167,33 @@ async function handleProfileCompletion() {
     box-shadow: 0 18px 40px -34px rgba(16, 32, 51, 0.55);
   }
 
-  .auth-card-header h2 { font-size: 20px; }
-  .auth-card-header p { font-size: 10px; }
-  .auth-form-grid { grid-template-columns: 1fr; }
-  .auth-field-wide { grid-column: auto; }
-  .auth-provider-actions { grid-template-columns: 1fr; }
-  .auth-role-options { grid-template-columns: 1fr; }
-  .auth-role-option { min-height: 58px; }
-  .auth-role-option strong { font-size: 9px; }
-  .auth-role-option small { font-size: 8px; }
+  .auth-card-header h2 {
+    font-size: 20px;
+  }
+  .auth-card-header p {
+    font-size: 10px;
+  }
+  .auth-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .auth-field-wide {
+    grid-column: auto;
+  }
+  .auth-provider-actions {
+    grid-template-columns: 1fr;
+  }
+  .auth-role-options {
+    grid-template-columns: 1fr;
+  }
+  .auth-role-option {
+    min-height: 58px;
+  }
+  .auth-role-option strong {
+    font-size: 9px;
+  }
+  .auth-role-option small {
+    font-size: 8px;
+  }
 }
 
 @media (min-width: 1024px) and (max-height: 760px) {
@@ -1224,6 +1281,8 @@ async function handleProfileCompletion() {
     transition: none;
   }
 
-  .auth-spinner { animation: none; }
+  .auth-spinner {
+    animation: none;
+  }
 }
 </style>

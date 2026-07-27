@@ -13,19 +13,9 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 
-import {
-  auth,
-  authMode,
-  db,
-  firebaseConfigError,
-  isFirebaseConfigured,
-} from '../lib/firebase'
+import { auth, authMode, db, firebaseConfigError, isFirebaseConfigured } from '../lib/firebase'
 import { getUserProfile } from './auth'
-import {
-  getAllStoredProperties,
-  getStoredPropertyById,
-  putStoredProperty,
-} from './propertyDb'
+import { getAllStoredProperties, getStoredPropertyById, putStoredProperty } from './propertyDb'
 import { deleteStorageObjectByUrl, uploadPropertyImages } from './storageUploads'
 import {
   createEmptyPropertyInput,
@@ -58,7 +48,7 @@ function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before using properties.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before using properties.'
     )
   }
 
@@ -74,12 +64,14 @@ function normalizeTimestampLike(value: unknown) {
 }
 
 function normalizeAvailabilityConfig(value: unknown): PropertyAvailabilityConfig {
-  const data = value && typeof value === 'object' ? value as Record<string, unknown> : {}
+  const data = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
   const rawAgents = Array.isArray(data.agents) ? data.agents : []
 
   return {
     agents: rawAgents
-      .filter((agent): agent is Record<string, unknown> => Boolean(agent) && typeof agent === 'object')
+      .filter(
+        (agent): agent is Record<string, unknown> => Boolean(agent) && typeof agent === 'object'
+      )
       .map((agent) => ({
         agentId: String(agent.agentId ?? '').trim(),
         workingDays: Array.isArray(agent.workingDays)
@@ -95,7 +87,10 @@ function normalizeAvailabilityConfig(value: unknown): PropertyAvailabilityConfig
           : [],
         vacationPeriods: Array.isArray(agent.vacationPeriods)
           ? agent.vacationPeriods
-              .filter((period): period is Record<string, unknown> => Boolean(period) && typeof period === 'object')
+              .filter(
+                (period): period is Record<string, unknown> =>
+                  Boolean(period) && typeof period === 'object'
+              )
               .map((period) => ({
                 startDate: String(period.startDate ?? ''),
                 endDate: String(period.endDate ?? ''),
@@ -158,7 +153,8 @@ function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
     isAvailable: Boolean(data.isAvailable),
     availabilityConfig: normalizeAvailabilityConfig(data.availabilityConfig),
     createdAt: normalizeTimestampLike(data.createdAt) ?? '',
-    updatedAt: normalizeTimestampLike(data.updatedAt) ?? normalizeTimestampLike(data.createdAt) ?? '',
+    updatedAt:
+      normalizeTimestampLike(data.updatedAt) ?? normalizeTimestampLike(data.createdAt) ?? '',
   } satisfies PropertyRecord
 }
 
@@ -201,12 +197,16 @@ async function listFirestoreProperties(firestore: Firestore) {
 
   if (!currentUser) {
     const snapshot = await getDocs(query(propertyCollection, where('status', '==', 'approved')))
-    return sortProperties(snapshot.docs.map((propertyDoc) => mapDocToPropertyRecord(propertyDoc.id, propertyDoc.data())))
+    return sortProperties(
+      snapshot.docs.map((propertyDoc) => mapDocToPropertyRecord(propertyDoc.id, propertyDoc.data()))
+    )
   }
 
   if (currentRole === 'admin') {
     const snapshot = await getDocs(propertyCollection)
-    return sortProperties(snapshot.docs.map((propertyDoc) => mapDocToPropertyRecord(propertyDoc.id, propertyDoc.data())))
+    return sortProperties(
+      snapshot.docs.map((propertyDoc) => mapDocToPropertyRecord(propertyDoc.id, propertyDoc.data()))
+    )
   }
 
   const [approvedSnapshot, ownSnapshot] = await Promise.all([
@@ -228,8 +228,8 @@ async function listFirestorePublicCarouselProperties(firestore: Firestore) {
     query(
       collection(firestore, 'properties'),
       where('status', '==', 'approved'),
-      limit(PUBLIC_CAROUSEL_QUERY_LIMIT),
-    ),
+      limit(PUBLIC_CAROUSEL_QUERY_LIMIT)
+    )
   )
 
   return sortProperties(
@@ -239,8 +239,8 @@ async function listFirestorePublicCarouselProperties(firestore: Firestore) {
         (property) =>
           property.status === 'approved' &&
           property.isAvailable &&
-          property.images.some((image) => image.trim()),
-      ),
+          property.images.some((image) => image.trim())
+      )
   ).map(toPublicCarouselProperty)
 }
 
@@ -325,7 +325,7 @@ export function validatePropertyInput(input: PropertyFormInput) {
 
   if (
     ['House rent', 'Apartment', 'Self-contained', 'Flat', 'Duplex'].includes(
-      safeInput.propertyType,
+      safeInput.propertyType
     ) &&
     (safeInput.bedrooms === null || safeInput.bathrooms === null || safeInput.toilets === null)
   ) {
@@ -357,9 +357,11 @@ export function listPublicCarouselProperties() {
           (property) =>
             property.status === 'approved' &&
             property.isAvailable &&
-            property.images.some((image) => image.trim()),
-        ),
-      ).slice(0, PUBLIC_CAROUSEL_QUERY_LIMIT).map(toPublicCarouselProperty)
+            property.images.some((image) => image.trim())
+        )
+      )
+        .slice(0, PUBLIC_CAROUSEL_QUERY_LIMIT)
+        .map(toPublicCarouselProperty)
     })().catch((error) => {
       publicCarouselPropertiesRequest = null
       throw error
@@ -496,7 +498,11 @@ export async function createProperty(input: PropertyFormInput, owner: UserProfil
   }
 }
 
-export async function updateProperty(propertyId: string, input: PropertyFormInput, owner: UserProfile) {
+export async function updateProperty(
+  propertyId: string,
+  input: PropertyFormInput,
+  owner: UserProfile
+) {
   const validationError = validatePropertyInput(input)
 
   if (validationError) {
@@ -595,7 +601,7 @@ export async function updateProperty(propertyId: string, input: PropertyFormInpu
 export async function reviewPropertyStatus(
   propertyId: string,
   admin: UserProfile,
-  status: Extract<PropertyRecord['status'], 'approved' | 'rejected'>,
+  status: Extract<PropertyRecord['status'], 'approved' | 'rejected'>
 ) {
   if (admin.role !== 'admin') {
     throw new Error('Only admin accounts can review property listings.')

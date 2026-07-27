@@ -1,0 +1,13 @@
+dist
+node_modules
+coverage
+.firebase
+functions/lib
+build
+
+# Generated and machine-specific files
+.chrome-*
+*.log
+.env*
+package-lock.json
+functions/package-lock.json

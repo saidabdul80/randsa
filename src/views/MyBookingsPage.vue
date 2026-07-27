@@ -1,8 +1,5 @@
 <template>
-  <AppShell
-    :show-header="false"
-    content-class="min-h-full w-full pb-28 lg:pb-0"
-  >
+  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="bookings-page">
       <NotificationSidebarNav
         :can-manage-properties="canManageProperties"
@@ -13,9 +10,14 @@
       <main class="bookings-main">
         <section class="bookings-hero" aria-labelledby="bookings-title">
           <div class="bookings-hero-copy">
-            <p class="bookings-eyebrow">RANDSA <span aria-hidden="true">&#8226;</span> My bookings</p>
+            <p class="bookings-eyebrow">
+              RANDSA <span aria-hidden="true">&#8226;</span> My bookings
+            </p>
             <h1 id="bookings-title">Track your bookings</h1>
-            <p>Review reservations, payment status, reminders, and cancellation controls in one place.</p>
+            <p>
+              Review reservations, payment status, reminders, and cancellation controls in one
+              place.
+            </p>
           </div>
 
           <div class="bookings-hero-art" aria-hidden="true">
@@ -36,16 +38,15 @@
           role="status"
           aria-live="polite"
         >
-          <IonIcon :icon="messageTone === 'success' ? checkmarkCircleOutline : alertCircleOutline" aria-hidden="true" />
+          <IonIcon
+            :icon="messageTone === 'success' ? checkmarkCircleOutline : alertCircleOutline"
+            aria-hidden="true"
+          />
           <span>{{ message }}</span>
         </div>
 
         <section class="booking-metrics" aria-label="Booking overview">
-          <article
-            v-for="metric in bookingMetrics"
-            :key="metric.label"
-            class="booking-metric"
-          >
+          <article v-for="metric in bookingMetrics" :key="metric.label" class="booking-metric">
             <span class="metric-icon" :class="`metric-icon--${metric.tone}`">
               <IonIcon :icon="metric.icon" aria-hidden="true" />
             </span>
@@ -83,7 +84,7 @@
                   type="search"
                   placeholder="Search bookings"
                   autocomplete="off"
-                >
+                />
                 <button
                   v-if="searchQuery"
                   type="button"
@@ -104,11 +105,11 @@
                 <div class="booking-filter-popover booking-date-popover">
                   <label>
                     <span>From</span>
-                    <input v-model="fromDate" type="date">
+                    <input v-model="fromDate" type="date" />
                   </label>
                   <label>
                     <span>To</span>
-                    <input v-model="toDate" type="date" :min="fromDate || undefined">
+                    <input v-model="toDate" type="date" :min="fromDate || undefined" />
                   </label>
                   <button type="button" :disabled="!fromDate && !toDate" @click="clearDateRange">
                     Clear dates
@@ -147,7 +148,11 @@
                     <span>Property</span>
                     <select v-model="propertyFilter">
                       <option value="all">All properties</option>
-                      <option v-for="property in propertyOptions" :key="property.id" :value="property.id">
+                      <option
+                        v-for="property in propertyOptions"
+                        :key="property.id"
+                        :value="property.id"
+                      >
                         {{ property.label }}
                       </option>
                     </select>
@@ -192,18 +197,17 @@
             </div>
           </div>
 
-          <div v-else-if="bookingCards.length && filteredBookingCards.length" class="booking-workspace">
+          <div
+            v-else-if="bookingCards.length && filteredBookingCards.length"
+            class="booking-workspace"
+          >
             <div class="booking-list-pane">
               <div class="booking-list-heading">
                 <div>
                   <h2 id="booking-list-title">Bookings</h2>
                   <p>{{ filteredBookingCards.length }} of {{ bookingCards.length }} shown</p>
                 </div>
-                <button
-                  v-if="hasActiveFilters"
-                  type="button"
-                  @click="clearAllFilters"
-                >
+                <button v-if="hasActiveFilters" type="button" @click="clearAllFilters">
                   Reset filters
                 </button>
               </div>
@@ -226,8 +230,12 @@
                       :alt="`${item.propertyTitle} listing`"
                       loading="lazy"
                       decoding="async"
-                    >
-                    <IonIcon v-else :icon="businessOutline" aria-label="Property image unavailable" />
+                    />
+                    <IonIcon
+                      v-else
+                      :icon="businessOutline"
+                      aria-label="Property image unavailable"
+                    />
                   </span>
 
                   <span class="booking-date-block" aria-label="Booking start date">
@@ -243,10 +251,7 @@
                       <IonIcon :icon="timeOutline" aria-hidden="true" />
                       {{ formatScheduleCompact(item.booking.startAt) }}
                     </span>
-                    <i
-                      class="booking-status"
-                      :class="bookingStatusClassMap[item.booking.status]"
-                    >
+                    <i class="booking-status" :class="bookingStatusClassMap[item.booking.status]">
                       {{ titleCase(formatBookingStatusLabel(item.booking.status)) }}
                     </i>
                   </span>
@@ -261,10 +266,16 @@
               </div>
             </div>
 
-            <aside v-if="selectedCard" class="booking-detail-pane" aria-label="Selected booking details">
+            <aside
+              v-if="selectedCard"
+              class="booking-detail-pane"
+              aria-label="Selected booking details"
+            >
               <div class="booking-detail-heading">
                 <div>
-                  <span class="booking-detail-icon"><IonIcon :icon="calendarClearOutline" aria-hidden="true" /></span>
+                  <span class="booking-detail-icon"
+                    ><IonIcon :icon="calendarClearOutline" aria-hidden="true"
+                  /></span>
                   <div>
                     <p>{{ selectedCard.config.summaryLabel }}</p>
                     <h2>Booking summary</h2>
@@ -293,7 +304,7 @@
                     :alt="`${selectedCard.propertyTitle} listing`"
                     loading="lazy"
                     decoding="async"
-                  >
+                  />
                   <span v-else><IonIcon :icon="businessOutline" aria-hidden="true" /></span>
                 </figure>
               </div>
@@ -304,7 +315,12 @@
                   <dd>{{ formatDate(selectedCard.booking.createdAt) }}</dd>
                 </div>
                 <div>
-                  <dt><IonIcon :icon="timeOutline" aria-hidden="true" />{{ selectedCard.config.dateLabel }} &amp; time</dt>
+                  <dt>
+                    <IonIcon :icon="timeOutline" aria-hidden="true" />{{
+                      selectedCard.config.dateLabel
+                    }}
+                    &amp; time
+                  </dt>
                   <dd>{{ formatSchedule(selectedCard.booking.startAt) }}</dd>
                 </div>
                 <div v-if="selectedCard.config.selectionKind !== 'time_slot'">
@@ -318,7 +334,10 @@
                 <div>
                   <dt><IonIcon :icon="cardOutline" aria-hidden="true" />Payment</dt>
                   <dd>
-                    <span class="booking-status" :class="paymentStatusClassMap[selectedCard.booking.paymentStatus]">
+                    <span
+                      class="booking-status"
+                      :class="paymentStatusClassMap[selectedCard.booking.paymentStatus]"
+                    >
                       {{ paymentLabel(selectedCard.booking.paymentStatus) }}
                     </span>
                   </dd>
@@ -339,7 +358,9 @@
 
               <div class="booking-status-bands">
                 <section>
-                  <span class="status-band-icon status-band-icon--payment"><IonIcon :icon="cardOutline" aria-hidden="true" /></span>
+                  <span class="status-band-icon status-band-icon--payment"
+                    ><IonIcon :icon="cardOutline" aria-hidden="true"
+                  /></span>
                   <div>
                     <p>Payment status</p>
                     <strong>{{ paymentLabel(selectedCard.booking.paymentStatus) }}</strong>
@@ -349,7 +370,9 @@
                   </small>
                 </section>
                 <section>
-                  <span class="status-band-icon status-band-icon--reminder"><IonIcon :icon="notificationsOutline" aria-hidden="true" /></span>
+                  <span class="status-band-icon status-band-icon--reminder"
+                    ><IonIcon :icon="notificationsOutline" aria-hidden="true"
+                  /></span>
                   <div>
                     <p>Reminder</p>
                     <strong>{{ selectedCard.booking.reminderSent ? 'Sent' : 'Pending' }}</strong>
@@ -375,7 +398,12 @@
                     :key="step.label"
                     :class="`booking-timeline--${step.state}`"
                   >
-                    <i><IonIcon v-if="step.state === 'done'" :icon="checkmarkOutline" aria-hidden="true" /></i>
+                    <i
+                      ><IonIcon
+                        v-if="step.state === 'done'"
+                        :icon="checkmarkOutline"
+                        aria-hidden="true"
+                    /></i>
                     <span>
                       <strong>{{ step.label }}</strong>
                       <small>{{ step.copy }}</small>
@@ -390,7 +418,10 @@
               </div>
 
               <div class="booking-actions">
-                <RouterLink :to="`/properties/${selectedCard.booking.propertyId}`" class="booking-action booking-action--secondary">
+                <RouterLink
+                  :to="`/properties/${selectedCard.booking.propertyId}`"
+                  class="booking-action booking-action--secondary"
+                >
                   <IonIcon :icon="eyeOutline" aria-hidden="true" />
                   View property
                 </RouterLink>
@@ -426,7 +457,10 @@
           <div v-else class="booking-state">
             <span><IonIcon :icon="calendarClearOutline" aria-hidden="true" /></span>
             <h2>No bookings yet</h2>
-            <p>Your confirmed requests, schedules, payment state, and reminder status will appear here.</p>
+            <p>
+              Your confirmed requests, schedules, payment state, and reminder status will appear
+              here.
+            </p>
             <RouterLink to="/properties">
               Browse listings
               <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
@@ -478,7 +512,11 @@ import { useAuth } from '../composables/useAuth'
 import { useBookings } from '../composables/useBookings'
 import { useNotifications } from '../composables/useNotifications'
 import { useProperties } from '../composables/useProperties'
-import { getBookingModeConfig, isInspectionMode, type BookingModeConfig } from '../services/bookingModes'
+import {
+  getBookingModeConfig,
+  isInspectionMode,
+  type BookingModeConfig,
+} from '../services/bookingModes'
 import { formatBookingStatusLabel, type BookingRecord, type BookingStatus } from '../types/booking'
 import { formatNaira, formatPaymentStatusLabel, type PaymentStatus } from '../types/payment'
 import type { PropertyRecord } from '../types/property'
@@ -544,16 +582,20 @@ const bookingCards = computed<BookingCard[]>(() =>
       property,
       propertyTitle: property?.title ?? 'Property unavailable',
       propertyImage: property?.images[0] ?? '',
-      location: property ? [property.area, property.city, property.state].filter(Boolean).join(', ') : 'Listing unavailable',
+      location: property
+        ? [property.area, property.city, property.state].filter(Boolean).join(', ')
+        : 'Listing unavailable',
       address: property
-        ? [property.address, property.area, property.city, property.state].filter(Boolean).join(', ')
+        ? [property.address, property.area, property.city, property.state]
+            .filter(Boolean)
+            .join(', ')
         : 'This listing is no longer available.',
       ownerRole: property?.ownerRole ? titleCase(property.ownerRole) : 'Not provided',
       paymentRoute: isInspectionMode(booking.bookingMode)
         ? `/payment/${booking.propertyId}?type=inspection_fee`
         : `/payment/${booking.propertyId}?type=booking_payment&bookingId=${booking.id}`,
     }
-  }),
+  })
 )
 
 const bookingMetrics = computed(() => {
@@ -614,7 +656,7 @@ const bookingTabs = computed(() => [
     value: 'pending-payment' as const,
     label: 'Pending payment',
     count: bookings.value.filter(
-      (booking) => booking.paymentStatus !== 'success' && booking.status !== 'cancelled',
+      (booking) => booking.paymentStatus !== 'success' && booking.status !== 'cancelled'
     ).length,
   },
 ])
@@ -634,14 +676,15 @@ const propertyOptions = computed(() => {
 })
 
 const hasDetailFilters = computed(
-  () => statusFilter.value !== 'all' || paymentFilter.value !== 'all' || propertyFilter.value !== 'all',
+  () =>
+    statusFilter.value !== 'all' || paymentFilter.value !== 'all' || propertyFilter.value !== 'all'
 )
 const hasActiveFilters = computed(
   () =>
     activeTab.value !== 'all' ||
     Boolean(searchQuery.value || fromDate.value || toDate.value) ||
     hasDetailFilters.value ||
-    sortOrder.value !== 'newest',
+    sortOrder.value !== 'newest'
 )
 
 const filteredBookingCards = computed(() => {
@@ -689,7 +732,7 @@ const selectedCard = computed(
   () =>
     filteredBookingCards.value.find((item) => item.booking.id === selectedBookingId.value) ??
     filteredBookingCards.value[0] ??
-    null,
+    null
 )
 
 const selectedTimeline = computed(() => {
@@ -703,32 +746,52 @@ const selectedTimeline = computed(() => {
 
   if (isCancelled) {
     return [
-      { label: 'Booking created', copy: formatDate(booking.createdAt), state: 'done' as TimelineState },
+      {
+        label: 'Booking created',
+        copy: formatDate(booking.createdAt),
+        state: 'done' as TimelineState,
+      },
       {
         label: isPaid ? 'Payment settled' : 'Payment not completed',
         copy: paymentLabel(booking.paymentStatus),
-        state: isPaid ? 'done' as TimelineState : 'pending' as TimelineState,
+        state: isPaid ? ('done' as TimelineState) : ('pending' as TimelineState),
       },
-      { label: 'Booking cancelled', copy: 'This booking is closed', state: 'current' as TimelineState },
+      {
+        label: 'Booking cancelled',
+        copy: 'This booking is closed',
+        state: 'current' as TimelineState,
+      },
     ]
   }
 
   return [
-    { label: 'Booking created', copy: formatDate(booking.createdAt), state: 'done' as TimelineState },
+    {
+      label: 'Booking created',
+      copy: formatDate(booking.createdAt),
+      state: 'done' as TimelineState,
+    },
     {
       label: isPaid ? 'Payment settled' : 'Payment pending',
       copy: paymentLabel(booking.paymentStatus),
-      state: isPaid ? 'done' as TimelineState : 'current' as TimelineState,
+      state: isPaid ? ('done' as TimelineState) : ('current' as TimelineState),
     },
     {
       label: 'Booking confirmed',
       copy: isConfirmed ? formatScheduleCompact(booking.startAt) : 'Awaiting confirmation',
-      state: isConfirmed ? 'done' as TimelineState : isPaid ? 'current' as TimelineState : 'pending' as TimelineState,
+      state: isConfirmed
+        ? ('done' as TimelineState)
+        : isPaid
+          ? ('current' as TimelineState)
+          : ('pending' as TimelineState),
     },
     {
       label: 'Booking completed',
       copy: isCompleted ? 'Completed' : 'Not completed yet',
-      state: isCompleted ? 'done' as TimelineState : isConfirmed ? 'current' as TimelineState : 'pending' as TimelineState,
+      state: isCompleted
+        ? ('done' as TimelineState)
+        : isConfirmed
+          ? ('current' as TimelineState)
+          : ('pending' as TimelineState),
     },
   ]
 })
@@ -738,7 +801,7 @@ watch(
   async (userId) => {
     await loadBookings(userId)
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -748,7 +811,7 @@ watch(
       selectedBookingId.value = items[0]?.booking.id ?? ''
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -759,7 +822,7 @@ watch(
       message.value = 'Booking created successfully.'
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 async function loadBookings(userId: string | null | undefined) {
@@ -832,9 +895,7 @@ function paymentLabel(status: PaymentStatus) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase())
+  return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
 function getDateParts(value: string) {
@@ -845,8 +906,12 @@ function getDateParts(value: string) {
     month: new Intl.DateTimeFormat('en-NG', { month: 'short', timeZone: 'Africa/Lagos' })
       .format(date)
       .toUpperCase(),
-    day: new Intl.DateTimeFormat('en-NG', { day: '2-digit', timeZone: 'Africa/Lagos' }).format(date),
-    year: new Intl.DateTimeFormat('en-NG', { year: 'numeric', timeZone: 'Africa/Lagos' }).format(date),
+    day: new Intl.DateTimeFormat('en-NG', { day: '2-digit', timeZone: 'Africa/Lagos' }).format(
+      date
+    ),
+    year: new Intl.DateTimeFormat('en-NG', { year: 'numeric', timeZone: 'Africa/Lagos' }).format(
+      date
+    ),
   }
 }
 
@@ -1123,7 +1188,10 @@ function toErrorMessage(error: unknown, fallback: string) {
   background: #ffffff;
   padding: 18px;
   box-shadow: 0 14px 34px -30px rgba(16, 32, 51, 0.54);
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
 }
 
 .booking-metric:hover {
@@ -1142,10 +1210,22 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-size: 24px;
 }
 
-.metric-icon--blue { background: #edf5ff; color: #1769dc; }
-.metric-icon--green { background: #eaf9f0; color: #1b9b58; }
-.metric-icon--violet { background: #f3efff; color: #7952dc; }
-.metric-icon--orange { background: #fff6e7; color: #ef9417; }
+.metric-icon--blue {
+  background: #edf5ff;
+  color: #1769dc;
+}
+.metric-icon--green {
+  background: #eaf9f0;
+  color: #1b9b58;
+}
+.metric-icon--violet {
+  background: #f3efff;
+  color: #7952dc;
+}
+.metric-icon--orange {
+  background: #fff6e7;
+  color: #ef9417;
+}
 
 .booking-metric div {
   min-width: 0;
@@ -1202,7 +1282,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   scrollbar-width: none;
 }
 
-.booking-tabs::-webkit-scrollbar { display: none; }
+.booking-tabs::-webkit-scrollbar {
+  display: none;
+}
 
 .booking-tabs button {
   display: inline-flex;
@@ -1218,7 +1300,10 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
-  transition: background-color 190ms ease, color 190ms ease, transform 190ms ease;
+  transition:
+    background-color 190ms ease,
+    color 190ms ease,
+    transform 190ms ease;
 }
 
 .booking-tabs button:hover {
@@ -1268,7 +1353,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   border-radius: 11px;
   background: #ffffff;
   color: #344256;
-  transition: border-color 190ms ease, box-shadow 190ms ease;
+  transition:
+    border-color 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .booking-search:focus-within,
@@ -1298,7 +1385,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-size: 12px;
 }
 
-.booking-search input::placeholder { color: #99a5b4; }
+.booking-search input::placeholder {
+  color: #99a5b4;
+}
 
 .booking-search button {
   display: grid;
@@ -1328,10 +1417,20 @@ function toErrorMessage(error: unknown, fallback: string) {
   cursor: pointer;
 }
 
-.booking-filter-menu > summary::-webkit-details-marker { display: none; }
-.booking-filter-menu > summary ion-icon:first-child { color: #66758a; font-size: 17px; }
-.booking-filter-menu > summary ion-icon:last-child { margin-left: auto; font-size: 14px; }
-.booking-filter-menu[open] > summary ion-icon:last-child { transform: rotate(180deg); }
+.booking-filter-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.booking-filter-menu > summary ion-icon:first-child {
+  color: #66758a;
+  font-size: 17px;
+}
+.booking-filter-menu > summary ion-icon:last-child {
+  margin-left: auto;
+  font-size: 14px;
+}
+.booking-filter-menu[open] > summary ion-icon:last-child {
+  transform: rotate(180deg);
+}
 
 .booking-filter-menu > summary i {
   width: 7px;
@@ -1482,7 +1581,10 @@ function toErrorMessage(error: unknown, fallback: string) {
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease,
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
     background-color 200ms ease;
 }
 
@@ -1517,9 +1619,13 @@ function toErrorMessage(error: unknown, fallback: string) {
   transition: transform 210ms ease;
 }
 
-.booking-list-row:hover .booking-row-image img { transform: scale(1.03); }
+.booking-list-row:hover .booking-row-image img {
+  transform: scale(1.03);
+}
 
-.booking-date-block { display: none; }
+.booking-date-block {
+  display: none;
+}
 
 .booking-row-copy {
   display: block;
@@ -1572,11 +1678,25 @@ function toErrorMessage(error: unknown, fallback: string) {
   line-height: 1;
 }
 
-.booking-row-copy .booking-status { margin-top: 7px; }
-.booking-status--pending { background: #fff4d6; color: #b96b05; }
-.booking-status--confirmed { background: #e9f3ff; color: #1764c8; }
-.booking-status--completed { background: #e6f8ee; color: #14864a; }
-.booking-status--cancelled { background: #ffe9ed; color: #c72749; }
+.booking-row-copy .booking-status {
+  margin-top: 7px;
+}
+.booking-status--pending {
+  background: #fff4d6;
+  color: #b96b05;
+}
+.booking-status--confirmed {
+  background: #e9f3ff;
+  color: #1764c8;
+}
+.booking-status--completed {
+  background: #e6f8ee;
+  color: #14864a;
+}
+.booking-status--cancelled {
+  background: #ffe9ed;
+  color: #c72749;
+}
 
 .booking-row-end {
   display: flex;
@@ -1586,7 +1706,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   justify-content: space-between;
 }
 
-.booking-row-end strong { display: none; }
+.booking-row-end strong {
+  display: none;
+}
 
 .booking-row-end > ion-icon {
   margin: auto 0;
@@ -1611,7 +1733,9 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .booking-detail-heading > div,
-.booking-section-title { gap: 10px; }
+.booking-section-title {
+  gap: 10px;
+}
 
 .booking-detail-icon,
 .booking-section-title > span {
@@ -1691,7 +1815,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   transition: transform 210ms ease;
 }
 
-.booking-property-summary figure:hover img { transform: scale(1.03); }
+.booking-property-summary figure:hover img {
+  transform: scale(1.03);
+}
 
 .booking-detail-grid {
   display: grid;
@@ -1764,8 +1890,14 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-size: 18px;
 }
 
-.status-band-icon--payment { background: #fff6e4; color: #dd8b12; }
-.status-band-icon--reminder { background: #edf7ff; color: #2274d8; }
+.status-band-icon--payment {
+  background: #fff6e4;
+  color: #dd8b12;
+}
+.status-band-icon--reminder {
+  background: #edf7ff;
+  color: #2274d8;
+}
 
 .booking-status-bands p,
 .booking-status-bands strong {
@@ -1773,10 +1905,24 @@ function toErrorMessage(error: unknown, fallback: string) {
   margin: 0;
 }
 
-.booking-status-bands p { color: #7a8798; font-size: 9px; }
-.booking-status-bands strong { margin-top: 3px; color: #1d2d40; font-size: 11px; }
-.booking-status-bands small { color: #536278; font-size: 10px; font-weight: 800; }
-.booking-status-bands section > ion-icon { color: #1d9c5a; font-size: 19px; }
+.booking-status-bands p {
+  color: #7a8798;
+  font-size: 9px;
+}
+.booking-status-bands strong {
+  margin-top: 3px;
+  color: #1d2d40;
+  font-size: 11px;
+}
+.booking-status-bands small {
+  color: #536278;
+  font-size: 10px;
+  font-weight: 800;
+}
+.booking-status-bands section > ion-icon {
+  color: #1d9c5a;
+  font-size: 19px;
+}
 
 .booking-timeline {
   margin-top: 18px;
@@ -1825,14 +1971,36 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .booking-timeline li span strong,
-.booking-timeline li span small { display: block; }
-.booking-timeline li span strong { color: #66758a; font-size: 10px; }
-.booking-timeline li span small { margin-top: 2px; color: #9aa5b2; font-size: 8px; }
-.booking-timeline--done > i { border-color: #239b5c !important; background: #239b5c !important; }
-.booking-timeline--done:not(:last-child)::after { background: #80caa4 !important; }
-.booking-timeline--done span strong { color: #1d2d40 !important; }
-.booking-timeline--current > i { border-color: #2877e6 !important; box-shadow: inset 0 0 0 4px #ffffff; background: #2877e6 !important; }
-.booking-timeline--current span strong { color: #1f65c8 !important; }
+.booking-timeline li span small {
+  display: block;
+}
+.booking-timeline li span strong {
+  color: #66758a;
+  font-size: 10px;
+}
+.booking-timeline li span small {
+  margin-top: 2px;
+  color: #9aa5b2;
+  font-size: 8px;
+}
+.booking-timeline--done > i {
+  border-color: #239b5c !important;
+  background: #239b5c !important;
+}
+.booking-timeline--done:not(:last-child)::after {
+  background: #80caa4 !important;
+}
+.booking-timeline--done span strong {
+  color: #1d2d40 !important;
+}
+.booking-timeline--current > i {
+  border-color: #2877e6 !important;
+  box-shadow: inset 0 0 0 4px #ffffff;
+  background: #2877e6 !important;
+}
+.booking-timeline--current span strong {
+  color: #1f65c8 !important;
+}
 
 .booking-notes {
   margin-top: 14px;
@@ -1840,8 +2008,20 @@ function toErrorMessage(error: unknown, fallback: string) {
   padding-top: 14px;
 }
 
-.booking-notes p { margin: 0; color: #6b798c; font-size: 9px; font-weight: 800; text-transform: uppercase; }
-.booking-notes span { display: block; margin-top: 6px; color: #344256; font-size: 10px; line-height: 1.6; }
+.booking-notes p {
+  margin: 0;
+  color: #6b798c;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.booking-notes span {
+  display: block;
+  margin-top: 6px;
+  color: #344256;
+  font-size: 10px;
+  line-height: 1.6;
+}
 
 .booking-actions {
   display: grid;
@@ -1864,15 +2044,37 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 190ms ease, box-shadow 190ms ease, background-color 190ms ease,
+  transition:
+    transform 190ms ease,
+    box-shadow 190ms ease,
+    background-color 190ms ease,
     border-color 190ms ease;
 }
 
-.booking-action:hover { transform: translateY(-3px); }
-.booking-action--secondary { border-color: #dce4ed; background: #ffffff; color: #344256; }
-.booking-action--primary { border-color: #246fe0; background: #246fe0; color: #ffffff; box-shadow: 0 14px 24px -18px rgba(36, 111, 224, 0.8); }
-.booking-action--danger { border-color: #f0a8b5; background: #fff7f8; color: #c81e45; }
-.booking-action:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
+.booking-action:hover {
+  transform: translateY(-3px);
+}
+.booking-action--secondary {
+  border-color: #dce4ed;
+  background: #ffffff;
+  color: #344256;
+}
+.booking-action--primary {
+  border-color: #246fe0;
+  background: #246fe0;
+  color: #ffffff;
+  box-shadow: 0 14px 24px -18px rgba(36, 111, 224, 0.8);
+}
+.booking-action--danger {
+  border-color: #f0a8b5;
+  background: #fff7f8;
+  color: #c81e45;
+}
+.booking-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
 
 .booking-state {
   display: grid;
@@ -1894,8 +2096,19 @@ function toErrorMessage(error: unknown, fallback: string) {
   font-size: 27px;
 }
 
-.booking-state h2 { margin: 16px 0 0; color: #102033; font-size: 20px; font-weight: 800; }
-.booking-state p { max-width: 420px; margin: 8px 0 0; color: #6c7b8f; font-size: 12px; line-height: 1.7; }
+.booking-state h2 {
+  margin: 16px 0 0;
+  color: #102033;
+  font-size: 20px;
+  font-weight: 800;
+}
+.booking-state p {
+  max-width: 420px;
+  margin: 8px 0 0;
+  color: #6c7b8f;
+  font-size: 12px;
+  line-height: 1.7;
+}
 .booking-state > button,
 .booking-state > a {
   display: inline-flex;
@@ -1914,8 +2127,13 @@ function toErrorMessage(error: unknown, fallback: string) {
   cursor: pointer;
 }
 
-.booking-state--error > span { background: #fff0f2; color: #d3294c; }
-.booking-state--error > button { background: #1b2b3f; }
+.booking-state--error > span {
+  background: #fff0f2;
+  color: #d3294c;
+}
+.booking-state--error > button {
+  background: #1b2b3f;
+}
 
 .booking-row-skeleton,
 .booking-detail-skeleton {
@@ -1932,21 +2150,64 @@ function toErrorMessage(error: unknown, fallback: string) {
   padding: 9px;
 }
 
-.booking-row-skeleton > span { width: 72px; aspect-ratio: 1; border-radius: 10px; background: #edf1f5; }
-.booking-row-skeleton div { display: grid; align-content: center; gap: 9px; }
-.booking-row-skeleton i { display: block; height: 9px; border-radius: 5px; background: #edf1f5; }
-.booking-row-skeleton i:nth-child(1) { width: 48%; }
-.booking-row-skeleton i:nth-child(2) { width: 72%; }
-.booking-row-skeleton i:nth-child(3) { width: 34%; }
-.booking-detail-skeleton { border-top: 1px solid #e8edf3; }
-.booking-detail-skeleton span { display: block; width: 100%; aspect-ratio: 16 / 7; border-radius: 14px; background: #edf1f5; }
-.booking-detail-skeleton i { display: block; width: 100%; height: 10px; margin-top: 15px; border-radius: 5px; background: #edf1f5; }
-.booking-detail-skeleton i:nth-child(3) { width: 76%; }
-.booking-detail-skeleton i:nth-child(4) { width: 88%; }
-.booking-detail-skeleton i:nth-child(5) { width: 52%; }
+.booking-row-skeleton > span {
+  width: 72px;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: #edf1f5;
+}
+.booking-row-skeleton div {
+  display: grid;
+  align-content: center;
+  gap: 9px;
+}
+.booking-row-skeleton i {
+  display: block;
+  height: 9px;
+  border-radius: 5px;
+  background: #edf1f5;
+}
+.booking-row-skeleton i:nth-child(1) {
+  width: 48%;
+}
+.booking-row-skeleton i:nth-child(2) {
+  width: 72%;
+}
+.booking-row-skeleton i:nth-child(3) {
+  width: 34%;
+}
+.booking-detail-skeleton {
+  border-top: 1px solid #e8edf3;
+}
+.booking-detail-skeleton span {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  border-radius: 14px;
+  background: #edf1f5;
+}
+.booking-detail-skeleton i {
+  display: block;
+  width: 100%;
+  height: 10px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background: #edf1f5;
+}
+.booking-detail-skeleton i:nth-child(3) {
+  width: 76%;
+}
+.booking-detail-skeleton i:nth-child(4) {
+  width: 88%;
+}
+.booking-detail-skeleton i:nth-child(5) {
+  width: 52%;
+}
 
 @keyframes booking-pulse {
-  50% { opacity: 0.55; }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .booking-tabs button:focus-visible,
@@ -1974,7 +2235,9 @@ function toErrorMessage(error: unknown, fallback: string) {
     padding: 9px;
   }
 
-  .booking-row-image { width: 78px; }
+  .booking-row-image {
+    width: 78px;
+  }
 
   .booking-date-block {
     display: flex;
@@ -1987,31 +2250,72 @@ function toErrorMessage(error: unknown, fallback: string) {
     color: #25405f;
   }
 
-  .booking-date-block small { font-size: 8px; font-weight: 800; }
-  .booking-date-block strong { margin-top: 1px; font-size: 19px; line-height: 1; }
-  .booking-date-block span { margin-top: 3px; font-size: 8px; }
-  .booking-row-end strong { display: block; color: #1d2c40; font-size: 9px; }
-  .booking-row-end > ion-icon { margin: auto 4px 0 0; }
+  .booking-date-block small {
+    font-size: 8px;
+    font-weight: 800;
+  }
+  .booking-date-block strong {
+    margin-top: 1px;
+    font-size: 19px;
+    line-height: 1;
+  }
+  .booking-date-block span {
+    margin-top: 3px;
+    font-size: 8px;
+  }
+  .booking-row-end strong {
+    display: block;
+    color: #1d2c40;
+    font-size: 9px;
+  }
+  .booking-row-end > ion-icon {
+    margin: auto 4px 0 0;
+  }
 
   .booking-property-summary {
     grid-template-columns: minmax(0, 1fr) 176px;
     align-items: center;
   }
 
-  .booking-property-summary figure { aspect-ratio: 4 / 3; }
-  .booking-status-bands { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .booking-status-bands section:nth-child(2) { border-left: 1px solid #e8edf3; padding-left: 12px; }
-  .booking-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .booking-property-summary figure {
+    aspect-ratio: 4 / 3;
+  }
+  .booking-status-bands {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .booking-status-bands section:nth-child(2) {
+    border-left: 1px solid #e8edf3;
+    padding-left: 12px;
+  }
+  .booking-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 760px) {
-  .bookings-main { padding: 22px; }
-  .booking-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .booking-metric { min-height: 108px; padding: 15px; }
-  .metric-icon { width: 46px; height: 46px; font-size: 21px; }
-  .booking-toolbar { padding: 16px 18px; }
+  .bookings-main {
+    padding: 22px;
+  }
+  .booking-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .booking-metric {
+    min-height: 108px;
+    padding: 15px;
+  }
+  .metric-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 21px;
+  }
+  .booking-toolbar {
+    padding: 16px 18px;
+  }
   .booking-list-pane,
-  .booking-detail-pane { padding: 18px; }
+  .booking-detail-pane {
+    padding: 18px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2023,9 +2327,14 @@ function toErrorMessage(error: unknown, fallback: string) {
     padding: 20px;
   }
 
-  .bookings-main { min-width: 0; padding: 0; }
+  .bookings-main {
+    min-width: 0;
+    padding: 0;
+  }
 
-  :deep(nav[aria-label='Primary navigation']) { display: none; }
+  :deep(nav[aria-label='Primary navigation']) {
+    display: none;
+  }
 }
 
 @media (min-width: 1280px) {
@@ -2036,7 +2345,9 @@ function toErrorMessage(error: unknown, fallback: string) {
     gap: 16px;
   }
 
-  .booking-filter-bar { margin-top: 0; }
+  .booking-filter-bar {
+    margin-top: 0;
+  }
 
   .booking-workspace {
     display: grid;
@@ -2059,36 +2370,88 @@ function toErrorMessage(error: unknown, fallback: string) {
     border-top: 0;
   }
 
-  .booking-detail-skeleton { border-top: 0; }
+  .booking-detail-skeleton {
+    border-top: 0;
+  }
 }
 
 @media (min-width: 1440px) {
-  .bookings-page { grid-template-columns: 216px minmax(0, 1fr); gap: 20px; }
-  .bookings-main { max-width: 1580px; }
-  .booking-metric { min-height: 112px; padding: 17px; }
-  .booking-toolbar { grid-template-columns: minmax(460px, auto) minmax(650px, 1fr); }
-  .booking-list-row { grid-template-columns: 84px 58px minmax(0, 1fr) 82px; }
-  .booking-row-image { width: 84px; }
+  .bookings-page {
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .bookings-main {
+    max-width: 1580px;
+  }
+  .booking-metric {
+    min-height: 112px;
+    padding: 17px;
+  }
+  .booking-toolbar {
+    grid-template-columns: minmax(460px, auto) minmax(650px, 1fr);
+  }
+  .booking-list-row {
+    grid-template-columns: 84px 58px minmax(0, 1fr) 82px;
+  }
+  .booking-row-image {
+    width: 84px;
+  }
 }
 
 @media (max-width: 759px) {
-  .bookings-hero-art { display: none; }
-  .bookings-hero { min-height: 150px; }
-  .bookings-hero-copy { padding: 24px 20px; }
-  .bookings-hero h1 { font-size: 27px; }
+  .bookings-hero-art {
+    display: none;
+  }
+  .bookings-hero {
+    min-height: 150px;
+  }
+  .bookings-hero-copy {
+    padding: 24px 20px;
+  }
+  .bookings-hero h1 {
+    font-size: 27px;
+  }
 }
 
 @media (max-width: 559px) {
-  .booking-metric { min-height: 100px; align-items: flex-start; gap: 10px; padding: 13px; }
-  .metric-icon { width: 38px; height: 38px; border-radius: 11px; font-size: 18px; }
-  .booking-metric strong { font-size: 22px; }
-  .booking-metric small { font-size: 8px; }
-  .booking-toolbar { padding: 13px; }
-  .booking-filter-popover { right: auto; left: 0; }
-  .booking-filter-menu:nth-of-type(3) .booking-filter-popover { right: 0; left: auto; }
-  .booking-detail-heading { align-items: flex-start; }
-  .booking-property-summary h3 { font-size: 18px; }
-  .booking-detail-grid > div { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .booking-metric {
+    min-height: 100px;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px;
+  }
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+  .booking-metric strong {
+    font-size: 22px;
+  }
+  .booking-metric small {
+    font-size: 8px;
+  }
+  .booking-toolbar {
+    padding: 13px;
+  }
+  .booking-filter-popover {
+    right: auto;
+    left: 0;
+  }
+  .booking-filter-menu:nth-of-type(3) .booking-filter-popover {
+    right: 0;
+    left: auto;
+  }
+  .booking-detail-heading {
+    align-items: flex-start;
+  }
+  .booking-property-summary h3 {
+    font-size: 18px;
+  }
+  .booking-detail-grid > div {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2101,10 +2464,14 @@ function toErrorMessage(error: unknown, fallback: string) {
   }
 
   .booking-row-skeleton,
-  .booking-detail-skeleton { animation: none; }
+  .booking-detail-skeleton {
+    animation: none;
+  }
 }
 
-:global(.dark) .bookings-page { background: #0c1420; }
+:global(.dark) .bookings-page {
+  background: #0c1420;
+}
 :global(.dark) .bookings-hero,
 :global(.dark) .booking-metric,
 :global(.dark) .booking-management,
@@ -2120,7 +2487,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   background: #121d2b;
 }
 
-:global(.dark) .bookings-hero { background: #121d2b; }
+:global(.dark) .bookings-hero {
+  background: #121d2b;
+}
 :global(.dark) .bookings-hero h1,
 :global(.dark) .booking-metric strong,
 :global(.dark) .booking-search input,

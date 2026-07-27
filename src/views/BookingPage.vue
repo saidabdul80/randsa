@@ -1,8 +1,5 @@
 <template>
-  <AppShell
-    :show-header="false"
-    content-class="min-h-full w-full pb-28 lg:pb-0"
-  >
+  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="booking-page-layout">
       <aside class="booking-desktop-nav" aria-label="Booking navigation">
         <div class="booking-brand" aria-label="RANDSA">
@@ -34,7 +31,7 @@
             :src="state.profile.photoURL"
             :alt="state.profile.fullName"
             loading="lazy"
-          >
+          />
           <span v-else class="booking-profile-avatar" aria-hidden="true">{{ profileInitial }}</span>
           <span class="booking-profile-copy">
             <strong>{{ state.profile?.fullName || 'RANDSA account' }}</strong>
@@ -46,433 +43,501 @@
 
       <main class="booking-main-content">
         <section class="booking-hero" aria-labelledby="booking-title">
-      <div class="booking-hero-copy">
-        <span class="booking-hero-icon" aria-hidden="true">
-          <IonIcon :icon="calendarOutline" />
-        </span>
-        <div>
-          <p class="booking-eyebrow">Universal booking</p>
-          <h1 id="booking-title">{{ bookingModeConfig.title }}</h1>
-          <p>{{ bookingModeConfig.description }}</p>
-        </div>
-      </div>
-
-      <div class="booking-hero-media">
-        <img
-          v-if="propertyImage"
-          :src="propertyImage"
-          :alt="property ? `${property.title} property` : 'Selected property'"
-          loading="lazy"
-          decoding="async"
-        >
-        <div v-else class="booking-image-placeholder">
-          <IonIcon :icon="businessOutline" aria-hidden="true" />
-          <span>Property image unavailable</span>
-        </div>
-      </div>
-        </section>
-
-        <section class="booking-layout" :aria-label="`${bookingModeConfig.title} details`">
-      <div class="booking-card booking-form-card">
-        <div class="booking-section-heading">
-          <div>
-            <p class="booking-eyebrow">Booking details</p>
-            <h2>{{ bookingModeConfig.title }}</h2>
-          </div>
-          <span class="secure-chip">
-            <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
-            Secure request
-          </span>
-        </div>
-
-        <div
-          v-if="message"
-          class="booking-message"
-          :class="messageTone === 'success' ? 'booking-message--success' : 'booking-message--error'"
-          role="status"
-          aria-live="polite"
-        >
-          <IonIcon
-            :icon="messageTone === 'success' ? checkmarkCircleOutline : alertCircleOutline"
-            aria-hidden="true"
-          />
-          <span>{{ message }}</span>
-        </div>
-
-        <form class="booking-form" @submit.prevent="handleSubmit">
-          <div class="booking-fields-grid">
-            <div v-if="usesSlotSelection" ref="datePickerRoot" class="booking-field booking-popover-field">
-              <label id="inspection-date-label">{{ bookingModeConfig.dateLabel }}</label>
-              <button
-                type="button"
-                class="booking-input booking-picker-trigger"
-                aria-haspopup="dialog"
-                :aria-expanded="isCalendarOpen"
-                aria-labelledby="inspection-date-label inspection-date-value"
-                @click="openCalendar"
-                @keydown.esc="isCalendarOpen = false"
-              >
-                <IonIcon :icon="calendarOutline" aria-hidden="true" />
-                <span id="inspection-date-value" :class="{ 'booking-placeholder': !form.inspectionDate }">
-                  {{ formattedInspectionDate || 'Choose a date' }}
-                </span>
-                <IonIcon :icon="chevronDownOutline" class="picker-chevron" aria-hidden="true" />
-              </button>
-
-              <Transition name="booking-popover">
-                <div
-                  v-if="isCalendarOpen"
-                  class="calendar-popover"
-                  role="dialog"
-                  aria-modal="false"
-                  aria-labelledby="calendar-heading"
-                  @keydown.esc.stop="isCalendarOpen = false"
-                >
-                  <div class="calendar-header">
-                    <button
-                      type="button"
-                      class="calendar-nav-button"
-                      :disabled="!canGoToPreviousMonth"
-                      aria-label="Previous month"
-                      @click="shiftCalendarMonth(-1)"
-                    >
-                      <IonIcon :icon="chevronBackOutline" />
-                    </button>
-                    <h3 id="calendar-heading" aria-live="polite">{{ displayedMonthLabel }}</h3>
-                    <button
-                      type="button"
-                      class="calendar-nav-button"
-                      aria-label="Next month"
-                      @click="shiftCalendarMonth(1)"
-                    >
-                      <IonIcon :icon="chevronForwardOutline" />
-                    </button>
-                  </div>
-
-                  <div class="calendar-weekdays" aria-hidden="true">
-                    <span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span>
-                  </div>
-
-                  <div class="calendar-grid" role="grid" :aria-label="`Choose ${bookingModeConfig.dateLabel.toLowerCase()}`">
-                    <template v-for="cell in calendarDays" :key="cell.key">
-                      <span v-if="!cell.iso" class="calendar-empty" aria-hidden="true" />
-                      <button
-                        v-else
-                        type="button"
-                        class="calendar-day"
-                        :class="[
-                          `calendar-day--${cell.availabilityState}`,
-                          {
-                            'calendar-day--today': cell.isToday,
-                            'calendar-day--selected': calendarSelection === cell.iso,
-                            'calendar-day--disabled': cell.disabled,
-                          },
-                        ]"
-                        :data-calendar-date="cell.iso"
-                        :aria-label="`${cell.ariaLabel}. ${cell.availabilityLabel}. ${cell.availabilityDescription}`"
-                        :aria-disabled="cell.disabled"
-                        :aria-selected="calendarSelection === cell.iso"
-                        :title="`${cell.availabilityLabel}: ${cell.availabilityDescription}`"
-                        role="gridcell"
-                        @click="selectCalendarCell(cell)"
-                        @keydown="handleCalendarDayKeydown($event, cell.iso)"
-                      >
-                        <span>{{ cell.day }}</span>
-                        <i class="calendar-availability-dot" aria-hidden="true" />
-                      </button>
-                    </template>
-                  </div>
-
-                  <div class="calendar-legend" aria-label="Availability legend">
-                    <span><i class="legend-dot legend-dot--available" />Available</span>
-                    <span><i class="legend-dot legend-dot--limited" />Limited</span>
-                    <span><i class="legend-dot legend-dot--full" />Fully booked</span>
-                    <span><i class="legend-dot legend-dot--disabled" />Unavailable</span>
-                  </div>
-
-                  <p v-if="calendarFeedback" class="calendar-feedback" role="status">
-                    {{ calendarFeedback }}
-                  </p>
-                  <p v-else-if="isRefreshingAvailability" class="calendar-refresh-note" role="status">
-                    Refreshing known availability...
-                  </p>
-                  <p v-else-if="availabilityLoadError" class="calendar-refresh-note calendar-refresh-note--error">
-                    Live availability could not refresh. Showing the configured inspection schedule.
-                  </p>
-
-                  <div class="calendar-footer">
-                    <button type="button" class="calendar-text-button" @click="clearDateSelection">
-                      Clear
-                    </button>
-                    <button type="button" class="calendar-text-button" @click="selectToday">
-                      Today
-                    </button>
-                    <button
-                      type="button"
-                      class="calendar-apply-button"
-                      :disabled="!calendarSelection"
-                      @click="applyCalendarSelection"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-
-            <div v-if="usesSlotSelection" ref="timePickerRoot" class="booking-field booking-popover-field">
-              <label id="inspection-time-label">{{ bookingModeConfig.startTimeLabel }}</label>
-              <button
-                type="button"
-                class="booking-input booking-picker-trigger"
-                aria-haspopup="listbox"
-                :aria-expanded="isTimePickerOpen"
-                :disabled="!form.inspectionDate"
-                aria-labelledby="inspection-time-label inspection-time-value"
-                @click="openTimePicker"
-                @keydown.esc="isTimePickerOpen = false"
-              >
-                <IonIcon :icon="timeOutline" aria-hidden="true" />
-                <span id="inspection-time-value" :class="{ 'booking-placeholder': !form.inspectionTime }">
-                  {{ formattedInspectionTime || 'Choose a time' }}
-                </span>
-                <IonIcon :icon="chevronDownOutline" class="picker-chevron" aria-hidden="true" />
-              </button>
-
-              <Transition name="booking-popover">
-                <div
-                  v-if="isTimePickerOpen"
-                  class="time-popover"
-                  @keydown.esc.stop="isTimePickerOpen = false"
-                >
-                  <div class="time-popover-header">
-                    <div>
-                      <h3>Available times</h3>
-                      <p>{{ selectedDateAvailability?.description ?? 'Choose an available date first' }}</p>
-                    </div>
-                    <button type="button" @click="clearTimeSelection">Clear</button>
-                  </div>
-                  <div class="time-slot-grid" role="listbox" :aria-label="`Available ${bookingModeConfig.startTimeLabel.toLowerCase()}s`">
-                    <button
-                      v-for="slot in timeSlots"
-                      :key="slot.value"
-                      type="button"
-                      class="time-slot"
-                      :class="{ 'time-slot--selected': form.inspectionTime === slot.value }"
-                      :disabled="!slot.available"
-                      :aria-selected="form.inspectionTime === slot.value"
-                      :title="slot.available ? 'Available' : 'Unavailable'"
-                      role="option"
-                      @click="selectTimeSlot(slot.value)"
-                    >
-                      {{ slot.label }}
-                    </button>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-
-            <template v-if="!usesSlotSelection">
-              <div class="booking-field">
-                <label for="booking-start-date">{{ bookingModeConfig.dateLabel }}</label>
-                <input
-                  id="booking-start-date"
-                  v-model="form.inspectionDate"
-                  class="booking-input booking-native-input"
-                  type="date"
-                  :min="todayIso"
-                >
-              </div>
-              <div class="booking-field">
-                <label for="booking-start-time">{{ bookingModeConfig.startTimeLabel }}</label>
-                <input
-                  id="booking-start-time"
-                  v-model="form.inspectionTime"
-                  class="booking-input booking-native-input"
-                  type="time"
-                >
-              </div>
-              <div v-if="bookingModeConfig.selectionKind === 'date_time_range'" class="booking-field">
-                <label for="booking-end-date">{{ bookingModeConfig.endDateLabel }}</label>
-                <input
-                  id="booking-end-date"
-                  v-model="form.endDate"
-                  class="booking-input booking-native-input"
-                  type="date"
-                  :min="form.inspectionDate || todayIso"
-                >
-              </div>
-              <div class="booking-field">
-                <label for="booking-end-time">{{ bookingModeConfig.endTimeLabel }}</label>
-                <input
-                  id="booking-end-time"
-                  v-model="form.endTime"
-                  class="booking-input booking-native-input"
-                  type="time"
-                >
-              </div>
-            </template>
-
-            <div class="booking-field">
-              <label for="guest-phone">{{ isInspectionBookingMode ? 'Guest phone' : 'Customer phone' }}</label>
-              <div class="booking-input booking-text-input">
-                <IonIcon :icon="callOutline" aria-hidden="true" />
-                <input
-                  id="guest-phone"
-                  v-model="form.guestPhone"
-                  type="tel"
-                  autocomplete="tel"
-                  placeholder="+234..."
-                >
-              </div>
-            </div>
-
-            <div class="booking-field booking-field--wide">
-              <label for="inspection-notes">{{ isInspectionBookingMode ? 'Notes' : 'Notes or special request' }}</label>
-              <textarea
-                id="inspection-notes"
-                v-model="form.notes"
-                rows="4"
-                class="booking-input booking-textarea"
-                :placeholder="isInspectionBookingMode
-                  ? 'Gate description, meeting notes, or a request for the landlord or agent.'
-                  : 'Add any useful request for the listing contact.'"
-              />
-              <p class="field-hint">Optional details that will help the property contact prepare.</p>
+          <div class="booking-hero-copy">
+            <span class="booking-hero-icon" aria-hidden="true">
+              <IonIcon :icon="calendarOutline" />
+            </span>
+            <div>
+              <p class="booking-eyebrow">Universal booking</p>
+              <h1 id="booking-title">{{ bookingModeConfig.title }}</h1>
+              <p>{{ bookingModeConfig.description }}</p>
             </div>
           </div>
 
-          <div class="booking-actions">
-            <RouterLink
-              v-if="property && isInspectionBookingMode"
-              :to="paymentRoute"
-              class="booking-button booking-button--secondary"
-            >
-              Manage inspection payment
-            </RouterLink>
-            <button
-              type="submit"
-              class="booking-button booking-button--primary"
-              :disabled="!property || !state.profile || isLoading"
-            >
-              <span>{{ isLoading ? 'Saving booking...' : bookingModeConfig.primaryActionLabel }}</span>
-              <IonIcon
-                :icon="isLoading ? syncOutline : arrowForwardOutline"
-                :class="{ 'booking-spinner': isLoading }"
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <aside class="booking-sidebar" aria-label="Property and payment summary">
-        <article class="booking-card property-summary-card">
-          <div class="property-summary-image">
+          <div class="booking-hero-media">
             <img
               v-if="propertyImage"
               :src="propertyImage"
-              :alt="property ? property.title : 'Selected property'"
+              :alt="property ? `${property.title} property` : 'Selected property'"
               loading="lazy"
               decoding="async"
-            >
+            />
             <div v-else class="booking-image-placeholder">
               <IonIcon :icon="businessOutline" aria-hidden="true" />
+              <span>Property image unavailable</span>
             </div>
           </div>
+        </section>
 
-          <div class="property-summary-content">
-            <p class="booking-eyebrow">Listing summary</p>
-            <template v-if="property">
-              <h2>{{ property.title }}</h2>
-              <p class="property-address">
-                <IonIcon :icon="locationOutline" aria-hidden="true" />
-                <span>{{ propertyAddress }}</span>
+        <section class="booking-layout" :aria-label="`${bookingModeConfig.title} details`">
+          <div class="booking-card booking-form-card">
+            <div class="booking-section-heading">
+              <div>
+                <p class="booking-eyebrow">Booking details</p>
+                <h2>{{ bookingModeConfig.title }}</h2>
+              </div>
+              <span class="secure-chip">
+                <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
+                Secure request
+              </span>
+            </div>
+
+            <div
+              v-if="message"
+              class="booking-message"
+              :class="
+                messageTone === 'success' ? 'booking-message--success' : 'booking-message--error'
+              "
+              role="status"
+              aria-live="polite"
+            >
+              <IonIcon
+                :icon="messageTone === 'success' ? checkmarkCircleOutline : alertCircleOutline"
+                aria-hidden="true"
+              />
+              <span>{{ message }}</span>
+            </div>
+
+            <form class="booking-form" @submit.prevent="handleSubmit">
+              <div class="booking-fields-grid">
+                <div
+                  v-if="usesSlotSelection"
+                  ref="datePickerRoot"
+                  class="booking-field booking-popover-field"
+                >
+                  <label id="inspection-date-label">{{ bookingModeConfig.dateLabel }}</label>
+                  <button
+                    type="button"
+                    class="booking-input booking-picker-trigger"
+                    aria-haspopup="dialog"
+                    :aria-expanded="isCalendarOpen"
+                    aria-labelledby="inspection-date-label inspection-date-value"
+                    @click="openCalendar"
+                    @keydown.esc="isCalendarOpen = false"
+                  >
+                    <IonIcon :icon="calendarOutline" aria-hidden="true" />
+                    <span
+                      id="inspection-date-value"
+                      :class="{ 'booking-placeholder': !form.inspectionDate }"
+                    >
+                      {{ formattedInspectionDate || 'Choose a date' }}
+                    </span>
+                    <IonIcon :icon="chevronDownOutline" class="picker-chevron" aria-hidden="true" />
+                  </button>
+
+                  <Transition name="booking-popover">
+                    <div
+                      v-if="isCalendarOpen"
+                      class="calendar-popover"
+                      role="dialog"
+                      aria-modal="false"
+                      aria-labelledby="calendar-heading"
+                      @keydown.esc.stop="isCalendarOpen = false"
+                    >
+                      <div class="calendar-header">
+                        <button
+                          type="button"
+                          class="calendar-nav-button"
+                          :disabled="!canGoToPreviousMonth"
+                          aria-label="Previous month"
+                          @click="shiftCalendarMonth(-1)"
+                        >
+                          <IonIcon :icon="chevronBackOutline" />
+                        </button>
+                        <h3 id="calendar-heading" aria-live="polite">{{ displayedMonthLabel }}</h3>
+                        <button
+                          type="button"
+                          class="calendar-nav-button"
+                          aria-label="Next month"
+                          @click="shiftCalendarMonth(1)"
+                        >
+                          <IonIcon :icon="chevronForwardOutline" />
+                        </button>
+                      </div>
+
+                      <div class="calendar-weekdays" aria-hidden="true">
+                        <span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span>
+                      </div>
+
+                      <div
+                        class="calendar-grid"
+                        role="grid"
+                        :aria-label="`Choose ${bookingModeConfig.dateLabel.toLowerCase()}`"
+                      >
+                        <template v-for="cell in calendarDays" :key="cell.key">
+                          <span v-if="!cell.iso" class="calendar-empty" aria-hidden="true" />
+                          <button
+                            v-else
+                            type="button"
+                            class="calendar-day"
+                            :class="[
+                              `calendar-day--${cell.availabilityState}`,
+                              {
+                                'calendar-day--today': cell.isToday,
+                                'calendar-day--selected': calendarSelection === cell.iso,
+                                'calendar-day--disabled': cell.disabled,
+                              },
+                            ]"
+                            :data-calendar-date="cell.iso"
+                            :aria-label="`${cell.ariaLabel}. ${cell.availabilityLabel}. ${cell.availabilityDescription}`"
+                            :aria-disabled="cell.disabled"
+                            :aria-selected="calendarSelection === cell.iso"
+                            :title="`${cell.availabilityLabel}: ${cell.availabilityDescription}`"
+                            role="gridcell"
+                            @click="selectCalendarCell(cell)"
+                            @keydown="handleCalendarDayKeydown($event, cell.iso)"
+                          >
+                            <span>{{ cell.day }}</span>
+                            <i class="calendar-availability-dot" aria-hidden="true" />
+                          </button>
+                        </template>
+                      </div>
+
+                      <div class="calendar-legend" aria-label="Availability legend">
+                        <span><i class="legend-dot legend-dot--available" />Available</span>
+                        <span><i class="legend-dot legend-dot--limited" />Limited</span>
+                        <span><i class="legend-dot legend-dot--full" />Fully booked</span>
+                        <span><i class="legend-dot legend-dot--disabled" />Unavailable</span>
+                      </div>
+
+                      <p v-if="calendarFeedback" class="calendar-feedback" role="status">
+                        {{ calendarFeedback }}
+                      </p>
+                      <p
+                        v-else-if="isRefreshingAvailability"
+                        class="calendar-refresh-note"
+                        role="status"
+                      >
+                        Refreshing known availability...
+                      </p>
+                      <p
+                        v-else-if="availabilityLoadError"
+                        class="calendar-refresh-note calendar-refresh-note--error"
+                      >
+                        Live availability could not refresh. Showing the configured inspection
+                        schedule.
+                      </p>
+
+                      <div class="calendar-footer">
+                        <button
+                          type="button"
+                          class="calendar-text-button"
+                          @click="clearDateSelection"
+                        >
+                          Clear
+                        </button>
+                        <button type="button" class="calendar-text-button" @click="selectToday">
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          class="calendar-apply-button"
+                          :disabled="!calendarSelection"
+                          @click="applyCalendarSelection"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
+
+                <div
+                  v-if="usesSlotSelection"
+                  ref="timePickerRoot"
+                  class="booking-field booking-popover-field"
+                >
+                  <label id="inspection-time-label">{{ bookingModeConfig.startTimeLabel }}</label>
+                  <button
+                    type="button"
+                    class="booking-input booking-picker-trigger"
+                    aria-haspopup="listbox"
+                    :aria-expanded="isTimePickerOpen"
+                    :disabled="!form.inspectionDate"
+                    aria-labelledby="inspection-time-label inspection-time-value"
+                    @click="openTimePicker"
+                    @keydown.esc="isTimePickerOpen = false"
+                  >
+                    <IonIcon :icon="timeOutline" aria-hidden="true" />
+                    <span
+                      id="inspection-time-value"
+                      :class="{ 'booking-placeholder': !form.inspectionTime }"
+                    >
+                      {{ formattedInspectionTime || 'Choose a time' }}
+                    </span>
+                    <IonIcon :icon="chevronDownOutline" class="picker-chevron" aria-hidden="true" />
+                  </button>
+
+                  <Transition name="booking-popover">
+                    <div
+                      v-if="isTimePickerOpen"
+                      class="time-popover"
+                      @keydown.esc.stop="isTimePickerOpen = false"
+                    >
+                      <div class="time-popover-header">
+                        <div>
+                          <h3>Available times</h3>
+                          <p>
+                            {{
+                              selectedDateAvailability?.description ??
+                              'Choose an available date first'
+                            }}
+                          </p>
+                        </div>
+                        <button type="button" @click="clearTimeSelection">Clear</button>
+                      </div>
+                      <div
+                        class="time-slot-grid"
+                        role="listbox"
+                        :aria-label="`Available ${bookingModeConfig.startTimeLabel.toLowerCase()}s`"
+                      >
+                        <button
+                          v-for="slot in timeSlots"
+                          :key="slot.value"
+                          type="button"
+                          class="time-slot"
+                          :class="{ 'time-slot--selected': form.inspectionTime === slot.value }"
+                          :disabled="!slot.available"
+                          :aria-selected="form.inspectionTime === slot.value"
+                          :title="slot.available ? 'Available' : 'Unavailable'"
+                          role="option"
+                          @click="selectTimeSlot(slot.value)"
+                        >
+                          {{ slot.label }}
+                        </button>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
+
+                <template v-if="!usesSlotSelection">
+                  <div class="booking-field">
+                    <label for="booking-start-date">{{ bookingModeConfig.dateLabel }}</label>
+                    <input
+                      id="booking-start-date"
+                      v-model="form.inspectionDate"
+                      class="booking-input booking-native-input"
+                      type="date"
+                      :min="todayIso"
+                    />
+                  </div>
+                  <div class="booking-field">
+                    <label for="booking-start-time">{{ bookingModeConfig.startTimeLabel }}</label>
+                    <input
+                      id="booking-start-time"
+                      v-model="form.inspectionTime"
+                      class="booking-input booking-native-input"
+                      type="time"
+                    />
+                  </div>
+                  <div
+                    v-if="bookingModeConfig.selectionKind === 'date_time_range'"
+                    class="booking-field"
+                  >
+                    <label for="booking-end-date">{{ bookingModeConfig.endDateLabel }}</label>
+                    <input
+                      id="booking-end-date"
+                      v-model="form.endDate"
+                      class="booking-input booking-native-input"
+                      type="date"
+                      :min="form.inspectionDate || todayIso"
+                    />
+                  </div>
+                  <div class="booking-field">
+                    <label for="booking-end-time">{{ bookingModeConfig.endTimeLabel }}</label>
+                    <input
+                      id="booking-end-time"
+                      v-model="form.endTime"
+                      class="booking-input booking-native-input"
+                      type="time"
+                    />
+                  </div>
+                </template>
+
+                <div class="booking-field">
+                  <label for="guest-phone">{{
+                    isInspectionBookingMode ? 'Guest phone' : 'Customer phone'
+                  }}</label>
+                  <div class="booking-input booking-text-input">
+                    <IonIcon :icon="callOutline" aria-hidden="true" />
+                    <input
+                      id="guest-phone"
+                      v-model="form.guestPhone"
+                      type="tel"
+                      autocomplete="tel"
+                      placeholder="+234..."
+                    />
+                  </div>
+                </div>
+
+                <div class="booking-field booking-field--wide">
+                  <label for="inspection-notes">{{
+                    isInspectionBookingMode ? 'Notes' : 'Notes or special request'
+                  }}</label>
+                  <textarea
+                    id="inspection-notes"
+                    v-model="form.notes"
+                    rows="4"
+                    class="booking-input booking-textarea"
+                    :placeholder="
+                      isInspectionBookingMode
+                        ? 'Gate description, meeting notes, or a request for the landlord or agent.'
+                        : 'Add any useful request for the listing contact.'
+                    "
+                  />
+                  <p class="field-hint">
+                    Optional details that will help the property contact prepare.
+                  </p>
+                </div>
+              </div>
+
+              <div class="booking-actions">
+                <RouterLink
+                  v-if="property && isInspectionBookingMode"
+                  :to="paymentRoute"
+                  class="booking-button booking-button--secondary"
+                >
+                  Manage inspection payment
+                </RouterLink>
+                <button
+                  type="submit"
+                  class="booking-button booking-button--primary"
+                  :disabled="!property || !state.profile || isLoading"
+                >
+                  <span>{{
+                    isLoading ? 'Saving booking...' : bookingModeConfig.primaryActionLabel
+                  }}</span>
+                  <IonIcon
+                    :icon="isLoading ? syncOutline : arrowForwardOutline"
+                    :class="{ 'booking-spinner': isLoading }"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <aside class="booking-sidebar" aria-label="Property and payment summary">
+            <article class="booking-card property-summary-card">
+              <div class="property-summary-image">
+                <img
+                  v-if="propertyImage"
+                  :src="propertyImage"
+                  :alt="property ? property.title : 'Selected property'"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div v-else class="booking-image-placeholder">
+                  <IonIcon :icon="businessOutline" aria-hidden="true" />
+                </div>
+              </div>
+
+              <div class="property-summary-content">
+                <p class="booking-eyebrow">Listing summary</p>
+                <template v-if="property">
+                  <h2>{{ property.title }}</h2>
+                  <p class="property-address">
+                    <IonIcon :icon="locationOutline" aria-hidden="true" />
+                    <span>{{ propertyAddress }}</span>
+                  </p>
+
+                  <dl class="property-facts">
+                    <div>
+                      <dt>
+                        <IonIcon :icon="cashOutline" aria-hidden="true" />
+                        {{ bookingModeConfig.paymentLabel }}
+                      </dt>
+                      <dd>{{ formatNaira(bookingRate) }}</dd>
+                    </div>
+                    <div>
+                      <dt><IonIcon :icon="personOutline" aria-hidden="true" /> Contact role</dt>
+                      <dd>{{ propertyContactRole }}</dd>
+                    </div>
+                    <div>
+                      <dt><IonIcon :icon="callOutline" aria-hidden="true" /> Phone</dt>
+                      <dd>{{ property.ownerPhone || 'Not provided' }}</dd>
+                    </div>
+                  </dl>
+                </template>
+                <p v-else class="empty-copy">
+                  Open this page from a property listing to create a booking tied to that property.
+                </p>
+              </div>
+            </article>
+
+            <UniversalBookingSummary
+              :property="property"
+              :config="bookingModeConfig"
+              :selection="normalizedSelection"
+            />
+
+            <article class="booking-card payment-card">
+              <div class="summary-card-heading">
+                <div>
+                  <p class="booking-eyebrow">{{ bookingModeConfig.paymentLabel }}</p>
+                  <h2>{{ paymentHeading }}</h2>
+                </div>
+                <span class="payment-badge" :class="paymentBadgeClass">
+                  <IonIcon :icon="paymentBadgeIcon" aria-hidden="true" />
+                  {{ paymentBadgeLabel }}
+                </span>
+              </div>
+
+              <div class="payment-amount-row">
+                <div>
+                  <span>{{ bookingModeConfig.paymentLabel }}</span>
+                  <strong>{{ property ? formatNaira(bookingRate) : 'Not available' }}</strong>
+                </div>
+                <IonIcon :icon="receiptOutline" aria-hidden="true" />
+              </div>
+
+              <div v-if="latestInspectionPayment" class="payment-reference">
+                <span>Payment reference</span>
+                <strong>{{ latestInspectionPayment.paystackReference }}</strong>
+              </div>
+              <p v-else class="payment-copy">{{ paymentStatusMessage }}</p>
+
+              <RouterLink
+                v-if="property && isInspectionBookingMode"
+                :to="paymentRoute"
+                class="payment-link"
+              >
+                <span>{{ paymentActionLabel }}</span>
+                <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
+              </RouterLink>
+              <p v-else class="payment-copy">
+                Complete the reservation first. Its estimated total will then be available in My
+                bookings.
               </p>
+            </article>
 
-              <dl class="property-facts">
+            <article class="booking-card reminder-card">
+              <div class="summary-card-heading">
                 <div>
-                  <dt><IonIcon :icon="cashOutline" aria-hidden="true" /> {{ bookingModeConfig.paymentLabel }}</dt>
-                  <dd>{{ formatNaira(bookingRate) }}</dd>
+                  <p class="booking-eyebrow">Reminder delivery</p>
+                  <h2>{{ bookingModeConfig.reminderTitle }}</h2>
                 </div>
-                <div>
-                  <dt><IonIcon :icon="personOutline" aria-hidden="true" /> Contact role</dt>
-                  <dd>{{ propertyContactRole }}</dd>
-                </div>
-                <div>
-                  <dt><IonIcon :icon="callOutline" aria-hidden="true" /> Phone</dt>
-                  <dd>{{ property.ownerPhone || 'Not provided' }}</dd>
-                </div>
-              </dl>
-            </template>
-            <p v-else class="empty-copy">
-              Open this page from a property listing to create a booking tied to that property.
-            </p>
-          </div>
-        </article>
+                <span class="reminder-icon" aria-hidden="true">
+                  <IonIcon :icon="notificationsOutline" />
+                </span>
+              </div>
 
-        <UniversalBookingSummary
-          :property="property"
-          :config="bookingModeConfig"
-          :selection="normalizedSelection"
-        />
-
-        <article class="booking-card payment-card">
-          <div class="summary-card-heading">
-            <div>
-              <p class="booking-eyebrow">{{ bookingModeConfig.paymentLabel }}</p>
-              <h2>{{ paymentHeading }}</h2>
-            </div>
-            <span class="payment-badge" :class="paymentBadgeClass">
-              <IonIcon :icon="paymentBadgeIcon" aria-hidden="true" />
-              {{ paymentBadgeLabel }}
-            </span>
-          </div>
-
-          <div class="payment-amount-row">
-            <div>
-              <span>{{ bookingModeConfig.paymentLabel }}</span>
-              <strong>{{ property ? formatNaira(bookingRate) : 'Not available' }}</strong>
-            </div>
-            <IonIcon :icon="receiptOutline" aria-hidden="true" />
-          </div>
-
-          <div v-if="latestInspectionPayment" class="payment-reference">
-            <span>Payment reference</span>
-            <strong>{{ latestInspectionPayment.paystackReference }}</strong>
-          </div>
-          <p v-else class="payment-copy">{{ paymentStatusMessage }}</p>
-
-          <RouterLink v-if="property && isInspectionBookingMode" :to="paymentRoute" class="payment-link">
-            <span>{{ paymentActionLabel }}</span>
-            <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
-          </RouterLink>
-          <p v-else class="payment-copy">Complete the reservation first. Its estimated total will then be available in My bookings.</p>
-        </article>
-
-        <article class="booking-card reminder-card">
-          <div class="summary-card-heading">
-            <div>
-              <p class="booking-eyebrow">Reminder delivery</p>
-              <h2>{{ bookingModeConfig.reminderTitle }}</h2>
-            </div>
-            <span class="reminder-icon" aria-hidden="true">
-              <IonIcon :icon="notificationsOutline" />
-            </span>
-          </div>
-
-          <ul class="reminder-list">
-            <li>
-              <IonIcon :icon="notificationsOutline" aria-hidden="true" />
-              <div><strong>App notification</strong><span>Created by the reminder scan</span></div>
-            </li>
-            <li>
-              <IonIcon :icon="timeOutline" aria-hidden="true" />
-              <div><strong>Reminder timing</strong><span>When the booking is within 24 hours</span></div>
-            </li>
-          </ul>
-        </article>
-      </aside>
+              <ul class="reminder-list">
+                <li>
+                  <IonIcon :icon="notificationsOutline" aria-hidden="true" />
+                  <div>
+                    <strong>App notification</strong><span>Created by the reminder scan</span>
+                  </div>
+                </li>
+                <li>
+                  <IonIcon :icon="timeOutline" aria-hidden="true" />
+                  <div>
+                    <strong>Reminder timing</strong><span>When the booking is within 24 hours</span>
+                  </div>
+                </li>
+              </ul>
+            </article>
+          </aside>
         </section>
 
         <footer class="booking-trust-strip">
@@ -530,10 +595,7 @@ import {
   loadKnownPropertyInspectionBookings,
   type InspectionAvailabilityState,
 } from '../services/inspectionAvailability'
-import {
-  findBookingConflict,
-  type BookingAvailabilityBlock,
-} from '../services/bookingAvailability'
+import { findBookingConflict, type BookingAvailabilityBlock } from '../services/bookingAvailability'
 import {
   getBookingModeConfig,
   isInspectionMode,
@@ -567,7 +629,8 @@ const { findLatestPaymentForUserProperty } = usePayments()
 const { addBookingConfirmation } = useNotifications()
 
 const property = ref<Awaited<ReturnType<typeof findById>>>(null)
-const latestInspectionPayment = ref<Awaited<ReturnType<typeof findLatestPaymentForUserProperty>>>(null)
+const latestInspectionPayment =
+  ref<Awaited<ReturnType<typeof findLatestPaymentForUserProperty>>>(null)
 const form = reactive<BookingInput>(createEmptyBookingInput())
 const message = ref('')
 const messageTone = ref<'success' | 'error'>('success')
@@ -593,8 +656,8 @@ const isInspectionBookingMode = computed(() => isInspectionMode(bookingMode.valu
 const usesSlotSelection = computed(() => usesTimeSlotTimeline(bookingMode.value))
 const bookingRate = computed(() =>
   isInspectionBookingMode.value
-    ? property.value?.inspectionFee ?? 0
-    : property.value?.rentPrice ?? 0,
+    ? (property.value?.inspectionFee ?? 0)
+    : (property.value?.rentPrice ?? 0)
 )
 const normalizedSelection = computed(() => {
   if (!property.value) return null
@@ -606,7 +669,7 @@ const normalizedSelection = computed(() => {
 })
 const inspectionAvailabilityConfig = computed(() => {
   const config = createDefaultInspectionAvailabilityConfig(
-    property.value?.ownerId ?? 'property-contact',
+    property.value?.ownerId ?? 'property-contact'
   )
   const duration = bookingModeConfig.value.defaultDurationMinutes
   const savedConfig = property.value?.availabilityConfig
@@ -637,7 +700,7 @@ const propertyContactRole = computed(() => {
   return role ? `${role.charAt(0).toUpperCase()}${role.slice(1)}` : 'Not provided'
 })
 const paymentRoute = computed(() =>
-  property.value ? `/payment/${property.value.id}?type=inspection_fee` : '/payment',
+  property.value ? `/payment/${property.value.id}?type=inspection_fee` : '/payment'
 )
 const bookingNavigationItems = computed(() => [
   { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
@@ -680,7 +743,7 @@ const bookingNavigationItems = computed(() => [
   { label: 'Account Center', to: '/profile', icon: personOutline, matchers: ['/profile'] },
 ])
 const profileInitial = computed(() =>
-  (state.profile?.fullName || state.profile?.email || 'R').trim().charAt(0).toUpperCase(),
+  (state.profile?.fullName || state.profile?.email || 'R').trim().charAt(0).toUpperCase()
 )
 const profileRoleLabel = computed(() => {
   const role = state.profile?.role
@@ -701,7 +764,7 @@ const formattedInspectionDate = computed(() => {
 })
 
 const formattedInspectionTime = computed(() =>
-  form.inspectionTime ? formatTimeLabel(form.inspectionTime) : '',
+  form.inspectionTime ? formatTimeLabel(form.inspectionTime) : ''
 )
 
 const selectedDateAvailability = computed(() =>
@@ -709,17 +772,17 @@ const selectedDateAvailability = computed(() =>
     ? calculateInspectionDateAvailability(
         form.inspectionDate,
         inspectionAvailabilityConfig.value,
-        knownPropertyBookings.value,
+        knownPropertyBookings.value
       )
-    : null,
+    : null
 )
 
 const displayedMonthLabel = computed(() =>
-  new Intl.DateTimeFormat('en-NG', { month: 'long', year: 'numeric' }).format(displayedMonth.value),
+  new Intl.DateTimeFormat('en-NG', { month: 'long', year: 'numeric' }).format(displayedMonth.value)
 )
 
 const canGoToPreviousMonth = computed(
-  () => displayedMonth.value.getTime() > startOfMonth(today).getTime(),
+  () => displayedMonth.value.getTime() > startOfMonth(today).getTime()
 )
 
 const calendarDays = computed<CalendarCell[]>(() => {
@@ -749,7 +812,7 @@ const calendarDays = computed<CalendarCell[]>(() => {
     const availability = calculateInspectionDateAvailability(
       iso,
       inspectionAvailabilityConfig.value,
-      knownPropertyBookings.value,
+      knownPropertyBookings.value
     )
     cells.push({
       key: iso,
@@ -818,16 +881,14 @@ const paymentBadgeClass = computed(() => {
   return 'payment-badge--pending'
 })
 const paymentBadgeIcon = computed(() =>
-  latestInspectionPayment.value?.status === 'success'
-    ? checkmarkCircleOutline
-    : alertCircleOutline,
+  latestInspectionPayment.value?.status === 'success' ? checkmarkCircleOutline : alertCircleOutline
 )
 const paymentHeading = computed(() =>
   latestInspectionPayment.value?.status === 'success'
     ? 'Payment complete'
     : isInspectionBookingMode.value
       ? 'Payment required'
-      : 'Available after booking',
+      : 'Available after booking'
 )
 const paymentActionLabel = computed(() => {
   const status = latestInspectionPayment.value?.status
@@ -843,7 +904,7 @@ watch(
       form.guestPhone = form.guestPhone || profile.phone
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -857,7 +918,7 @@ watch(
         : null
     await refreshKnownAvailability()
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -867,20 +928,20 @@ watch(
     if (form.inspectionTime && !selectedSlot?.available) {
       form.inspectionTime = ''
     }
-  },
+  }
 )
 
 watch(
   () => form.inspectionDate,
   (startDate) => {
     if (
-      bookingModeConfig.value.selectionKind === 'date_time_range'
-      && startDate
-      && (!form.endDate || form.endDate < startDate)
+      bookingModeConfig.value.selectionKind === 'date_time_range' &&
+      startDate &&
+      (!form.endDate || form.endDate < startDate)
     ) {
       form.endDate = startDate
     }
-  },
+  }
 )
 
 watch(knownPropertyBookings, () => {
@@ -896,16 +957,14 @@ onMounted(() => document.addEventListener('pointerdown', handleDocumentPointerDo
 onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocumentPointerDown))
 
 function isBookingNavActive(matchers: string[]) {
-  return matchers.some(
-    (matcher) => route.path === matcher || route.path.startsWith(`${matcher}/`),
-  )
+  return matchers.some((matcher) => route.path === matcher || route.path.startsWith(`${matcher}/`))
 }
 
 function openCalendar() {
   calendarSelection.value = form.inspectionDate
   calendarFeedback.value = ''
   displayedMonth.value = startOfMonth(
-    form.inspectionDate ? parseIsoDate(form.inspectionDate) : today,
+    form.inspectionDate ? parseIsoDate(form.inspectionDate) : today
   )
   isCalendarOpen.value = !isCalendarOpen.value
   isTimePickerOpen.value = false
@@ -916,7 +975,7 @@ function shiftCalendarMonth(offset: number) {
   const nextMonth = new Date(
     displayedMonth.value.getFullYear(),
     displayedMonth.value.getMonth() + offset,
-    1,
+    1
   )
   if (nextMonth.getTime() >= startOfMonth(today).getTime()) {
     displayedMonth.value = nextMonth
@@ -948,7 +1007,7 @@ async function applyCalendarSelection() {
 
   form.inspectionDate = calendarSelection.value
   const selectedSlot = availability.availableSlots.find(
-    (slot) => slot.value === form.inspectionTime,
+    (slot) => slot.value === form.inspectionTime
   )
   if (form.inspectionTime && !selectedSlot?.available) {
     form.inspectionTime = ''
@@ -1050,7 +1109,7 @@ function getAvailabilityForDate(dateIso: string) {
   return calculateInspectionDateAvailability(
     dateIso,
     inspectionAvailabilityConfig.value,
-    knownPropertyBookings.value,
+    knownPropertyBookings.value
   )
 }
 
@@ -1070,13 +1129,11 @@ async function refreshKnownAvailability(force = false) {
     knownPropertyBookings.value = await loadKnownPropertyInspectionBookings(
       userId,
       currentPropertyId,
-      { force },
+      { force }
     )
   } catch (error) {
     availabilityLoadError.value =
-      error instanceof Error
-        ? error.message
-        : 'Live availability could not be refreshed right now.'
+      error instanceof Error ? error.message : 'Live availability could not be refreshed right now.'
   } finally {
     isRefreshingAvailability.value = false
   }
@@ -1105,19 +1162,18 @@ async function handleSubmit() {
       if (!availability.selectable) {
         messageTone.value = 'error'
         message.value =
-            'No booking slots are available on this date. Please choose another available day.'
+          'No booking slots are available on this date. Please choose another available day.'
         return
       }
 
       if (form.inspectionTime) {
         const selectedSlot = availability.availableSlots.find(
-          (slot) => slot.value === form.inspectionTime,
+          (slot) => slot.value === form.inspectionTime
         )
         if (!selectedSlot?.available) {
           form.inspectionTime = ''
           messageTone.value = 'error'
-          message.value =
-            'That time is no longer available. Please choose another available slot.'
+          message.value = 'That time is no longer available. Please choose another available slot.'
           return
         }
       }
@@ -1138,7 +1194,8 @@ async function handleSubmit() {
     try {
       await addBookingConfirmation(state.profile, booking, property.value)
     } catch {
-      notificationNotice = ' Booking saved, but the confirmation notification could not be synced yet.'
+      notificationNotice =
+        ' Booking saved, but the confirmation notification could not be synced yet.'
     }
 
     messageTone.value = 'success'
@@ -1237,7 +1294,10 @@ function formatTimeLabel(value: string) {
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 200ms ease, background-color 200ms ease, color 200ms ease,
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease,
     box-shadow 200ms ease;
 }
 
@@ -1271,7 +1331,10 @@ function formatTimeLabel(value: string) {
   padding: 11px;
   color: #344256;
   text-decoration: none;
-  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
 }
 
 .booking-profile-card:hover {
@@ -1442,7 +1505,9 @@ function formatTimeLabel(value: string) {
   border-radius: 20px;
   background: #ffffff;
   box-shadow: 0 20px 48px -38px rgba(16, 32, 51, 0.55);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .booking-card:hover {
@@ -1560,7 +1625,10 @@ function formatTimeLabel(value: string) {
   color: #102033;
   font-size: 13px;
   outline: none;
-  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease;
 }
 
 .booking-input:hover {
@@ -1696,7 +1764,9 @@ function formatTimeLabel(value: string) {
   justify-content: center;
   border-radius: 10px;
   color: #344256;
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .calendar-nav-button:hover:not(:disabled) {
@@ -1745,7 +1815,10 @@ function formatTimeLabel(value: string) {
   color: #344256;
   font-size: 12px;
   font-weight: 700;
-  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .calendar-day:hover:not(.calendar-day--disabled) {
@@ -1944,7 +2017,10 @@ function formatTimeLabel(value: string) {
   color: #344256;
   font-size: 10px;
   font-weight: 800;
-  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .time-slot:hover:not(:disabled) {
@@ -1969,7 +2045,9 @@ function formatTimeLabel(value: string) {
 
 .booking-popover-enter-active,
 .booking-popover-leave-active {
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
   transform-origin: top center;
 }
 
@@ -1999,8 +2077,12 @@ function formatTimeLabel(value: string) {
   font-weight: 800;
   text-align: center;
   text-decoration: none;
-  transition: transform 200ms ease, border-color 200ms ease, background-color 200ms ease,
-    box-shadow 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
 }
 
 .booking-button:hover:not(:disabled) {
@@ -2305,7 +2387,9 @@ function formatTimeLabel(value: string) {
   font-size: 11px;
   font-weight: 800;
   text-decoration: none;
-  transition: transform 200ms ease, background-color 200ms ease;
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease;
 }
 
 .payment-link:hover {

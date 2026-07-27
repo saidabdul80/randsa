@@ -3,6 +3,7 @@
 Project: RANDSA
 
 Stack:
+
 - Ionic Vue
 - Vue 3
 - Tailwind CSS
@@ -35,49 +36,59 @@ Stack:
 ### 1. Firestore-backed properties
 
 Files:
+
 - `src/services/properties.ts`
 
 Notes:
+
 - Admin now sees shared pending properties from Firestore instead of browser-local only.
 
 ### 2. Firestore-backed agent verification
 
 Files:
+
 - `src/services/agentVerification.ts`
 
 Notes:
+
 - Admin verification queue is shared through Firestore.
 
 ### 3. Firestore-backed bookings
 
 Files:
+
 - `src/services/bookings.ts`
 - `src/composables/useBookings.ts`
 - `src/views/BookingPage.vue`
 - `src/views/MyBookingsPage.vue`
 
 Notes:
+
 - Bookings now use Firestore in Firebase mode instead of local-only storage.
 
 ### 4. Local-to-Firestore migration tool
 
 Files:
+
 - `src/services/localDataMigration.ts`
 - `src/components/profile/LocalDataMigrationCard.vue`
 - `src/views/ProfilePage.vue`
 
 Notes:
+
 - Lets the signed-in owner or agent migrate older browser-only properties, bookings, and verification records into Firestore.
 
 ### 5. Google sign-in reliability improvements
 
 Files:
+
 - `src/services/auth.ts`
 - `src/composables/useAuth.ts`
 - `src/views/LoginPage.vue`
 - `src/views/RegisterPage.vue`
 
 Notes:
+
 - Added popup timeout.
 - Added popup-to-redirect fallback.
 - Added flow-state tracking.
@@ -86,11 +97,13 @@ Notes:
 ### 6. Backend reminder automation
 
 Files:
+
 - `functions/index.js`
 - `src/services/notifications.ts`
 - `src/views/NotificationsPage.vue`
 
 Notes:
+
 - Added callable `runInspectionReminderScan`.
 - Added scheduled `processInspectionReminders`.
 - Added shared backend notification creation path.
@@ -99,9 +112,11 @@ Notes:
 ### 7. Firestore indexes
 
 File:
+
 - `firestore.indexes.json`
 
 Added:
+
 - `bookings`: `userId + createdAt`
 - `bookings`: `userId + reminderSent`
 
@@ -110,9 +125,11 @@ Existing indexes also cover payments and notifications queries.
 ### 8. Firestore rules
 
 File:
+
 - `firestore.rules`
 
 Notes:
+
 - Updated booking rule so a user can flip `reminderSent` from `false` to `true` on their own booking.
 
 ## Env and Config State
@@ -132,6 +149,7 @@ Notes:
 Code is in place for notifications and backend reminder scans.
 
 Still needs:
+
 - `firebase deploy --only functions`
 - `firebase deploy --only firestore:indexes`
 - live browser test:
@@ -144,6 +162,7 @@ Still needs:
 ### 2. `TASK_CHECKLIST.md` is behind reality
 
 Checklist still shows these incomplete:
+
 - Phase 2 auth items
 - Phase 9 push reminders
 - Phase 13 premium UI/UX visual confirmation
@@ -165,6 +184,7 @@ Some items were intentionally left unchecked until live testing is confirmed.
 - Agent booking view is not built yet.
 
 Current behavior:
+
 - tenant sees own bookings in `/my-bookings`
 - admin sees all bookings in `/admin`
 - agent does not yet have a dedicated "tenant bookings assigned to me" view
@@ -174,10 +194,12 @@ This was explicitly deferred for later, not now.
 ## Known Issue
 
 Last known verification state:
+
 - `vue-tsc -b` passed
 - `node -c functions/index.js` passed
 
 But direct Vite build hit an existing build-tool issue:
+
 - absolute `D:/RANDSA/index.html` emitted in build-html
 - looked like a Vite or Rolldown issue, not caused by the reminder code itself
 

@@ -22,7 +22,7 @@
           class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
           placeholder="Lekki, GRA, Wuse"
           @input="updateField('area', ($event.target as HTMLInputElement).value)"
-        >
+        />
       </label>
 
       <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -32,7 +32,7 @@
           class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
           placeholder="Lagos, Abuja, Enugu"
           @input="updateField('city', ($event.target as HTMLInputElement).value)"
-        >
+        />
       </label>
 
       <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -68,7 +68,7 @@
           min="0"
           class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
           @input="updateNumericField('minPrice', ($event.target as HTMLInputElement).value)"
-        >
+        />
       </label>
 
       <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -79,7 +79,7 @@
           min="0"
           class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
           @input="updateNumericField('maxPrice', ($event.target as HTMLInputElement).value)"
-        >
+        />
       </label>
 
       <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -134,7 +134,7 @@ const emit = defineEmits<{
 
 function updateField<Key extends keyof PropertyFilterState>(
   key: Key,
-  value: PropertyFilterState[Key],
+  value: PropertyFilterState[Key]
 ) {
   emit('update:modelValue', {
     ...props.modelValue,
@@ -142,10 +142,7 @@ function updateField<Key extends keyof PropertyFilterState>(
   })
 }
 
-function updateNumericField(
-  key: 'minPrice' | 'maxPrice',
-  value: string,
-) {
+function updateNumericField(key: 'minPrice' | 'maxPrice', value: string) {
   updateField(key, value === '' ? null : Number(value))
 }
 

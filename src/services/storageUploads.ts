@@ -14,14 +14,14 @@ export interface StorageUploadResult {
 function ensureStorageReady(profile: UserProfile) {
   if (authMode === 'local') {
     throw new Error(
-      'Real Firebase Storage testing is disabled while local auth bypass is on. Set VITE_ENABLE_LOCAL_AUTH_BYPASS=false, restart the dev server, and sign in with a real Firebase account first.',
+      'Real Firebase Storage testing is disabled while local auth bypass is on. Set VITE_ENABLE_LOCAL_AUTH_BYPASS=false, restart the dev server, and sign in with a real Firebase account first.'
     )
   }
 
   if (!isFirebaseConfigured || !storage || !auth) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase Storage is not configured yet. Add your VITE_FIREBASE_* values before testing uploads.',
+        'Firebase Storage is not configured yet. Add your VITE_FIREBASE_* values before testing uploads.'
     )
   }
 
@@ -121,7 +121,7 @@ export async function deleteStorageObjectByUrl(url: string) {
 export async function uploadPropertyImages(
   profile: UserProfile,
   propertyId: string,
-  images: PropertyImageInput[],
+  images: PropertyImageInput[]
 ) {
   ensureStorageReady(profile)
 
@@ -144,10 +144,7 @@ export async function uploadPropertyImages(
   return uploadedUrls
 }
 
-export async function uploadVerificationAssets(
-  profile: UserProfile,
-  assets: VerificationAsset[],
-) {
+export async function uploadVerificationAssets(profile: UserProfile, assets: VerificationAsset[]) {
   ensureStorageReady(profile)
 
   const uploadedUrls: string[] = []
@@ -178,7 +175,8 @@ export function toStorageDisplayError(error: unknown) {
   ) {
     const code = error.code.replace('storage/', '')
     const messages: Record<string, string> = {
-      unauthorized: 'Firebase Storage rejected the upload. Double-check your sign-in state, role, and rules.',
+      unauthorized:
+        'Firebase Storage rejected the upload. Double-check your sign-in state, role, and rules.',
       unauthenticated: 'Sign in with Firebase before uploading.',
       'object-not-found': 'The uploaded file could not be found after upload.',
       'quota-exceeded': 'The Firebase Storage bucket quota was exceeded.',

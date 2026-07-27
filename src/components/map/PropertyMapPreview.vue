@@ -5,8 +5,11 @@
       class="overflow-hidden rounded-[24px] border border-slate-200 bg-white/80 dark:border-slate-800 dark:bg-slate-950/60"
     >
       <div ref="mapElement" class="h-72 w-full" />
-      <div class="border-t border-slate-200 px-4 py-4 text-xs leading-6 text-slate-500 dark:border-slate-800 dark:text-slate-400">
-        Map data by OpenStreetMap contributors. Keep production tile usage respectful and swap providers later if your traffic grows.
+      <div
+        class="border-t border-slate-200 px-4 py-4 text-xs leading-6 text-slate-500 dark:border-slate-800 dark:text-slate-400"
+      >
+        Map data by OpenStreetMap contributors. Keep production tile usage respectful and swap
+        providers later if your traffic grows.
       </div>
     </div>
 
@@ -56,7 +59,7 @@ watch(
   () => [props.latitude, props.longitude, props.title, props.priceLabel] as const,
   () => {
     createOrUpdateMap()
-  },
+  }
 )
 
 function createOrUpdateMap() {

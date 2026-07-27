@@ -8,10 +8,7 @@
     <section class="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[1.1fr_0.9fr]">
       <div class="glass-panel p-6 sm:p-8">
         <template v-if="profile?.role === 'agent'">
-          <div
-            class="rounded-[24px] border px-4 py-4 text-sm"
-            :class="statusToneClass"
-          >
+          <div class="rounded-[24px] border px-4 py-4 text-sm" :class="statusToneClass">
             <span class="font-semibold">Current status:</span> {{ statusLabel }}
             <span v-if="currentRequest?.reviewedAt">
               | Reviewed {{ formatDateTime(currentRequest.reviewedAt) }}
@@ -33,7 +30,7 @@
                   v-model="form.fullName"
                   class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
                   placeholder="Your legal or business name"
-                >
+                />
               </label>
               <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Phone number
@@ -41,7 +38,7 @@
                   v-model="form.phone"
                   class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
                   placeholder="+234..."
-                >
+                />
               </label>
               <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 WhatsApp number
@@ -49,7 +46,7 @@
                   v-model="form.whatsappNumber"
                   class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
                   placeholder="+234..."
-                >
+                />
               </label>
               <label class="text-sm font-semibold text-slate-700 dark:text-slate-200 md:col-span-2">
                 Office address
@@ -121,39 +118,77 @@
         </template>
 
         <template v-else>
-          <div class="rounded-[24px] border border-sky-200 bg-sky-50 px-5 py-5 text-sm text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
-            Agent verification is only available to accounts with the <span class="font-semibold">agent</span> role. In local bypass mode, you can switch to the agent role from the profile page and come back here to test the full verification flow.
+          <div
+            class="rounded-[24px] border border-sky-200 bg-sky-50 px-5 py-5 text-sm text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200"
+          >
+            Agent verification is only available to accounts with the
+            <span class="font-semibold">agent</span> role. In local bypass mode, you can switch to
+            the agent role from the profile page and come back here to test the full verification
+            flow.
           </div>
         </template>
       </div>
 
       <div class="grid gap-4">
         <div class="glass-panel p-6">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">What admins review</p>
+          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">
+            What admins review
+          </p>
           <div class="mt-4 grid gap-3">
-            <div class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300">Profile photo matches the submitted identity.</div>
-            <div class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300">Government ID is attached and readable.</div>
-            <div class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300">Office address and phone numbers are present.</div>
-            <div class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300">Property authorization proof is attached.</div>
+            <div
+              class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300"
+            >
+              Profile photo matches the submitted identity.
+            </div>
+            <div
+              class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300"
+            >
+              Government ID is attached and readable.
+            </div>
+            <div
+              class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300"
+            >
+              Office address and phone numbers are present.
+            </div>
+            <div
+              class="rounded-[22px] bg-slate-50 px-4 py-4 text-sm text-mist dark:bg-slate-950/60 dark:text-slate-300"
+            >
+              Property authorization proof is attached.
+            </div>
           </div>
         </div>
 
         <div class="glass-panel p-6">
           <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Secure uploads</p>
           <p class="mt-3 text-sm leading-7 text-mist dark:text-slate-300">
-            Your verification files are uploaded with the request and shown only where review access is allowed.
+            Your verification files are uploaded with the request and shown only where review access
+            is allowed.
           </p>
         </div>
 
-        <div
-          v-if="currentRequest"
-          class="glass-panel p-6"
-        >
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Last submission</p>
+        <div v-if="currentRequest" class="glass-panel p-6">
+          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">
+            Last submission
+          </p>
           <div class="mt-4 grid gap-3 text-sm text-mist dark:text-slate-300">
-            <div>Submitted: <span class="font-semibold text-ink dark:text-white">{{ formatDateTime(currentRequest.submittedAt) }}</span></div>
-            <div>Status: <span class="font-semibold text-ink dark:text-white">{{ formatStatus(currentRequest.status) }}</span></div>
-            <div>WhatsApp: <span class="font-semibold text-ink dark:text-white">{{ currentRequest.whatsappNumber }}</span></div>
+            <div>
+              Submitted:
+              <span class="font-semibold text-ink dark:text-white">{{
+                formatDateTime(currentRequest.submittedAt)
+              }}</span>
+            </div>
+            <div>
+              Status:
+              <span class="font-semibold text-ink dark:text-white">{{
+                formatStatus(currentRequest.status)
+              }}</span>
+            </div>
+            <div>
+              WhatsApp:
+              <span class="font-semibold text-ink dark:text-white">{{
+                currentRequest.whatsappNumber
+              }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -176,7 +211,12 @@ import {
 } from '../types/verification'
 
 const { state } = useAuth()
-const { currentRequest, error: verificationError, refreshForAgent, submitRequest } = useAgentVerification()
+const {
+  currentRequest,
+  error: verificationError,
+  refreshForAgent,
+  submitRequest,
+} = useAgentVerification()
 
 const form = reactive<AgentVerificationFormInput>(createEmptyAgentVerificationForm())
 const errorMessage = ref('')
@@ -184,9 +224,11 @@ const successMessage = ref('')
 const isSubmitting = ref(false)
 
 const profile = computed(() => state.profile)
-const submitLabel = computed(() => (currentRequest.value ? 'Resubmit for review' : 'Submit for review'))
+const submitLabel = computed(() =>
+  currentRequest.value ? 'Resubmit for review' : 'Submit for review'
+)
 const statusLabel = computed(() =>
-  formatVerificationStatusLabel(profile.value?.verificationStatus ?? 'not_submitted'),
+  formatVerificationStatusLabel(profile.value?.verificationStatus ?? 'not_submitted')
 )
 const statusToneClass = computed(() => {
   const status = profile.value?.verificationStatus ?? 'not_submitted'
@@ -220,15 +262,12 @@ watch(
         error instanceof Error ? error.message : 'Could not load the current verification request.'
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
-watch(
-  currentRequest,
-  (request) => {
-    hydrateForm(request)
-  },
-)
+watch(currentRequest, (request) => {
+  hydrateForm(request)
+})
 
 async function handleSubmit() {
   if (!profile.value) {

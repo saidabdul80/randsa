@@ -8,7 +8,7 @@
       multiple
       :disabled="isProcessing"
       @change="handleInputChange"
-    >
+    />
 
     <button
       type="button"
@@ -25,7 +25,9 @@
         <IonIcon :icon="isProcessing ? syncOutline : cloudUploadOutline" aria-hidden="true" />
       </span>
       <span>
-        <strong>{{ isProcessing ? 'Optimizing selected images...' : 'Drop listing photos here' }}</strong>
+        <strong>{{
+          isProcessing ? 'Optimizing selected images...' : 'Drop listing photos here'
+        }}</strong>
         <small>or choose files from this device</small>
       </span>
       <span class="image-uploader__choose">Choose images</span>
@@ -49,7 +51,7 @@
     <div v-if="modelValue.length" class="image-uploader__gallery">
       <article v-for="(image, index) in modelValue" :key="image.id" class="image-uploader__card">
         <figure>
-          <img :src="image.previewUrl" :alt="`Listing image ${index + 1}`">
+          <img :src="image.previewUrl" :alt="`Listing image ${index + 1}`" />
           <span v-if="index === 0" class="image-uploader__cover-badge">
             <IonIcon :icon="star" aria-hidden="true" />
             Cover
@@ -138,7 +140,7 @@ const props = withDefaults(
   }>(),
   {
     maxImages: MAX_PROPERTY_IMAGES,
-  },
+  }
 )
 
 const emit = defineEmits<{
@@ -165,7 +167,7 @@ watch(
       if (!nextValue.some((current) => current.id === image.id)) revokePreviewUrlIfNeeded(image)
     }
   },
-  { deep: false, immediate: true },
+  { deep: false, immediate: true }
 )
 
 function openFilePicker() {
@@ -199,7 +201,10 @@ function revokePreviewUrlIfNeeded(image: PropertyImageInput) {
 function removeImage(index: number) {
   const image = props.modelValue[index]
   if (image) revokePreviewUrlIfNeeded(image)
-  emit('update:modelValue', props.modelValue.filter((_, currentIndex) => currentIndex !== index))
+  emit(
+    'update:modelValue',
+    props.modelValue.filter((_, currentIndex) => currentIndex !== index)
+  )
 }
 
 function moveImage(from: number, to: number) {
@@ -239,7 +244,8 @@ async function prepareFiles(files: File[]) {
     const preparedImages: PropertyImageInput[] = []
 
     for (const file of selectedFiles) {
-      if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not a supported image file.`)
+      if (!file.type.startsWith('image/'))
+        throw new Error(`${file.name} is not a supported image file.`)
 
       const compressedFile = await compressImageFile(file, {
         maxBytes: PROPERTY_IMAGE_UPLOAD_MAX_BYTES,
@@ -264,7 +270,8 @@ async function prepareFiles(files: File[]) {
 
     emit('update:modelValue', [...props.modelValue, ...preparedImages])
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Could not prepare the selected images.'
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Could not prepare the selected images.'
   } finally {
     isProcessing.value = false
     emit('processing-change', false)
@@ -273,64 +280,259 @@ async function prepareFiles(files: File[]) {
 </script>
 
 <style scoped>
-.image-uploader { display: grid; gap: 12px; }
-.image-uploader__input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-.image-uploader__dropzone { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; width: 100%; border: 1px dashed #aebfd2; border-radius: 14px; background: #f8fbff; padding: 20px; color: #425a73; text-align: left; transition: border-color 160ms ease, background 160ms ease; }
+.image-uploader {
+  display: grid;
+  gap: 12px;
+}
+.image-uploader__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.image-uploader__dropzone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  border: 1px dashed #aebfd2;
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 20px;
+  color: #425a73;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
 .image-uploader__dropzone:hover,
-.image-uploader__dropzone.dragging { border-color: #1769ef; background: #f0f6ff; }
-.image-uploader__dropzone.processing { cursor: wait; }
-.image-uploader__drop-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; background: #e7f0ff; color: #1769ef; }
-.image-uploader__drop-icon ion-icon { font-size: 21px; }
+.image-uploader__dropzone.dragging {
+  border-color: #1769ef;
+  background: #f0f6ff;
+}
+.image-uploader__dropzone.processing {
+  cursor: wait;
+}
+.image-uploader__drop-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #e7f0ff;
+  color: #1769ef;
+}
+.image-uploader__drop-icon ion-icon {
+  font-size: 21px;
+}
 .image-uploader__dropzone strong,
-.image-uploader__dropzone small { display: block; }
-.image-uploader__dropzone strong { color: #1f354d; font-size: 10px; }
-.image-uploader__dropzone small { margin-top: 4px; color: #7b8ca0; font-size: 8px; }
-.image-uploader__choose { border-radius: 9px; background: #1769ef; padding: 9px 11px; color: #fff; font-size: 8px; font-weight: 800; }
-.image-uploader__meta { display: flex; justify-content: space-between; gap: 12px; color: #8391a2; font-size: 7px; }
-.image-uploader__meta p { margin: 0; }
-.image-uploader__meta strong { color: #52677e; }
-.image-uploader__message { display: flex; align-items: center; gap: 7px; margin: 0; border-radius: 10px; padding: 10px 12px; font-size: 8px; line-height: 1.5; }
-.image-uploader__message ion-icon { flex: 0 0 auto; font-size: 16px; }
-.image-uploader__message.error { border: 1px solid #fecdd3; background: #fff1f2; color: #be123c; }
-.image-uploader__message.processing { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; }
-.image-uploader__message .spin { animation: image-uploader-spin 1s linear infinite; }
-.image-uploader__gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.image-uploader__card { overflow: hidden; border: 1px solid #e0e7ef; border-radius: 13px; background: #fff; }
-.image-uploader__card figure { position: relative; height: 126px; margin: 0; background: #edf2f7; }
-.image-uploader__card figure img { width: 100%; height: 100%; object-fit: cover; }
+.image-uploader__dropzone small {
+  display: block;
+}
+.image-uploader__dropzone strong {
+  color: #1f354d;
+  font-size: 10px;
+}
+.image-uploader__dropzone small {
+  margin-top: 4px;
+  color: #7b8ca0;
+  font-size: 8px;
+}
+.image-uploader__choose {
+  border-radius: 9px;
+  background: #1769ef;
+  padding: 9px 11px;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+}
+.image-uploader__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #8391a2;
+  font-size: 7px;
+}
+.image-uploader__meta p {
+  margin: 0;
+}
+.image-uploader__meta strong {
+  color: #52677e;
+}
+.image-uploader__message {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 8px;
+  line-height: 1.5;
+}
+.image-uploader__message ion-icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+}
+.image-uploader__message.error {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+.image-uploader__message.processing {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.image-uploader__message .spin {
+  animation: image-uploader-spin 1s linear infinite;
+}
+.image-uploader__gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.image-uploader__card {
+  overflow: hidden;
+  border: 1px solid #e0e7ef;
+  border-radius: 13px;
+  background: #fff;
+}
+.image-uploader__card figure {
+  position: relative;
+  height: 126px;
+  margin: 0;
+  background: #edf2f7;
+}
+.image-uploader__card figure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .image-uploader__cover-badge,
-.image-uploader__status { position: absolute; top: 8px; display: inline-flex; align-items: center; gap: 4px; border-radius: 9px; background: rgba(255,255,255,.9); padding: 5px 7px; font-size: 7px; font-weight: 850; backdrop-filter: blur(8px); }
-.image-uploader__cover-badge { left: 8px; color: #155fcf; }
-.image-uploader__status { right: 8px; color: #07834d; }
-.image-uploader__card-body { padding: 10px; }
-.image-uploader__card-body > div:first-child { display: flex; justify-content: space-between; gap: 8px; }
-.image-uploader__card-body strong { color: #243950; font-size: 8px; }
-.image-uploader__card-body small { color: #8090a2; font-size: 7px; }
-.image-uploader__card-body p { overflow: hidden; margin: 5px 0 9px; color: #7a899a; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
-.image-uploader__card-actions { display: flex; align-items: center; gap: 5px; }
-.image-uploader__card-actions button { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid #dfe6ee; border-radius: 7px; background: #fff; color: #526980; }
-.image-uploader__card-actions button:disabled { opacity: .35; }
-.image-uploader__card-actions .image-uploader__cover-command { display: inline-flex; width: auto; margin-left: auto; padding: 0 7px; color: #1763d7; font-size: 7px; font-weight: 800; }
-.image-uploader__card-actions .danger { margin-left: auto; color: #e11d48; }
-.image-uploader__card-actions .image-uploader__cover-command + .danger { margin-left: 0; }
+.image-uploader__status {
+  position: absolute;
+  top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 5px 7px;
+  font-size: 7px;
+  font-weight: 850;
+  backdrop-filter: blur(8px);
+}
+.image-uploader__cover-badge {
+  left: 8px;
+  color: #155fcf;
+}
+.image-uploader__status {
+  right: 8px;
+  color: #07834d;
+}
+.image-uploader__card-body {
+  padding: 10px;
+}
+.image-uploader__card-body > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.image-uploader__card-body strong {
+  color: #243950;
+  font-size: 8px;
+}
+.image-uploader__card-body small {
+  color: #8090a2;
+  font-size: 7px;
+}
+.image-uploader__card-body p {
+  overflow: hidden;
+  margin: 5px 0 9px;
+  color: #7a899a;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.image-uploader__card-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.image-uploader__card-actions button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid #dfe6ee;
+  border-radius: 7px;
+  background: #fff;
+  color: #526980;
+}
+.image-uploader__card-actions button:disabled {
+  opacity: 0.35;
+}
+.image-uploader__card-actions .image-uploader__cover-command {
+  display: inline-flex;
+  width: auto;
+  margin-left: auto;
+  padding: 0 7px;
+  color: #1763d7;
+  font-size: 7px;
+  font-weight: 800;
+}
+.image-uploader__card-actions .danger {
+  margin-left: auto;
+  color: #e11d48;
+}
+.image-uploader__card-actions .image-uploader__cover-command + .danger {
+  margin-left: 0;
+}
 
-@keyframes image-uploader-spin { to { transform: rotate(360deg); } }
+@keyframes image-uploader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 @media (max-width: 520px) {
-  .image-uploader__dropzone { grid-template-columns: auto minmax(0, 1fr); padding: 15px; }
-  .image-uploader__choose { grid-column: 1 / -1; text-align: center; }
-  .image-uploader__gallery { grid-template-columns: 1fr; }
+  .image-uploader__dropzone {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 15px;
+  }
+  .image-uploader__choose {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+  .image-uploader__gallery {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .image-uploader__message .spin { animation: none; }
+  .image-uploader__message .spin {
+    animation: none;
+  }
 }
 
 :global(.dark) .image-uploader__dropzone,
 :global(.dark) .image-uploader__card,
-:global(.dark) .image-uploader__card-actions button { border-color: #2a394b; background: #111c2a; color: #dbe5ef; }
+:global(.dark) .image-uploader__card-actions button {
+  border-color: #2a394b;
+  background: #111c2a;
+  color: #dbe5ef;
+}
 :global(.dark) .image-uploader__dropzone strong,
-:global(.dark) .image-uploader__card-body strong { color: #f8fafc; }
+:global(.dark) .image-uploader__card-body strong {
+  color: #f8fafc;
+}
 :global(.dark) .image-uploader__dropzone:hover,
-:global(.dark) .image-uploader__dropzone.dragging { border-color: #4f8df2; background: #16263a; }
+:global(.dark) .image-uploader__dropzone.dragging {
+  border-color: #4f8df2;
+  background: #16263a;
+}
 </style>

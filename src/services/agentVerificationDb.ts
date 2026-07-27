@@ -17,7 +17,8 @@ function openDatabase() {
     }
 
     request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not open verification storage.'))
+    request.onerror = () =>
+      reject(request.error ?? new Error('Could not open verification storage.'))
   })
 }
 
@@ -56,7 +57,7 @@ export async function getStoredVerificationRecordByAgentId(agentId: string) {
 
 export async function getStoredVerificationRecordById(verificationId: string) {
   const record = await withStore<AgentVerificationRecord | undefined>('readonly', (store) =>
-    store.get(verificationId),
+    store.get(verificationId)
   )
 
   return record ? normalizeVerificationRecord(cloneRecord(record)) : null

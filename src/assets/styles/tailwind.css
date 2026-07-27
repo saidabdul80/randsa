@@ -6,7 +6,8 @@
 
 @layer base {
   html {
-    @apply bg-stone-50 text-ink antialiased;
+    background: #f5f6f8;
+    @apply text-ink antialiased;
   }
 
   html.dark {
@@ -19,7 +20,8 @@
   }
 
   body {
-    @apply bg-stone-50 font-sans text-ink;
+    background: #f5f6f8;
+    @apply font-sans text-ink;
   }
 
   html.dark body {
@@ -78,10 +80,7 @@
 }
 
 .ion-page {
-  background:
-    radial-gradient(circle at top left, rgba(50, 143, 255, 0.16), transparent 28%),
-    radial-gradient(circle at top right, rgba(242, 162, 74, 0.14), transparent 24%),
-    linear-gradient(180deg, rgba(252, 249, 244, 0.96), rgba(244, 241, 235, 1));
+  background: #f5f6f8;
 }
 
 html.dark .ion-page {

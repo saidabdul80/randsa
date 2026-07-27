@@ -105,14 +105,14 @@ export function formatBookingStatusLabel(status: BookingStatus) {
   return status
 }
 
-export function getInspectionDateTime(booking: Pick<BookingRecord, 'inspectionDate' | 'inspectionTime'>) {
+export function getInspectionDateTime(
+  booking: Pick<BookingRecord, 'inspectionDate' | 'inspectionTime'>
+) {
   return new Date(`${booking.inspectionDate}T${booking.inspectionTime}`)
 }
 
 export function getBookingStartDateTime(
-  booking: Pick<BookingRecord, 'startAt' | 'inspectionDate' | 'inspectionTime'>,
+  booking: Pick<BookingRecord, 'startAt' | 'inspectionDate' | 'inspectionTime'>
 ) {
-  return booking.startAt
-    ? new Date(booking.startAt)
-    : getInspectionDateTime(booking)
+  return booking.startAt ? new Date(booking.startAt) : getInspectionDateTime(booking)
 }

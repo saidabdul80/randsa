@@ -4,7 +4,9 @@ let paystackScriptPromise: Promise<void> | null = null
 
 function ensurePaystackPublicKey() {
   if (!paystackPublicKey) {
-    throw new Error('Paystack public key is missing. Add VITE_PAYSTACK_PUBLIC_KEY before starting checkout.')
+    throw new Error(
+      'Paystack public key is missing. Add VITE_PAYSTACK_PUBLIC_KEY before starting checkout.'
+    )
   }
 }
 
@@ -24,11 +26,17 @@ export function loadPaystackScript() {
   }
 
   paystackScriptPromise = new Promise<void>((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>('script[data-paystack-inline="true"]')
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[data-paystack-inline="true"]'
+    )
 
     if (existingScript) {
       existingScript.addEventListener('load', () => resolve(), { once: true })
-      existingScript.addEventListener('error', () => reject(new Error('Could not load the Paystack checkout script.')), { once: true })
+      existingScript.addEventListener(
+        'error',
+        () => reject(new Error('Could not load the Paystack checkout script.')),
+        { once: true }
+      )
       return
     }
 

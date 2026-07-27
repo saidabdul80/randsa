@@ -1,10 +1,4 @@
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-} from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore'
 
 import { authMode, db, firebaseConfigError, isFirebaseConfigured } from '../lib/firebase'
 import { getAllStoredVerificationRecords } from './agentVerificationDb'
@@ -45,7 +39,7 @@ function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before migrating local data.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before migrating local data.'
     )
   }
 
@@ -67,7 +61,10 @@ function isPropertyEligibleForCurrentProfile(property: PropertyRecord, profile: 
   )
 }
 
-function isBookingEligibleForCurrentProfile(booking: { userId: string; status: string }, profile: UserProfile) {
+function isBookingEligibleForCurrentProfile(
+  booking: { userId: string; status: string },
+  profile: UserProfile
+) {
   return (
     booking.userId === profile.uid &&
     booking.status !== 'confirmed' &&
@@ -77,12 +74,14 @@ function isBookingEligibleForCurrentProfile(booking: { userId: string; status: s
 
 function isVerificationEligibleForCurrentProfile(
   verification: AgentVerificationRecord,
-  profile: UserProfile,
+  profile: UserProfile
 ) {
   return verification.agentId === profile.uid && profile.role === 'agent'
 }
 
-export async function getLocalDataMigrationPreview(profile: UserProfile): Promise<LocalMigrationPreview> {
+export async function getLocalDataMigrationPreview(
+  profile: UserProfile
+): Promise<LocalMigrationPreview> {
   const localProperties = await getAllStoredProperties()
   const localBookings = listAllLocalBookings()
   const localVerifications = await getAllStoredVerificationRecords()
@@ -90,17 +89,17 @@ export async function getLocalDataMigrationPreview(profile: UserProfile): Promis
   const profileProperties = localProperties.filter((property) => property.ownerId === profile.uid)
   const profileBookings = localBookings.filter((booking) => booking.userId === profile.uid)
   const profileVerifications = localVerifications.filter(
-    (verification) => verification.agentId === profile.uid,
+    (verification) => verification.agentId === profile.uid
   )
 
   const eligibleProperties = profileProperties.filter((property) =>
-    isPropertyEligibleForCurrentProfile(property, profile),
+    isPropertyEligibleForCurrentProfile(property, profile)
   )
   const eligibleBookings = profileBookings.filter((booking) =>
-    isBookingEligibleForCurrentProfile(booking, profile),
+    isBookingEligibleForCurrentProfile(booking, profile)
   )
   const eligibleVerifications = profileVerifications.filter((verification) =>
-    isVerificationEligibleForCurrentProfile(verification, profile),
+    isVerificationEligibleForCurrentProfile(verification, profile)
   )
 
   let propertiesEligible = eligibleProperties.length
@@ -115,7 +114,7 @@ export async function getLocalDataMigrationPreview(profile: UserProfile): Promis
         eligibleProperties.map(async (property) => {
           const snapshot = await getDoc(doc(firestore, 'properties', property.id))
           return snapshot.exists()
-        }),
+        })
       )
     ).filter((exists) => !exists).length
 
@@ -124,7 +123,7 @@ export async function getLocalDataMigrationPreview(profile: UserProfile): Promis
         eligibleBookings.map(async (booking) => {
           const snapshot = await getDoc(doc(firestore, 'bookings', booking.id))
           return snapshot.exists()
-        }),
+        })
       )
     ).filter((exists) => !exists).length
 
@@ -133,23 +132,36 @@ export async function getLocalDataMigrationPreview(profile: UserProfile): Promis
         eligibleVerifications.map(async (verification) => {
           const snapshot = await getDoc(doc(firestore, 'agentVerifications', verification.id))
           return snapshot.exists()
-        }),
+        })
       )
     ).filter((exists) => !exists).length
   }
 
   const notes: string[] = []
 
-  if (profileProperties.some((property) => property.status !== 'pending') && profile.role !== 'admin') {
-    notes.push('Owner-managed local listings will be re-submitted as pending so admin review can happen again in Firestore.')
+  if (
+    profileProperties.some((property) => property.status !== 'pending') &&
+    profile.role !== 'admin'
+  ) {
+    notes.push(
+      'Owner-managed local listings will be re-submitted as pending so admin review can happen again in Firestore.'
+    )
   }
 
   if (profileVerifications.some((verification) => verification.status !== 'pending')) {
-    notes.push('Local verification records will be migrated as a fresh pending submission because approval state must be reviewed again under the live backend rules.')
+    notes.push(
+      'Local verification records will be migrated as a fresh pending submission because approval state must be reviewed again under the live backend rules.'
+    )
   }
 
-  if (profileBookings.some((booking) => booking.status === 'confirmed' || booking.status === 'completed')) {
-    notes.push('Confirmed or completed local bookings cannot be recreated safely from the client, so they will be skipped.')
+  if (
+    profileBookings.some(
+      (booking) => booking.status === 'confirmed' || booking.status === 'completed'
+    )
+  ) {
+    notes.push(
+      'Confirmed or completed local bookings cannot be recreated safely from the client, so they will be skipped.'
+    )
   }
 
   return {
@@ -218,7 +230,7 @@ function buildFirestorePropertyPayload(property: PropertyRecord, profile: UserPr
 }
 
 export async function migrateLocalDataForCurrentProfile(
-  profile: UserProfile,
+  profile: UserProfile
 ): Promise<LocalMigrationResult> {
   if (authMode !== 'firebase') {
     throw new Error('Switch to live Firebase mode before migrating local browser data.')
@@ -252,7 +264,9 @@ export async function migrateLocalDataForCurrentProfile(
       }
 
       if (profile.role !== 'admin' && property.status !== 'pending') {
-        result.notes.push(`Property "${property.title}" was re-submitted as pending for fresh moderation.`)
+        result.notes.push(
+          `Property "${property.title}" was re-submitted as pending for fresh moderation.`
+        )
       }
 
       await setDoc(propertyRef, buildFirestorePropertyPayload(property, profile))
@@ -304,7 +318,7 @@ export async function migrateLocalDataForCurrentProfile(
           notes: booking.notes,
         },
         profile,
-        property,
+        property
       )
 
       if (booking.status === 'cancelled') {
@@ -335,7 +349,9 @@ export async function migrateLocalDataForCurrentProfile(
       const normalized = normalizeVerificationRecord(verification)
 
       if (normalized.status !== 'pending') {
-        result.notes.push('An older local verification record was re-submitted as pending for a fresh admin review.')
+        result.notes.push(
+          'An older local verification record was re-submitted as pending for a fresh admin review.'
+        )
       }
 
       await setDoc(verificationRef, {

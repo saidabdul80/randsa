@@ -49,15 +49,14 @@ export function useAgentVerification() {
     admin: UserProfile,
     verificationId: string,
     status: 'approved' | 'rejected',
-    adminNote: string,
+    adminNote: string
   ) {
     isLoading.value = true
     error.value = ''
 
     try {
       const record = await reviewAgentVerification(admin, verificationId, status, adminNote)
-      currentRequest.value =
-        currentRequest.value?.id === record.id ? record : currentRequest.value
+      currentRequest.value = currentRequest.value?.id === record.id ? record : currentRequest.value
       await refreshAll()
       return record
     } catch (caughtError) {

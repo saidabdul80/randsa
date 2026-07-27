@@ -17,18 +17,23 @@
 
       <div class="grid gap-4">
         <div class="glass-panel p-6">
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Current listing</p>
+          <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">
+            Current listing
+          </p>
           <h2 class="mt-3 text-xl font-bold text-ink dark:text-white">{{ property?.title }}</h2>
           <p class="mt-3 text-sm leading-7 text-mist dark:text-slate-300">
-            Status: <span class="font-semibold text-ink dark:text-white">{{ property?.status }}</span>
+            Status:
+            <span class="font-semibold text-ink dark:text-white">{{ property?.status }}</span>
           </p>
         </div>
         <div
           v-if="statusMessage"
           class="rounded-[24px] border px-4 py-4 text-sm"
-          :class="statusTone === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'"
+          :class="
+            statusTone === 'error'
+              ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+          "
         >
           {{ statusMessage }}
         </div>
@@ -75,7 +80,7 @@ const isOwnerOrAdmin = computed(
   () =>
     Boolean(property.value) &&
     Boolean(state.profile) &&
-    (property.value?.ownerId === state.profile?.uid || state.profile?.role === 'admin'),
+    (property.value?.ownerId === state.profile?.uid || state.profile?.role === 'admin')
 )
 
 const propertyInput = computed<PropertyFormInput | null>(() => {

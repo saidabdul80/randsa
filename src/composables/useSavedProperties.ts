@@ -27,10 +27,7 @@ export function useSavedProperties() {
     return isPropertySaved(userId, propertyId)
   }
 
-  async function toggleSavedProperty(
-    userId: string | null | undefined,
-    property: PropertyRecord,
-  ) {
+  async function toggleSavedProperty(userId: string | null | undefined, property: PropertyRecord) {
     if (!userId) {
       throw new Error('You need to be signed in before saving properties.')
     }

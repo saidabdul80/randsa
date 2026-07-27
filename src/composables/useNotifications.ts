@@ -53,7 +53,11 @@ export function useNotifications() {
     }
   }
 
-  async function addBookingConfirmation(user: UserProfile, booking: BookingRecord, property: PropertyRecord) {
+  async function addBookingConfirmation(
+    user: UserProfile,
+    booking: BookingRecord,
+    property: PropertyRecord
+  ) {
     isLoading.value = true
     error.value = ''
 

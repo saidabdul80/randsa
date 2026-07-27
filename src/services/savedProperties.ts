@@ -47,14 +47,14 @@ export function listSavedProperties(userId: string) {
 
 export function isPropertySaved(userId: string, propertyId: string) {
   return readSavedProperties().some(
-    (record) => record.userId === userId && record.propertyId === propertyId,
+    (record) => record.userId === userId && record.propertyId === propertyId
   )
 }
 
 export function saveProperty(userId: string, property: PropertyRecord) {
   const records = readSavedProperties()
   const existing = records.find(
-    (record) => record.userId === userId && record.propertyId === property.id,
+    (record) => record.userId === userId && record.propertyId === property.id
   )
 
   if (existing) {
@@ -76,7 +76,7 @@ export function saveProperty(userId: string, property: PropertyRecord) {
 export function removeSavedProperty(userId: string, propertyId: string) {
   const records = readSavedProperties()
   const nextRecords = records.filter(
-    (record) => !(record.userId === userId && record.propertyId === propertyId),
+    (record) => !(record.userId === userId && record.propertyId === propertyId)
   )
 
   writeSavedProperties(nextRecords)

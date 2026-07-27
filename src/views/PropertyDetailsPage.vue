@@ -1,279 +1,530 @@
 <template>
-  <AppShell
-    eyebrow="Details"
-    title="Property details"
-    description="A richer listing surface with gallery, actions, pricing, map preview, and contact context in one place."
-  >
-    <section v-if="property" class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-      <div class="grid gap-4">
-        <div class="hero-shell overflow-hidden">
-          <img
-            :src="activeImage"
-            alt="Selected property image"
-            class="h-72 w-full object-cover sm:h-[26rem]"
-          >
+  <AppShell :show-header="false" :show-bottom-nav="false" content-class="min-h-full w-full">
+    <div class="property-details-page">
+      <div class="property-details-layout">
+        <div class="property-details-sidebar">
+          <NotificationSidebarNav
+            :can-manage-properties="canManageProperties"
+            aria-label="Property details navigation"
+            :show-mobile="false"
+          />
+        </div>
+
+        <main class="property-details-main">
           <div
-            v-if="property.images.length > 1"
-            class="grid grid-cols-4 gap-3 p-4"
+            v-if="loadState === 'loading'"
+            class="property-details-skeleton"
+            aria-label="Loading property details"
           >
-            <button
-              v-for="(image, index) in property.images"
-              :key="`${property.id}-image-${index}`"
-              type="button"
-              class="overflow-hidden rounded-[18px] border transition"
-              :class="activeImage === image
-                ? 'border-brand-500'
-                : 'border-slate-200 dark:border-slate-800'"
-              @click="activeImage = image"
-            >
-              <img :src="image" alt="Property gallery thumbnail" class="h-20 w-full object-cover">
-            </button>
+            <div class="property-details-skeleton__header" />
+            <div class="property-details-skeleton__columns">
+              <div>
+                <div class="property-details-skeleton__gallery" />
+                <div v-for="index in 4" :key="index" class="property-details-skeleton__card" />
+              </div>
+              <div>
+                <div class="property-details-skeleton__panel" />
+                <div class="property-details-skeleton__panel is-short" />
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="glass-panel p-6">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p class="text-sm font-semibold uppercase tracking-[0.18em] text-brand-700">
-                {{ property.propertyType }}
-              </p>
-              <p
-                v-if="ownerProfile?.isVerifiedAgent"
-                class="mt-2 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-200"
-              >
-                Verified agent
-              </p>
-              <h2 class="mt-2 text-2xl font-bold text-ink dark:text-white">{{ property.title }}</h2>
-              <p class="mt-2 text-sm text-mist dark:text-slate-300">
-                {{ property.address }}, {{ property.area }}, {{ property.city }}, {{ property.state }}
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="text-2xl font-bold text-ink dark:text-white">
-                {{ formatCurrency(property.rentPrice) }}
-              </p>
-              <p class="mt-1 text-sm text-mist dark:text-slate-300">
-                per {{ property.paymentDuration }}
-              </p>
-            </div>
-          </div>
-          <div class="mt-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-            <p class="text-sm leading-7 text-mist dark:text-slate-300">
-            {{ property.description }}
+          <section
+            v-else-if="loadState === 'error' || loadState === 'not-found'"
+            class="property-state-card"
+          >
+            <span aria-hidden="true"><IonIcon :icon="homeOutline" /></span>
+            <p>
+              {{ loadState === 'not-found' ? 'Listing unavailable' : 'Unable to load listing' }}
             </p>
-            <div class="surface-card p-4">
-              <p class="text-xs font-bold uppercase tracking-[0.22em] text-brand-700">Listing pulse</p>
-              <p class="mt-2 text-sm text-mist dark:text-slate-300">
-                {{ property.isAvailable ? 'Available for enquiries and inspection booking.' : 'Currently unavailable while the listing remains visible for reference.' }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-panel p-6">
-          <div class="flex items-center justify-between gap-4">
+            <h1>
+              {{
+                loadState === 'not-found'
+                  ? 'This property could not be found.'
+                  : 'Property details are temporarily unavailable.'
+              }}
+            </h1>
+            <small>
+              {{
+                loadState === 'not-found'
+                  ? 'The listing may have been removed or the address may be incorrect.'
+                  : 'Check your connection and try loading this listing again.'
+              }}
+            </small>
             <div>
-              <h3 class="text-lg font-bold text-ink dark:text-white">Map preview</h3>
-              <p class="mt-2 text-sm leading-6 text-mist dark:text-slate-300">
-                Use the pinned location to understand the area before calling, paying, or booking an inspection.
-              </p>
+              <button v-if="loadState === 'error'" type="button" @click="retryPropertyLoad">
+                <IonIcon :icon="refreshOutline" aria-hidden="true" />
+                Try again
+              </button>
+              <RouterLink to="/properties">
+                <IonIcon :icon="searchOutline" aria-hidden="true" />
+                Back to Explore
+              </RouterLink>
             </div>
-          </div>
-          <div class="mt-4">
-            <PropertyMapPreview
-              :latitude="property.latitude"
-              :longitude="property.longitude"
-              :title="property.title"
-              :price-label="`${formatCurrency(property.rentPrice)} / ${property.paymentDuration}`"
-            />
-          </div>
-        </div>
+          </section>
 
-        <div class="glass-panel p-6">
-          <div class="flex items-center justify-between gap-4">
-            <h3 class="text-lg font-bold text-ink dark:text-white">Features</h3>
-            <span
-              class="rounded-full px-3 py-1 text-xs font-bold"
-              :class="statusClassMap[property.status]"
-            >
-              {{ property.status }}
-            </span>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span
-              v-for="feature in featureBadges"
-              :key="feature"
-              class="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            >
-              {{ feature }}
-            </span>
-          </div>
+          <template v-else-if="property">
+            <header class="property-details-header">
+              <div class="property-details-header__navigation">
+                <button type="button" aria-label="Go back" @click="goBack">
+                  <IonIcon :icon="arrowBackOutline" aria-hidden="true" />
+                </button>
+                <nav aria-label="Breadcrumb">
+                  <RouterLink to="/home">Home</RouterLink>
+                  <span>/</span>
+                  <RouterLink to="/properties">Explore</RouterLink>
+                  <span>/</span>
+                  <strong>Property details</strong>
+                </nav>
+              </div>
+
+              <div class="property-details-header__actions">
+                <button
+                  type="button"
+                  :aria-label="isCurrentPropertySaved ? 'Remove from saved' : 'Save property'"
+                  :aria-pressed="isCurrentPropertySaved"
+                  :disabled="savingPropertyId === property.id"
+                  @click="handleToggleSaved(property)"
+                >
+                  <IonSpinner
+                    v-if="savingPropertyId === property.id"
+                    name="crescent"
+                    aria-hidden="true"
+                  />
+                  <IonIcon
+                    v-else
+                    :icon="isCurrentPropertySaved ? heart : heartOutline"
+                    aria-hidden="true"
+                  />
+                </button>
+                <button type="button" aria-label="Share property" @click="shareProperty">
+                  <IonIcon :icon="shareSocialOutline" aria-hidden="true" />
+                </button>
+                <details ref="moreMenuRef" class="property-details-more-menu">
+                  <summary aria-label="More property actions">
+                    <IonIcon :icon="ellipsisHorizontal" aria-hidden="true" />
+                  </summary>
+                  <div>
+                    <button type="button" @click="copyCurrentLink">
+                      <IonIcon :icon="copyOutline" aria-hidden="true" />
+                      Copy link
+                    </button>
+                    <button type="button" @click="printProperty">
+                      <IonIcon :icon="printOutline" aria-hidden="true" />
+                      Print listing
+                    </button>
+                  </div>
+                </details>
+              </div>
+            </header>
+
+            <div class="property-details-columns">
+              <article class="property-details-content">
+                <PropertyMediaGallery
+                  :key="property.id"
+                  :images="property.images"
+                  :title="property.title"
+                  :is-available="property.isAvailable"
+                />
+
+                <section class="property-summary-card" aria-labelledby="property-title">
+                  <div class="property-summary-card__heading">
+                    <div>
+                      <div class="property-summary-card__badges">
+                        <span>{{ property.propertyType }}</span>
+                        <span :class="`is-${property.status}`">{{
+                          titleCase(property.status)
+                        }}</span>
+                        <span v-if="ownerProfile?.isVerifiedAgent" class="is-verified">
+                          <IonIcon :icon="checkmarkCircle" aria-hidden="true" />
+                          Verified agent
+                        </span>
+                      </div>
+                      <h1 id="property-title">{{ property.title }}</h1>
+                      <p>
+                        <IonIcon :icon="locationOutline" aria-hidden="true" />
+                        {{ fullAddress }}
+                      </p>
+                    </div>
+                    <div class="property-summary-card__price">
+                      <strong>{{ formatCurrency(property.rentPrice) }}</strong>
+                      <span>/ {{ formatPeriod(property.paymentDuration) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="property-summary-card__meta">
+                    <span v-if="listedDate">
+                      <IonIcon :icon="calendarOutline" aria-hidden="true" />
+                      Listed {{ listedDate }}
+                    </span>
+                    <span v-if="updatedDate">
+                      <IonIcon :icon="timeOutline" aria-hidden="true" />
+                      Updated {{ updatedDate }}
+                    </span>
+                    <button type="button" @click="handleToggleComparison(property)">
+                      <IonIcon :icon="gitCompareOutline" aria-hidden="true" />
+                      {{ currentPropertyIsCompared ? 'Added to compare' : 'Add to compare' }}
+                    </button>
+                  </div>
+
+                  <div class="property-listing-pulse">
+                    <span aria-hidden="true"><IonIcon :icon="pulseOutline" /></span>
+                    <div>
+                      <p>Listing pulse</p>
+                      <strong>{{ listingPulse }}</strong>
+                    </div>
+                    <span v-if="property.status === 'approved'" class="is-trusted">
+                      <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
+                      Approved listing
+                    </span>
+                  </div>
+                </section>
+
+                <section
+                  v-if="quickFacts.length"
+                  class="property-content-card"
+                  aria-labelledby="property-facts-title"
+                >
+                  <header>
+                    <div>
+                      <p>At a glance</p>
+                      <h2 id="property-facts-title">Property details</h2>
+                    </div>
+                  </header>
+                  <div class="property-quick-facts">
+                    <article v-for="fact in quickFacts" :key="fact.label">
+                      <span aria-hidden="true"><IonIcon :icon="fact.icon" /></span>
+                      <div>
+                        <small>{{ fact.label }}</small>
+                        <strong>{{ fact.value }}</strong>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="property-content-card" aria-labelledby="property-about-title">
+                  <header>
+                    <div>
+                      <p>Overview</p>
+                      <h2 id="property-about-title">About this property</h2>
+                    </div>
+                  </header>
+                  <p v-if="property.description" class="property-description">
+                    {{ visibleDescription }}
+                  </p>
+                  <p v-else class="property-content-card__empty-copy">
+                    A description has not been added to this listing.
+                  </p>
+                  <button
+                    v-if="descriptionIsLong"
+                    type="button"
+                    class="property-description-toggle"
+                    :aria-expanded="descriptionIsExpanded"
+                    @click="descriptionIsExpanded = !descriptionIsExpanded"
+                  >
+                    {{ descriptionIsExpanded ? 'Show less' : 'Read more' }}
+                    <IonIcon
+                      :icon="descriptionIsExpanded ? chevronUpOutline : chevronDownOutline"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </section>
+
+                <section
+                  v-if="amenityItems.length"
+                  class="property-content-card"
+                  aria-labelledby="property-amenities-title"
+                >
+                  <header>
+                    <div>
+                      <p>Included features</p>
+                      <h2 id="property-amenities-title">Features and amenities</h2>
+                    </div>
+                    <button
+                      v-if="amenityItems.length > 8"
+                      type="button"
+                      :aria-expanded="showAllAmenities"
+                      @click="showAllAmenities = !showAllAmenities"
+                    >
+                      {{ showAllAmenities ? 'Show fewer' : `Show all ${amenityItems.length}` }}
+                    </button>
+                  </header>
+                  <div class="property-amenities">
+                    <span v-for="amenity in visibleAmenities" :key="amenity.label">
+                      <IonIcon :icon="amenity.icon" aria-hidden="true" />
+                      {{ amenity.label }}
+                    </span>
+                  </div>
+                </section>
+
+                <section
+                  ref="mapSectionRef"
+                  class="property-content-card property-location-card"
+                  aria-labelledby="property-location-title"
+                >
+                  <header>
+                    <div>
+                      <p>Location</p>
+                      <h2 id="property-location-title">Explore the area</h2>
+                      <span>{{ fullAddress }}</span>
+                    </div>
+                    <div class="property-location-card__actions">
+                      <button type="button" @click="copyAddress">
+                        <IonIcon :icon="copyOutline" aria-hidden="true" />
+                        Copy address
+                      </button>
+                      <a
+                        v-if="directionsUrl"
+                        :href="directionsUrl"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <IonIcon :icon="navigateOutline" aria-hidden="true" />
+                        Directions
+                      </a>
+                    </div>
+                  </header>
+                  <div class="property-location-card__map">
+                    <PropertyMapPreview
+                      v-if="mapShouldRender"
+                      :latitude="property.latitude"
+                      :longitude="property.longitude"
+                      :title="property.title"
+                      :price-label="`${formatCurrency(property.rentPrice)} / ${formatPeriod(
+                        property.paymentDuration
+                      )}`"
+                    />
+                    <div v-else class="property-location-card__skeleton" aria-hidden="true" />
+                  </div>
+                </section>
+
+                <section class="property-content-card" aria-labelledby="before-booking-title">
+                  <header>
+                    <div>
+                      <p>Book with confidence</p>
+                      <h2 id="before-booking-title">Before you book</h2>
+                    </div>
+                  </header>
+                  <div class="property-booking-checklist">
+                    <span v-for="item in beforeBookingItems" :key="item">
+                      <IonIcon :icon="checkmarkCircle" aria-hidden="true" />
+                      {{ item }}
+                    </span>
+                  </div>
+                  <p class="property-booking-checklist__note">
+                    <IonIcon :icon="informationCircleOutline" aria-hidden="true" />
+                    Inspection is recommended before rent payment.
+                  </p>
+                </section>
+
+                <SimilarProperties
+                  :properties="similarProperties"
+                  :current-property="property"
+                  :saved-property-ids="savedPropertyIds"
+                  :saving-property-id="savingPropertyId"
+                  :comparison-property-ids="[...selectedPropertyIds]"
+                  :comparison-is-full="comparisonIsFull"
+                  @toggle-saved="handleToggleSaved"
+                  @toggle-compare="handleToggleComparison"
+                />
+              </article>
+
+              <div class="property-details-booking-column">
+                <PropertyBookingPanel
+                  :property="property"
+                  :owner-profile="ownerProfile"
+                  :is-saved="isCurrentPropertySaved"
+                  :is-saving="savingPropertyId === property.id"
+                  :can-edit="canEdit"
+                  :action-message="actionMessage"
+                  :message-tone="actionMessageTone"
+                  :directions-url="directionsUrl"
+                  :is-compared="currentPropertyIsCompared"
+                  :compare-disabled="comparisonIsFull"
+                  @toggle-saved="handleToggleSaved(property)"
+                  @toggle-compare="handleToggleComparison(property)"
+                  @share="shareProperty"
+                />
+              </div>
+            </div>
+          </template>
+        </main>
+      </div>
+    </div>
+
+    <template v-if="property && loadState === 'ready'">
+      <div class="property-mobile-booking-bar">
+        <div>
+          <strong>{{ formatCurrency(property.rentPrice) }}</strong>
+          <span>/ {{ formatPeriod(property.paymentDuration) }}</span>
         </div>
+        <RouterLink :to="`/booking/${property.id}`">Book inspection</RouterLink>
+        <button
+          type="button"
+          aria-label="Open more property actions"
+          @click="isActionSheetOpen = true"
+        >
+          <IonIcon :icon="ellipsisHorizontal" aria-hidden="true" />
+        </button>
       </div>
 
-      <div class="grid gap-4 lg:sticky lg:top-6 lg:self-start">
-        <div class="hero-shell p-6">
-          <h3 class="text-lg font-bold text-ink dark:text-white">Quick actions</h3>
-          <div class="mt-4 grid gap-3">
-            <button
-              type="button"
-              class="rounded-full px-5 py-3 text-sm font-semibold transition"
-              :class="isSaved
-                ? 'bg-ink text-white hover:bg-slate-800'
-                : 'bg-brand-600 text-white hover:bg-brand-700'"
-              @click="handleToggleSaved"
-            >
-              {{ isSaved ? 'Remove from saved' : 'Save property' }}
-            </button>
-            <a
-              v-if="contactLinks.call"
-              :href="contactLinks.call"
-              class="premium-button-secondary text-center"
-            >
-              Call agent or landlord
-            </a>
-            <a
-              v-if="contactLinks.whatsapp"
-              :href="contactLinks.whatsapp"
-              target="_blank"
-              rel="noreferrer"
-              class="rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-center text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-            >
-              Chat on WhatsApp
-            </a>
-            <RouterLink
-              v-if="canEdit"
-              :to="`/edit-property/${property.id}`"
-              class="premium-button-secondary text-center"
-            >
-              Edit property
-            </RouterLink>
-            <RouterLink
-              :to="`/booking/${property.id}`"
-              class="premium-button-primary text-center"
-            >
-              Book inspection
-            </RouterLink>
-            <RouterLink
-              :to="`/payment/${property.id}?type=inspection_fee`"
-              class="rounded-full border border-brand-200 bg-brand-50 px-5 py-3 text-center text-sm font-semibold text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200"
-            >
-              Pay inspection fee
-            </RouterLink>
-          </div>
-          <p
-            v-if="actionMessage"
-            class="mt-4 rounded-[20px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200"
-          >
-            {{ actionMessage }}
-          </p>
-        </div>
+      <PropertyActionSheet
+        :open="isActionSheetOpen"
+        :property="property"
+        :is-saved="isCurrentPropertySaved"
+        :is-saving="savingPropertyId === property.id"
+        :can-edit="canEdit"
+        :directions-url="directionsUrl"
+        :is-compared="currentPropertyIsCompared"
+        :compare-disabled="comparisonIsFull"
+        :comparison-count="comparisonCount"
+        @close="isActionSheetOpen = false"
+        @toggle-saved="handleToggleSaved(property)"
+        @toggle-compare="handleToggleComparison(property)"
+        @open-comparison="openComparisonFromSheet"
+        @share="shareProperty"
+      />
 
-        <div class="metric-card">
-          <h3 class="text-lg font-bold text-ink dark:text-white">Listing overview</h3>
-          <div class="mt-4 grid gap-3 text-sm text-mist dark:text-slate-300">
-            <div>Owner role: <span class="font-semibold text-ink dark:text-white">{{ property.ownerRole }}</span></div>
-            <div v-if="ownerProfile?.isVerifiedAgent">Verification: <span class="font-semibold text-sky-700 dark:text-sky-200">Verified agent</span></div>
-            <div>Contact phone: <span class="font-semibold text-ink dark:text-white">{{ property.ownerPhone }}</span></div>
-            <div>Availability: <span class="font-semibold text-ink dark:text-white">{{ property.isAvailable ? 'Available' : 'Unavailable' }}</span></div>
-          </div>
-        </div>
+      <PropertyComparisonTray
+        ref="comparisonTrayRef"
+        :properties="comparisonProperties"
+        :saved-property-ids="savedPropertyIds"
+        :saving-property-id="savingPropertyId"
+        @remove="removeComparisonProperty"
+        @clear="clearComparison"
+        @toggle-saved="handleToggleSaved"
+      />
 
-        <div class="metric-card">
-          <h3 class="text-lg font-bold text-ink dark:text-white">Fees and terms</h3>
-          <div class="mt-4 grid gap-3 text-sm text-mist dark:text-slate-300">
-            <div>Caution fee: <span class="font-semibold text-ink dark:text-white">{{ formatCurrency(property.cautionFee) }}</span></div>
-            <div>Agency fee: <span class="font-semibold text-ink dark:text-white">{{ formatCurrency(property.agencyFee) }}</span></div>
-            <div>Inspection fee: <span class="font-semibold text-ink dark:text-white">{{ formatCurrency(property.inspectionFee) }}</span></div>
-          </div>
-          <div class="mt-5 grid gap-3">
-            <RouterLink
-              :to="`/payment/${property.id}?type=service_fee`"
-              class="premium-button-secondary text-center"
-            >
-              Pay service fee
-            </RouterLink>
-            <RouterLink
-              :to="`/payment/${property.id}?type=full_rent_payment`"
-              class="premium-button-primary text-center"
-            >
-              Pay full rent
-            </RouterLink>
-          </div>
+      <Transition name="property-toast">
+        <div
+          v-if="actionMessage"
+          class="property-mobile-toast"
+          :class="`is-${actionMessageTone}`"
+          role="status"
+          aria-live="polite"
+        >
+          {{ actionMessage }}
         </div>
+      </Transition>
+    </template>
 
-        <div class="metric-card">
-          <h3 class="text-lg font-bold text-ink dark:text-white">Before you book</h3>
-          <p class="mt-3 text-sm leading-7 text-mist dark:text-slate-300">
-            Review the photos, fees, location, and contact details. If the listing fits, pay the inspection fee and schedule a visit.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section v-else class="glass-panel p-8 text-center">
-      <h2 class="text-2xl font-bold text-ink dark:text-white">Property not found</h2>
-      <p class="mx-auto mt-3 max-w-xl text-sm leading-7 text-mist dark:text-slate-300">
-        This property is not available in the current local store, or it has not been created yet.
-      </p>
-      <RouterLink
-        to="/properties"
-        class="mt-6 inline-flex rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
-      >
-        Back to listings
-      </RouterLink>
-    </section>
+    <div class="property-details-mobile-nav"><AppBottomNav /></div>
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { IonIcon, IonSpinner } from '@ionic/vue'
+import {
+  arrowBackOutline,
+  bedOutline,
+  calendarOutline,
+  carOutline,
+  checkmarkCircle,
+  chevronDownOutline,
+  chevronUpOutline,
+  copyOutline,
+  ellipsisHorizontal,
+  flashOutline,
+  gitCompareOutline,
+  heart,
+  heartOutline,
+  homeOutline,
+  informationCircleOutline,
+  keyOutline,
+  locationOutline,
+  navigateOutline,
+  printOutline,
+  pulseOutline,
+  refreshOutline,
+  resizeOutline,
+  restaurantOutline,
+  searchOutline,
+  shareSocialOutline,
+  shieldCheckmarkOutline,
+  sparklesOutline,
+  storefrontOutline,
+  timeOutline,
+  waterOutline,
+} from 'ionicons/icons'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/layout/AppShell.vue'
-import PropertyMapPreview from '../components/map/PropertyMapPreview.vue'
+import AppBottomNav from '../components/navigation/AppBottomNav.vue'
+import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
+import PropertyActionSheet from '../components/property/details/PropertyActionSheet.vue'
+import PropertyBookingPanel from '../components/property/details/PropertyBookingPanel.vue'
+import PropertyComparisonTray from '../components/property/details/PropertyComparisonTray.vue'
+import PropertyMediaGallery from '../components/property/details/PropertyMediaGallery.vue'
+import SimilarProperties from '../components/property/details/SimilarProperties.vue'
 import { useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
+import { usePropertyComparison } from '../composables/usePropertyComparison'
+import { useRecentlyViewedProperties } from '../composables/useRecentlyViewedProperties'
 import { useSavedProperties } from '../composables/useSavedProperties'
 import { getUserProfile } from '../services/auth'
-import { buildPropertyContactLinks, type PropertyRecord } from '../types/property'
+import type { PropertyRecord } from '../types/property'
 import type { UserProfile } from '../types/user'
 
+import '../assets/styles/property-details.css'
+
+const PropertyMapPreview = defineAsyncComponent(
+  () => import('../components/map/PropertyMapPreview.vue')
+)
+
+type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+type MessageTone = 'success' | 'error' | 'info'
+
+interface ComparisonTrayExposed {
+  openComparison: () => void
+}
+
 const route = useRoute()
-const propertyId = route.params.propertyId as string
-const { findById } = useProperties()
-const { state } = useAuth()
-const { propertyIsSaved, refresh: refreshSaved, toggleSavedProperty } = useSavedProperties()
+const router = useRouter()
+const { state, canManageProperties } = useAuth()
+const { properties, hasLoaded, findById } = useProperties()
+const {
+  savedRecords,
+  refresh: refreshSaved,
+  propertyIsSaved,
+  toggleSavedProperty,
+} = useSavedProperties()
+const {
+  selectedPropertyIds,
+  comparisonCount,
+  comparisonIsFull,
+  includes: comparisonIncludes,
+  toggle: toggleComparison,
+  remove: removeComparisonProperty,
+  clear: clearComparison,
+  prune: pruneComparison,
+} = usePropertyComparison()
+const { remember: rememberRecentlyViewed } = useRecentlyViewedProperties()
 
 const property = ref<PropertyRecord | null>(null)
 const ownerProfile = ref<UserProfile | null>(null)
-const activeImage = ref('')
+const loadState = ref<LoadState>('loading')
+const savingPropertyId = ref('')
 const actionMessage = ref('')
+const actionMessageTone = ref<MessageTone>('info')
+const descriptionIsExpanded = ref(false)
+const showAllAmenities = ref(false)
+const isActionSheetOpen = ref(false)
+const mapShouldRender = ref(false)
+const mapSectionRef = ref<HTMLElement | null>(null)
+const comparisonTrayRef = ref<ComparisonTrayExposed | null>(null)
+const moreMenuRef = ref<HTMLDetailsElement | null>(null)
 
-void findById(propertyId).then((result) => {
-  property.value = result
-})
+let propertyLoadRequest = 0
+let messageTimer: ReturnType<typeof setTimeout> | null = null
+let mapObserver: IntersectionObserver | null = null
 
 watch(
-  property,
-  (value) => {
-    if (value?.images.length && !activeImage.value) {
-      activeImage.value = value.images[0]
-    }
-
-    if (value?.ownerId) {
-      void getUserProfile(value.ownerId)
-        .then((profile) => {
-          ownerProfile.value = profile
-        })
-        .catch(() => {
-          ownerProfile.value = null
-        })
-    } else {
-      ownerProfile.value = null
-    }
+  () => route.params.propertyId,
+  (propertyId) => {
+    void loadProperty(typeof propertyId === 'string' ? propertyId : '')
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
@@ -281,74 +532,389 @@ watch(
   (userId) => {
     refreshSaved(userId)
   },
-  { immediate: true },
+  { immediate: true }
+)
+
+watch(
+  [hasLoaded, property],
+  ([loaded, currentProperty]) => {
+    if (!loaded || !currentProperty) return
+
+    pruneComparison(new Set([...properties.value.map((item) => item.id), currentProperty.id]))
+  },
+  { immediate: true }
 )
 
 const canEdit = computed(
   () =>
     Boolean(property.value) &&
     Boolean(state.profile) &&
-    (property.value?.ownerId === state.profile?.uid || state.profile?.role === 'admin'),
+    (property.value?.ownerId === state.profile?.uid || state.profile?.role === 'admin')
 )
 
-const isSaved = computed(() =>
-  property.value ? propertyIsSaved(state.profile?.uid, property.value.id) : false,
+const isCurrentPropertySaved = computed(() =>
+  property.value ? propertyIsSaved(state.profile?.uid, property.value.id) : false
 )
 
-const contactLinks = computed(() =>
-  buildPropertyContactLinks(property.value?.ownerPhone ?? ''),
+const savedPropertyIds = computed(
+  () => new Set(savedRecords.value.map((record) => record.propertyId))
 )
 
-const statusClassMap = {
-  approved: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
-  pending: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200',
-  rejected: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200',
-} as const
+const currentPropertyIsCompared = computed(() =>
+  property.value ? comparisonIncludes(property.value.id) : false
+)
 
-const featureBadges = computed(() => {
-  if (!property.value) {
-    return []
-  }
+const fullAddress = computed(() => {
+  if (!property.value) return ''
 
-  const features = [...property.value.amenities]
+  const parts = [
+    property.value.address,
+    property.value.area,
+    property.value.city,
+    property.value.state,
+  ].filter(Boolean)
 
-  if (property.value.propertyType === 'Shop rent') {
-    if (property.value.shopSize) features.push(property.value.shopSize)
-    if (property.value.roadAccess) features.push('Road access')
-    if (property.value.marketArea) features.push('Market area')
-    if (property.value.electricityAvailability) features.push('Electricity available')
-    if (property.value.security) features.push('Security')
-    if (property.value.waterAccess) features.push('Water access')
-  } else {
-    if (property.value.bedrooms !== null) features.push(`${property.value.bedrooms} bedrooms`)
-    if (property.value.bathrooms !== null) features.push(`${property.value.bathrooms} bathrooms`)
-    if (property.value.toilets !== null) features.push(`${property.value.toilets} toilets`)
-    if (property.value.kitchen) features.push('Kitchen')
-    if (property.value.parking) features.push('Parking')
-    if (property.value.water) features.push('Water')
-    if (property.value.electricity) features.push('Electricity')
-    if (property.value.security) features.push('Security')
-  }
-
-  return features.filter((feature, index, array) => array.indexOf(feature) === index)
+  return parts
+    .filter(
+      (part, index) =>
+        parts.findIndex((candidate) => candidate.toLowerCase() === part.toLowerCase()) === index
+    )
+    .join(', ')
 })
 
-async function handleToggleSaved() {
-  actionMessage.value = ''
+const directionsUrl = computed(() => {
+  if (!property.value) return ''
 
-  if (!property.value) {
+  const destination =
+    property.value.latitude !== null && property.value.longitude !== null
+      ? `${property.value.latitude},${property.value.longitude}`
+      : fullAddress.value
+
+  return destination
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`
+    : ''
+})
+
+const listedDate = computed(() => formatDate(property.value?.createdAt ?? ''))
+const updatedDate = computed(() => {
+  if (!property.value?.updatedAt || property.value.updatedAt === property.value.createdAt) return ''
+  return formatDate(property.value.updatedAt)
+})
+
+const listingPulse = computed(() => {
+  if (!property.value) return ''
+  if (!property.value.isAvailable) {
+    return 'This listing is currently unavailable for new enquiries.'
+  }
+  if (property.value.inspectionFee > 0) {
+    return 'Available for enquiries and inspection booking.'
+  }
+  return 'Available for enquiries and visit scheduling.'
+})
+
+const quickFacts = computed(() => {
+  if (!property.value) return []
+
+  return [
+    property.value.bedrooms !== null
+      ? { label: 'Bedrooms', value: String(property.value.bedrooms), icon: bedOutline }
+      : null,
+    property.value.bathrooms !== null
+      ? { label: 'Bathrooms', value: String(property.value.bathrooms), icon: waterOutline }
+      : null,
+    property.value.toilets !== null
+      ? { label: 'Toilets', value: String(property.value.toilets), icon: keyOutline }
+      : null,
+    property.value.shopSize
+      ? { label: 'Shop size', value: property.value.shopSize, icon: resizeOutline }
+      : null,
+    property.value.parking ? { label: 'Parking', value: 'Available', icon: carOutline } : null,
+    property.value.roadAccess
+      ? { label: 'Road access', value: 'Available', icon: navigateOutline }
+      : null,
+  ].filter((fact): fact is { label: string; value: string; icon: string } => Boolean(fact))
+})
+
+const amenityItems = computed(() => {
+  if (!property.value) return []
+
+  const items = property.value.amenities
+    .filter(Boolean)
+    .map((label) => ({ label, icon: sparklesOutline }))
+
+  const supportedFeatures = [
+    property.value.kitchen ? { label: 'Kitchen', icon: restaurantOutline } : null,
+    property.value.parking ? { label: 'Parking', icon: carOutline } : null,
+    property.value.water || property.value.waterAccess
+      ? { label: 'Water supply', icon: waterOutline }
+      : null,
+    property.value.electricity || property.value.electricityAvailability
+      ? { label: 'Electricity', icon: flashOutline }
+      : null,
+    property.value.security ? { label: 'Security', icon: shieldCheckmarkOutline } : null,
+    property.value.roadAccess ? { label: 'Road access', icon: navigateOutline } : null,
+    property.value.marketArea ? { label: 'Market area', icon: storefrontOutline } : null,
+  ].filter((item): item is { label: string; icon: string } => Boolean(item))
+
+  return [...items, ...supportedFeatures].filter(
+    (item, index, allItems) =>
+      allItems.findIndex(
+        (candidate) => candidate.label.toLowerCase() === item.label.toLowerCase()
+      ) === index
+  )
+})
+
+const visibleAmenities = computed(() =>
+  showAllAmenities.value ? amenityItems.value : amenityItems.value.slice(0, 8)
+)
+const descriptionIsLong = computed(() => (property.value?.description.length ?? 0) > 420)
+const visibleDescription = computed(() => {
+  const description = property.value?.description ?? ''
+  if (!descriptionIsLong.value || descriptionIsExpanded.value) return description
+  return `${description.slice(0, 420).trimEnd()}…`
+})
+
+const similarProperties = computed(() => {
+  if (!property.value) return []
+
+  const current = property.value
+  return properties.value
+    .filter((candidate) => candidate.id !== current.id && candidate.status === 'approved')
+    .map((candidate) => ({
+      candidate,
+      score: calculateSimilarityScore(current, candidate),
+    }))
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.candidate.createdAt.localeCompare(left.candidate.createdAt)
+    )
+    .slice(0, 8)
+    .map(({ candidate }) => candidate)
+})
+
+const comparisonProperties = computed(() => {
+  const recordMap = new Map(properties.value.map((item) => [item.id, item]))
+  if (property.value) recordMap.set(property.value.id, property.value)
+
+  return selectedPropertyIds.value
+    .map((propertyId) => recordMap.get(propertyId))
+    .filter((item): item is PropertyRecord => Boolean(item))
+})
+
+const beforeBookingItems = [
+  'Review every available property photo and the listing description.',
+  'Confirm the address and pinned location before travelling.',
+  'Review the inspection, agency, caution, and rent amounts shown.',
+  'Contact the listed property representative if you need more details.',
+  'Schedule an inspection before making a full rent payment.',
+]
+
+async function loadProperty(propertyId: string) {
+  const requestId = ++propertyLoadRequest
+  loadState.value = 'loading'
+  property.value = null
+  ownerProfile.value = null
+  descriptionIsExpanded.value = false
+  showAllAmenities.value = false
+  isActionSheetOpen.value = false
+  mapShouldRender.value = false
+
+  if (!propertyId) {
+    loadState.value = 'not-found'
     return
   }
 
   try {
-    await toggleSavedProperty(state.profile?.uid, property.value)
-    actionMessage.value = isSaved.value
-      ? 'Property saved to your favorites.'
-      : 'Property removed from your saved list.'
-  } catch (error) {
-    actionMessage.value =
-      error instanceof Error ? error.message : 'Could not update the saved property state.'
+    const result = await findById(propertyId)
+    if (requestId !== propertyLoadRequest) return
+
+    if (!result) {
+      loadState.value = 'not-found'
+      return
+    }
+
+    property.value = result
+    rememberRecentlyViewed(result.id)
+    loadState.value = 'ready'
+    await nextTick()
+    observeMapSection()
+
+    if (result.ownerId) {
+      void getUserProfile(result.ownerId)
+        .then((profile) => {
+          if (requestId === propertyLoadRequest) ownerProfile.value = profile
+        })
+        .catch(() => {
+          if (requestId === propertyLoadRequest) ownerProfile.value = null
+        })
+    }
+  } catch {
+    if (requestId === propertyLoadRequest) loadState.value = 'error'
   }
+}
+
+function retryPropertyLoad() {
+  const propertyId = route.params.propertyId
+  void loadProperty(typeof propertyId === 'string' ? propertyId : '')
+}
+
+function observeMapSection() {
+  mapObserver?.disconnect()
+  mapObserver = null
+
+  if (!property.value || typeof IntersectionObserver === 'undefined') {
+    mapShouldRender.value = true
+    return
+  }
+
+  mapObserver = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      mapShouldRender.value = true
+      mapObserver?.disconnect()
+      mapObserver = null
+    },
+    { rootMargin: '240px 0px' }
+  )
+
+  if (mapSectionRef.value) mapObserver.observe(mapSectionRef.value)
+  else mapShouldRender.value = true
+}
+
+async function handleToggleSaved(targetProperty: PropertyRecord) {
+  if (savingPropertyId.value) return
+  savingPropertyId.value = targetProperty.id
+
+  try {
+    await toggleSavedProperty(state.profile?.uid, targetProperty)
+    const saved = propertyIsSaved(state.profile?.uid, targetProperty.id)
+    setActionMessage(
+      saved ? 'Property saved to your favorites.' : 'Property removed from your saved list.',
+      'success'
+    )
+  } catch {
+    setActionMessage('Could not update your saved properties. Please try again.', 'error')
+  } finally {
+    savingPropertyId.value = ''
+  }
+}
+
+function handleToggleComparison(targetProperty: PropertyRecord) {
+  const result = toggleComparison(targetProperty.id)
+  if (result === 'limit') {
+    setActionMessage('You can compare up to three properties at a time.', 'info')
+    return
+  }
+
+  setActionMessage(
+    result === 'added' ? 'Property added to comparison.' : 'Property removed from comparison.',
+    'success'
+  )
+}
+
+function openComparisonFromSheet() {
+  isActionSheetOpen.value = false
+  void nextTick(() => comparisonTrayRef.value?.openComparison())
+}
+
+async function shareProperty() {
+  if (!property.value) return
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: property.value.title,
+        text: `${property.value.title} on RANDSA`,
+        url: window.location.href,
+      })
+      setActionMessage('Listing shared.', 'success')
+    } else {
+      await copyText(window.location.href)
+      setActionMessage('Listing link copied.', 'success')
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return
+    setActionMessage('Could not share this listing.', 'error')
+  }
+}
+
+async function copyCurrentLink() {
+  moreMenuRef.value?.removeAttribute('open')
+  try {
+    await copyText(window.location.href)
+    setActionMessage('Listing link copied.', 'success')
+  } catch {
+    setActionMessage('Could not copy the listing link.', 'error')
+  }
+}
+
+async function copyAddress() {
+  try {
+    await copyText(fullAddress.value)
+    setActionMessage('Property address copied.', 'success')
+  } catch {
+    setActionMessage('Could not copy the property address.', 'error')
+  }
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.append(textarea)
+  textarea.select()
+  const copied = document.execCommand('copy')
+  textarea.remove()
+  if (!copied) throw new Error('Copy failed')
+}
+
+function printProperty() {
+  moreMenuRef.value?.removeAttribute('open')
+  window.print()
+}
+
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else void router.push('/properties')
+}
+
+function setActionMessage(message: string, tone: MessageTone) {
+  actionMessage.value = message
+  actionMessageTone.value = tone
+  if (messageTimer) clearTimeout(messageTimer)
+  messageTimer = setTimeout(() => {
+    actionMessage.value = ''
+    messageTimer = null
+  }, 4200)
+}
+
+function calculateSimilarityScore(current: PropertyRecord, candidate: PropertyRecord) {
+  let score = 0
+  const normalize = (value: string) => value.trim().toLowerCase()
+
+  if (candidate.propertyType === current.propertyType) score += 9
+  if (normalize(candidate.area) && normalize(candidate.area) === normalize(current.area)) score += 7
+  if (normalize(candidate.city) && normalize(candidate.city) === normalize(current.city)) score += 5
+  if (normalize(candidate.state) && normalize(candidate.state) === normalize(current.state))
+    score += 3
+
+  const priceDifference =
+    current.rentPrice > 0
+      ? Math.abs(candidate.rentPrice - current.rentPrice) / current.rentPrice
+      : Number.POSITIVE_INFINITY
+  if (priceDifference <= 0.25) score += 4
+  else if (priceDifference <= 0.5) score += 2
+
+  if (candidate.bedrooms !== null && candidate.bedrooms === current.bedrooms) score += 2
+  if (candidate.isAvailable === current.isAvailable) score += 1
+  return score
 }
 
 function formatCurrency(value: number) {
@@ -358,4 +924,28 @@ function formatCurrency(value: number) {
     maximumFractionDigits: 0,
   }).format(value)
 }
+
+function formatPeriod(value: string) {
+  return value.replaceAll('_', ' ')
+}
+
+function formatDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat('en-NG', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function titleCase(value: string) {
+  return value.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+onBeforeUnmount(() => {
+  mapObserver?.disconnect()
+  if (messageTimer) clearTimeout(messageTimer)
+})
 </script>

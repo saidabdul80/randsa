@@ -78,14 +78,7 @@ Implemented and planned structure:
 
 ```ts
 {
-  fullName,
-  email,
-  phone,
-  role,
-  photoURL,
-  isVerifiedAgent,
-  verificationStatus,
-  createdAt
+  ;(fullName, email, phone, role, photoURL, isVerifiedAgent, verificationStatus, createdAt)
 }
 ```
 
@@ -93,10 +86,7 @@ Implemented and planned structure:
 
 ```ts
 {
-  userId,
-  token,
-  device,
-  createdAt
+  ;(userId, token, device, createdAt)
 }
 ```
 
@@ -104,43 +94,43 @@ Implemented and planned structure:
 
 ```ts
 {
-  title,
-  description,
-  category,
-  propertyType,
-  rentPrice,
-  cautionFee,
-  agencyFee,
-  inspectionFee,
-  paymentDuration,
-  state,
-  city,
-  area,
-  address,
-  latitude,
-  longitude,
-  bedrooms,
-  bathrooms,
-  toilets,
-  shopSize,
-  roadAccess,
-  marketArea,
-  electricityAvailability,
-  security,
-  waterAccess,
-  kitchen,
-  parking,
-  water,
-  electricity,
-  amenities,
-  images,
-  ownerId,
-  ownerRole,
-  ownerPhone,
-  status,
-  isAvailable,
-  createdAt,
-  updatedAt
+  ;(title,
+    description,
+    category,
+    propertyType,
+    rentPrice,
+    cautionFee,
+    agencyFee,
+    inspectionFee,
+    paymentDuration,
+    state,
+    city,
+    area,
+    address,
+    latitude,
+    longitude,
+    bedrooms,
+    bathrooms,
+    toilets,
+    shopSize,
+    roadAccess,
+    marketArea,
+    electricityAvailability,
+    security,
+    waterAccess,
+    kitchen,
+    parking,
+    water,
+    electricity,
+    amenities,
+    images,
+    ownerId,
+    ownerRole,
+    ownerPhone,
+    status,
+    isAvailable,
+    createdAt,
+    updatedAt)
 }
 ```
 
@@ -148,19 +138,19 @@ Implemented and planned structure:
 
 ```ts
 {
-  agentId,
-  fullName,
-  phone,
-  whatsappNumber,
-  officeAddress,
-  profilePhoto,
-  idDocument,
-  cacDocument,
-  authorizationDocument,
-  status,
-  adminNote,
-  submittedAt,
-  reviewedAt
+  ;(agentId,
+    fullName,
+    phone,
+    whatsappNumber,
+    officeAddress,
+    profilePhoto,
+    idDocument,
+    cacDocument,
+    authorizationDocument,
+    status,
+    adminNote,
+    submittedAt,
+    reviewedAt)
 }
 ```
 
@@ -168,19 +158,19 @@ Implemented and planned structure:
 
 ```ts
 {
-  userId,
-  propertyId,
-  agentId,
-  propertyTitle,
-  payerName,
-  payerEmail,
-  amount,
-  paymentType,
-  paystackReference,
-  status,
-  verificationMode,
-  createdAt,
-  verifiedAt
+  ;(userId,
+    propertyId,
+    agentId,
+    propertyTitle,
+    payerName,
+    payerEmail,
+    amount,
+    paymentType,
+    paystackReference,
+    status,
+    verificationMode,
+    createdAt,
+    verifiedAt)
 }
 ```
 
@@ -188,18 +178,18 @@ Implemented and planned structure:
 
 ```ts
 {
-  userId,
-  propertyId,
-  agentId,
-  inspectionDate,
-  inspectionTime,
-  status,
-  paymentStatus,
-  reminderSent,
-  guestPhone,
-  notes,
-  createdAt,
-  updatedAt
+  ;(userId,
+    propertyId,
+    agentId,
+    inspectionDate,
+    inspectionTime,
+    status,
+    paymentStatus,
+    reminderSent,
+    guestPhone,
+    notes,
+    createdAt,
+    updatedAt)
 }
 ```
 
@@ -207,9 +197,7 @@ Implemented and planned structure:
 
 ```ts
 {
-  userId,
-  propertyId,
-  createdAt
+  ;(userId, propertyId, createdAt)
 }
 ```
 
@@ -217,17 +205,17 @@ Implemented and planned structure:
 
 ```ts
 {
-  userId,
-  type,
-  title,
-  body,
-  channel,
-  relatedPropertyId,
-  relatedBookingId,
-  relatedPaymentId,
-  createdAt,
-  deliveredAt,
-  readAt
+  ;(userId,
+    type,
+    title,
+    body,
+    channel,
+    relatedPropertyId,
+    relatedBookingId,
+    relatedPaymentId,
+    createdAt,
+    deliveredAt,
+    readAt)
 }
 ```
 

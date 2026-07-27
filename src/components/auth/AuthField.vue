@@ -13,7 +13,7 @@
         placeholder=" "
         :aria-describedby="describedby"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-      >
+      />
       <span class="auth-floating-label">{{ label }}</span>
       <button
         v-if="type === 'password'"
@@ -60,12 +60,12 @@ const props = withDefaults(
     disabled: false,
     required: false,
     describedby: undefined,
-  },
+  }
 )
 
 const showPassword = ref(false)
 const resolvedType = computed(() =>
-  props.type === 'password' && showPassword.value ? 'text' : props.type,
+  props.type === 'password' && showPassword.value ? 'text' : props.type
 )
 </script>
 
@@ -86,7 +86,10 @@ const resolvedType = computed(() =>
   border-radius: 12px;
   background: var(--auth-input);
   padding: 0 14px;
-  transition: border-color 190ms ease, box-shadow 190ms ease, transform 190ms ease;
+  transition:
+    border-color 190ms ease,
+    box-shadow 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-input-wrap:focus-within {
@@ -99,7 +102,9 @@ const resolvedType = computed(() =>
   flex: 0 0 auto;
   color: var(--auth-icon);
   font-size: 19px;
-  transition: color 190ms ease, transform 190ms ease;
+  transition:
+    color 190ms ease,
+    transform 190ms ease;
 }
 
 .auth-input-wrap:focus-within > ion-icon {
@@ -139,7 +144,11 @@ const resolvedType = computed(() =>
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
-  transition: top 180ms ease, transform 180ms ease, color 180ms ease, font-size 180ms ease;
+  transition:
+    top 180ms ease,
+    transform 180ms ease,
+    color 180ms ease,
+    font-size 180ms ease;
 }
 
 .auth-input-wrap input:focus + .auth-floating-label,
@@ -163,7 +172,9 @@ const resolvedType = computed(() =>
   color: var(--auth-icon);
   font-size: 19px;
   cursor: pointer;
-  transition: background-color 190ms ease, color 190ms ease;
+  transition:
+    background-color 190ms ease,
+    color 190ms ease;
 }
 
 .auth-password-toggle:hover {

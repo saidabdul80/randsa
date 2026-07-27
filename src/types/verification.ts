@@ -86,14 +86,16 @@ export function normalizeVerificationAsset(asset: VerificationAsset): Verificati
   return {
     ...asset,
     previewUrl:
-      asset.source === 'remote' || (hasStaleBlobPreview && remoteUrl) ? remoteUrl ?? '' : asset.previewUrl,
+      asset.source === 'remote' || (hasStaleBlobPreview && remoteUrl)
+        ? (remoteUrl ?? '')
+        : asset.previewUrl,
     remoteUrl,
     file: asset.source === 'remote' ? null : asset.file,
   }
 }
 
 export function normalizeVerificationRecord(
-  record: AgentVerificationRecord,
+  record: AgentVerificationRecord
 ): AgentVerificationRecord {
   return {
     ...record,

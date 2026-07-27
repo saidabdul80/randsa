@@ -17,13 +17,14 @@ function openDatabase() {
     }
 
     request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not open local property database.'))
+    request.onerror = () =>
+      reject(request.error ?? new Error('Could not open local property database.'))
   })
 }
 
 async function withStore<T>(
   mode: IDBTransactionMode,
-  handler: (store: IDBObjectStore) => IDBRequest<T>,
+  handler: (store: IDBObjectStore) => IDBRequest<T>
 ) {
   const database = await openDatabase()
 
@@ -48,7 +49,9 @@ export async function getAllStoredProperties() {
 }
 
 export async function getStoredPropertyById(propertyId: string) {
-  const result = await withStore<PropertyRecord | undefined>('readonly', (store) => store.get(propertyId))
+  const result = await withStore<PropertyRecord | undefined>('readonly', (store) =>
+    store.get(propertyId)
+  )
   return result ?? null
 }
 

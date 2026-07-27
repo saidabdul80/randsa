@@ -36,7 +36,7 @@ export async function compressImageFile(file: File, options: ImageCompressionOpt
 
   if (!context) {
     throw new Error(
-      options.genericErrorMessage || 'Your browser could not prepare the selected image for upload.',
+      options.genericErrorMessage || 'Your browser could not prepare the selected image for upload.'
     )
   }
 
@@ -83,7 +83,9 @@ export async function compressImageFile(file: File, options: ImageCompressionOpt
   })
 
   if (compressedFile.size > options.maxBytes) {
-    throw new Error(`${file.name} is still too large after compression. Please choose a smaller image.`)
+    throw new Error(
+      `${file.name} is still too large after compression. Please choose a smaller image.`
+    )
   }
 
   return compressedFile

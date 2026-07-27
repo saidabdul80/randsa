@@ -35,7 +35,7 @@ function ensureFirestoreReady() {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
       firebaseConfigError ||
-        'Firebase is not configured. Add your VITE_FIREBASE_* values before using verification.',
+        'Firebase is not configured. Add your VITE_FIREBASE_* values before using verification.'
     )
   }
 
@@ -66,7 +66,9 @@ function mapStoredAsset(data: Partial<VerificationAsset> | null | undefined, fal
     id: typeof data.id === 'string' && data.id ? data.id : `remote-${crypto.randomUUID()}`,
     name: typeof data.name === 'string' && data.name ? data.name : fallbackName,
     mimeType:
-      typeof data.mimeType === 'string' && data.mimeType ? data.mimeType : 'application/octet-stream',
+      typeof data.mimeType === 'string' && data.mimeType
+        ? data.mimeType
+        : 'application/octet-stream',
     size: Number(data.size ?? 0),
     previewUrl: remoteUrl ?? '',
     remoteUrl,
@@ -76,11 +78,14 @@ function mapStoredAsset(data: Partial<VerificationAsset> | null | undefined, fal
 }
 
 function mapDocToVerificationRecord(verificationId: string, data: DocumentData) {
-  const profilePhoto = mapStoredAsset(data.profilePhoto as Partial<VerificationAsset>, 'profile-photo')
+  const profilePhoto = mapStoredAsset(
+    data.profilePhoto as Partial<VerificationAsset>,
+    'profile-photo'
+  )
   const idDocument = mapStoredAsset(data.idDocument as Partial<VerificationAsset>, 'id-document')
   const authorizationDocument = mapStoredAsset(
     data.authorizationDocument as Partial<VerificationAsset>,
-    'authorization-document',
+    'authorization-document'
   )
 
   if (!profilePhoto || !idDocument || !authorizationDocument) {
@@ -96,7 +101,10 @@ function mapDocToVerificationRecord(verificationId: string, data: DocumentData) 
     officeAddress: String(data.officeAddress ?? ''),
     profilePhoto,
     idDocument,
-    cacDocument: mapStoredAsset(data.cacDocument as Partial<VerificationAsset> | null, 'cac-document'),
+    cacDocument: mapStoredAsset(
+      data.cacDocument as Partial<VerificationAsset> | null,
+      'cac-document'
+    ),
     authorizationDocument,
     status: (data.status ?? 'pending') as AgentVerificationStatus,
     adminNote: String(data.adminNote ?? ''),
@@ -137,7 +145,7 @@ async function listFirestoreVerificationRequests(firestore: Firestore) {
       : await getDocs(query(verificationCollection, where('agentId', '==', currentUser.uid)))
 
   return sortRequests(
-    snapshot.docs.map((requestDoc) => mapDocToVerificationRecord(requestDoc.id, requestDoc.data())),
+    snapshot.docs.map((requestDoc) => mapDocToVerificationRecord(requestDoc.id, requestDoc.data()))
   )
 }
 
@@ -199,11 +207,13 @@ export async function getAgentVerificationByAgentId(agentId: string) {
   if (authMode !== 'local') {
     const firestore = ensureFirestoreReady()
     const snapshot = await getDocs(
-      query(collection(firestore, 'agentVerifications'), where('agentId', '==', agentId)),
+      query(collection(firestore, 'agentVerifications'), where('agentId', '==', agentId))
     )
 
     const records = sortRequests(
-      snapshot.docs.map((requestDoc) => mapDocToVerificationRecord(requestDoc.id, requestDoc.data())),
+      snapshot.docs.map((requestDoc) =>
+        mapDocToVerificationRecord(requestDoc.id, requestDoc.data())
+      )
     )
 
     return records[0] ?? null
@@ -223,7 +233,7 @@ export async function listAgentVerificationRequests() {
 
 export async function submitAgentVerification(
   agent: UserProfile,
-  input: AgentVerificationFormInput,
+  input: AgentVerificationFormInput
 ) {
   if (agent.role !== 'agent') {
     throw new Error('Only agent accounts can submit verification requests in this phase.')
@@ -257,11 +267,11 @@ export async function submitAgentVerification(
       ;[cacDocumentUrl] = await uploadVerificationAssets(agent, [sanitized.cacDocument])
     }
 
-    ;[authorizationDocumentUrl] = await uploadVerificationAssets(agent, [sanitized.authorizationDocument!])
+    ;[authorizationDocumentUrl] = await uploadVerificationAssets(agent, [
+      sanitized.authorizationDocument!,
+    ])
   } catch (error) {
-    throw error instanceof Error
-      ? error
-      : new Error('Could not upload the verification documents.')
+    throw error instanceof Error ? error : new Error('Could not upload the verification documents.')
   }
 
   const shouldCreateNewSubmission = authMode !== 'local' && existing?.status !== 'pending'
@@ -269,7 +279,7 @@ export async function submitAgentVerification(
     id:
       authMode !== 'local' && shouldCreateNewSubmission
         ? `verification-${crypto.randomUUID()}`
-        : existing?.id ?? `verification-${crypto.randomUUID()}`,
+        : (existing?.id ?? `verification-${crypto.randomUUID()}`),
     agentId: agent.uid,
     fullName: sanitized.fullName,
     phone: sanitized.phone,
@@ -283,7 +293,7 @@ export async function submitAgentVerification(
         : null,
     authorizationDocument: buildRemoteAsset(
       sanitized.authorizationDocument!,
-      authorizationDocumentUrl,
+      authorizationDocumentUrl
     ),
     status: 'pending',
     adminNote: '',
@@ -308,10 +318,11 @@ export async function submitAgentVerification(
           authorizationDocument: record.authorizationDocument,
           status: record.status,
           adminNote: record.adminNote,
-          submittedAt: shouldCreateNewSubmission || !existing ? serverTimestamp() : record.submittedAt,
+          submittedAt:
+            shouldCreateNewSubmission || !existing ? serverTimestamp() : record.submittedAt,
           reviewedAt: null,
         },
-        { merge: true },
+        { merge: true }
       )
 
       await updateUserVerificationStatus(agent.uid, 'pending')
@@ -363,7 +374,7 @@ export async function reviewAgentVerification(
   admin: UserProfile,
   verificationId: string,
   status: Exclude<AgentVerificationStatus, 'pending'>,
-  adminNote: string,
+  adminNote: string
 ) {
   if (admin.role !== 'admin') {
     throw new Error('Only admin accounts can review verification requests.')

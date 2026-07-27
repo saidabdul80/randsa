@@ -1,13 +1,6 @@
 <template>
-  <AppShell
-    :show-header="false"
-    :show-bottom-nav="false"
-    content-class="min-h-full w-full"
-  >
-    <main
-      class="auth-hub-page"
-      :class="{ 'auth-theme-dark': resolvedTheme === 'dark' }"
-    >
+  <AppShell :show-header="false" :show-bottom-nav="false" content-class="min-h-full w-full">
+    <main class="auth-hub-page" :class="{ 'auth-theme-dark': resolvedTheme === 'dark' }">
       <div class="auth-hub-shell">
         <aside class="auth-hub-brand" aria-labelledby="auth-hub-brand-title">
           <RouterLink to="/home" class="auth-hub-logo" aria-label="RANDSA home">
@@ -17,14 +10,18 @@
 
           <div class="auth-hub-brand-copy">
             <p class="auth-hub-badge">Welcome</p>
-            <h1 id="auth-hub-brand-title">Manage every rental<br>from one place.</h1>
+            <h1 id="auth-hub-brand-title">Manage every rental<br />from one place.</h1>
             <p>Houses, apartments, offices, shops, cars, event spaces, horses, and much more.</p>
           </div>
 
           <ul class="auth-hub-features" aria-label="RANDSA platform features">
-            <li><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />Secure authentication</li>
+            <li>
+              <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />Secure authentication
+            </li>
             <li><IonIcon :icon="calendarClearOutline" aria-hidden="true" />Booking management</li>
-            <li><IonIcon :icon="notificationsOutline" aria-hidden="true" />Real-time notifications</li>
+            <li>
+              <IonIcon :icon="notificationsOutline" aria-hidden="true" />Real-time notifications
+            </li>
             <li><IonIcon :icon="cardOutline" aria-hidden="true" />Payment checkout</li>
             <li><IonIcon :icon="gridOutline" aria-hidden="true" />Rental marketplace</li>
           </ul>
@@ -50,7 +47,10 @@
           <slot />
 
           <footer class="auth-hub-footer" aria-label="Authentication features">
-            <span><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />Firebase authentication</span>
+            <span
+              ><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />Firebase
+              authentication</span
+            >
             <span><IonIcon :icon="logoGoogle" aria-hidden="true" />Google sign-in</span>
             <span><IonIcon :icon="notificationsOutline" aria-hidden="true" />Booking updates</span>
             <span><IonIcon :icon="cardOutline" aria-hidden="true" />Paystack checkout</span>
@@ -92,8 +92,10 @@ const themePreference = ref<AuthThemePreference>('system')
 const systemPrefersDark = ref(false)
 const resolvedTheme = computed(() =>
   themePreference.value === 'system'
-    ? systemPrefersDark.value ? 'dark' : 'light'
-    : themePreference.value,
+    ? systemPrefersDark.value
+      ? 'dark'
+      : 'light'
+    : themePreference.value
 )
 
 let systemThemeQuery: MediaQueryList | null = null
@@ -119,7 +121,11 @@ onMounted(() => {
 
   try {
     const storedPreference = window.localStorage.getItem(AUTH_THEME_STORAGE_KEY)
-    if (storedPreference === 'light' || storedPreference === 'dark' || storedPreference === 'system') {
+    if (
+      storedPreference === 'light' ||
+      storedPreference === 'dark' ||
+      storedPreference === 'system'
+    ) {
       themePreference.value = storedPreference
     }
   } catch {
@@ -314,7 +320,10 @@ onBeforeUnmount(() => {
   font-size: 9px;
   font-weight: 750;
   cursor: pointer;
-  transition: background-color 190ms ease, color 190ms ease, box-shadow 190ms ease;
+  transition:
+    background-color 190ms ease,
+    color 190ms ease,
+    box-shadow 190ms ease;
 }
 
 .auth-theme-toggle button:hover {
@@ -393,22 +402,66 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 1024px) and (max-height: 760px) {
-  .auth-hub-page { padding: 12px 16px; }
-  .auth-hub-shell { height: calc(100dvh - 24px); }
-  .auth-hub-brand { padding: 20px 30px 0; }
-  .auth-hub-logo { gap: 10px; }
-  .auth-hub-logo span { font-size: 38px; }
-  .auth-hub-logo strong { font-size: 18px; }
-  .auth-hub-brand-copy { margin-top: 22px; }
-  .auth-hub-badge { min-height: 25px; padding-inline: 11px; font-size: 8px; }
-  .auth-hub-brand-copy h1 { margin-top: 12px; font-size: 34px; line-height: 1.04; }
-  .auth-hub-brand-copy > p:last-child { margin-top: 10px; font-size: 10px; line-height: 1.5; }
-  .auth-hub-features { gap: 6px; margin: 14px 0 12px; }
-  .auth-hub-features li { min-height: 29px; padding-inline: 9px; font-size: 8px; }
-  .auth-hub-workspace { padding: 44px 30px 12px; }
-  .auth-theme-toggle { top: 10px; right: 14px; }
-  .auth-theme-toggle button { min-height: 27px; padding-inline: 7px; font-size: 8px; }
-  .auth-hub-footer { display: none; }
+  .auth-hub-page {
+    padding: 12px 16px;
+  }
+  .auth-hub-shell {
+    height: calc(100dvh - 24px);
+  }
+  .auth-hub-brand {
+    padding: 20px 30px 0;
+  }
+  .auth-hub-logo {
+    gap: 10px;
+  }
+  .auth-hub-logo span {
+    font-size: 38px;
+  }
+  .auth-hub-logo strong {
+    font-size: 18px;
+  }
+  .auth-hub-brand-copy {
+    margin-top: 22px;
+  }
+  .auth-hub-badge {
+    min-height: 25px;
+    padding-inline: 11px;
+    font-size: 8px;
+  }
+  .auth-hub-brand-copy h1 {
+    margin-top: 12px;
+    font-size: 34px;
+    line-height: 1.04;
+  }
+  .auth-hub-brand-copy > p:last-child {
+    margin-top: 10px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .auth-hub-features {
+    gap: 6px;
+    margin: 14px 0 12px;
+  }
+  .auth-hub-features li {
+    min-height: 29px;
+    padding-inline: 9px;
+    font-size: 8px;
+  }
+  .auth-hub-workspace {
+    padding: 44px 30px 12px;
+  }
+  .auth-theme-toggle {
+    top: 10px;
+    right: 14px;
+  }
+  .auth-theme-toggle button {
+    min-height: 27px;
+    padding-inline: 7px;
+    font-size: 8px;
+  }
+  .auth-hub-footer {
+    display: none;
+  }
 
   .auth-hub-brand :deep(.auth-featured-carousel) {
     width: calc(100% + 60px);
@@ -420,34 +473,93 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1120px) and (min-width: 1024px) {
-  .auth-hub-brand { padding-right: 30px; padding-left: 30px; }
-  .auth-hub-brand-copy h1 { font-size: 35px; }
-  .auth-hub-workspace { padding-right: 30px; padding-left: 30px; }
+  .auth-hub-brand {
+    padding-right: 30px;
+    padding-left: 30px;
+  }
+  .auth-hub-brand-copy h1 {
+    font-size: 35px;
+  }
+  .auth-hub-workspace {
+    padding-right: 30px;
+    padding-left: 30px;
+  }
 }
 
 @media (max-width: 1023px) {
-  .auth-hub-page { padding: 18px; }
-  .auth-hub-shell { min-height: auto; }
-  .auth-hub-brand { min-height: 630px; padding: 34px 40px 0; }
-  .auth-hub-brand-copy { margin-top: 35px; }
-  .auth-hub-workspace { padding: 24px 28px 30px; }
-  .auth-theme-toggle { position: static; align-self: flex-end; margin-bottom: 14px; }
+  .auth-hub-page {
+    padding: 18px;
+  }
+  .auth-hub-shell {
+    min-height: auto;
+  }
+  .auth-hub-brand {
+    min-height: 630px;
+    padding: 34px 40px 0;
+  }
+  .auth-hub-brand-copy {
+    margin-top: 35px;
+  }
+  .auth-hub-workspace {
+    padding: 24px 28px 30px;
+  }
+  .auth-theme-toggle {
+    position: static;
+    align-self: flex-end;
+    margin-bottom: 14px;
+  }
 }
 
 @media (max-width: 680px) {
-  .auth-hub-page { padding: 0; }
-  .auth-hub-shell { border: 0; border-radius: 0; box-shadow: none; }
-  .auth-hub-brand { min-height: auto; padding: 26px 20px 0; }
-  .auth-hub-logo span { font-size: 39px; }
-  .auth-hub-logo strong { font-size: 18px; }
-  .auth-hub-brand-copy { margin-top: 29px; }
-  .auth-hub-brand-copy h1 { margin-top: 15px; font-size: 32px; }
-  .auth-hub-brand-copy > p:last-child { margin-top: 12px; font-size: 11px; }
-  .auth-hub-features { gap: 6px; margin: 20px 0; }
-  .auth-hub-features li { min-height: 31px; padding: 0 9px; font-size: 8px; }
-  .auth-hub-workspace { justify-content: flex-start; padding: 28px 14px 26px; }
-  .auth-hub-footer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .auth-hub-footer span { justify-content: flex-start; }
+  .auth-hub-page {
+    padding: 0;
+  }
+  .auth-hub-shell {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .auth-hub-brand {
+    min-height: auto;
+    padding: 26px 20px 0;
+  }
+  .auth-hub-logo span {
+    font-size: 39px;
+  }
+  .auth-hub-logo strong {
+    font-size: 18px;
+  }
+  .auth-hub-brand-copy {
+    margin-top: 29px;
+  }
+  .auth-hub-brand-copy h1 {
+    margin-top: 15px;
+    font-size: 32px;
+  }
+  .auth-hub-brand-copy > p:last-child {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .auth-hub-features {
+    gap: 6px;
+    margin: 20px 0;
+  }
+  .auth-hub-features li {
+    min-height: 31px;
+    padding: 0 9px;
+    font-size: 8px;
+  }
+  .auth-hub-workspace {
+    justify-content: flex-start;
+    padding: 28px 14px 26px;
+  }
+  .auth-hub-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .auth-hub-footer span {
+    justify-content: flex-start;
+  }
 }
 
 :global(.dark) .auth-hub-page,

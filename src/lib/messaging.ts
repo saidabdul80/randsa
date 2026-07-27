@@ -19,7 +19,7 @@ async function ensureMessagingSupport() {
 
   if (!firebaseVapidKey) {
     throw new Error(
-      'Missing VITE_FIREBASE_VAPID_KEY. Add your Firebase Web Push certificate key before enabling push notifications.',
+      'Missing VITE_FIREBASE_VAPID_KEY. Add your Firebase Web Push certificate key before enabling push notifications.'
     )
   }
 
@@ -46,7 +46,7 @@ export async function requestFirebaseMessagingToken() {
 
   if (!token) {
     throw new Error(
-      'Firebase did not return a device token. Check that Web Push certificates are configured in the Firebase console.',
+      'Firebase did not return a device token. Check that Web Push certificates are configured in the Firebase console.'
     )
   }
 
