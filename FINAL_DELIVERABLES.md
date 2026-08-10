@@ -204,9 +204,10 @@ is a performance follow-up and does not fail the production build.
 
 - Firebase project configured in `.firebaserc`: `randsa-67e93`
 - Git remote configured: `https://github.com/Mohd633284/RANDSA.git`
-- Phase 12 listing-rule correction and a prior Hosting build were deployed during testing
-- Phase 14 token and filename hardening is staged locally and still requires rule deployment
-- Functions and Hosting should be redeployed from the final verified commit
+- Final Firestore rules, indexes, and Storage rules were deployed on 10 August 2026
+- All eight expected Gen 2 Cloud Functions are active in `us-central1`
+- Final release commit `f8ac5a9` is available on `origin/main`
+- Firebase Hosting was intentionally excluded and live acceptance remains pending
 
 ## Required Live Acceptance
 

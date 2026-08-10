@@ -27,10 +27,10 @@
 
 ## Deployment
 
-- [ ] Commit the final verified Phase 15 changes
-- [ ] Push the final commit to GitHub
-- [ ] Deploy Phase 14 Firestore/Storage rules and indexes
-- [ ] Deploy Cloud Functions
+- [x] Commit the final verified Phase 15 changes
+- [x] Push the final commit to GitHub
+- [x] Deploy Phase 14 Firestore/Storage rules and indexes
+- [x] Deploy Cloud Functions
 - [ ] Deploy Firebase Hosting
 
 ## Live Acceptance

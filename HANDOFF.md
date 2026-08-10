@@ -40,16 +40,17 @@
 - `npm run test:routes`: 2 tests
 - `npm run test:security`: 5 tests
 - `npm run build`: TypeScript and Vite production build
-- `npm run lint`: zero errors; four known warnings in legacy upload cleanup paths
+- `npm run lint`: zero errors and zero warnings
 
 Run `npm run verify` again immediately before deployment.
 
 ## Deployment State
 
-- Phase 12 Firestore/Storage fixes and a prior Hosting build were deployed while fixing
-  universal listing publication.
-- Phase 14 rule changes are local and not yet deployed.
-- The final Functions/Hosting release should be made from the final verified commit.
+- Final Firestore rules, indexes, and Storage rules were deployed to `randsa-67e93` on
+  10 August 2026.
+- All eight expected Gen 2 Cloud Functions are active in `us-central1`.
+- Commit `f8ac5a9` was pushed to `origin/main` before deployment.
+- Firebase Hosting was intentionally not deployed; live acceptance remains pending until hosting.
 
 ## Live Checks Still Required
 
@@ -75,10 +76,8 @@ acceptance requires them.
 
 ```powershell
 npm run verify
-npm run rules:deploy
-npx firebase-tools@13.35.1 deploy --only functions
 npm run hosting:deploy
 ```
 
-Use [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) for the required order and live
-acceptance checks.
+Run Hosting only after it is explicitly approved. Then use
+[docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) for the live acceptance checks.

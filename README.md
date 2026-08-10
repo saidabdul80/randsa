@@ -89,9 +89,9 @@ npm run hosting:deploy
 
 ## Current Release Status
 
-The application code, rules, tests, and production build are ready for final acceptance.
-The Phase 14 rule changes are staged locally and must be deployed. The following checks
-still require the real Firebase/Paystack/browser environment:
+The application code, Firestore/Storage rules, indexes, and all eight Gen 2 Cloud Functions
+are deployed to `randsa-67e93`. Firebase Hosting was intentionally left unchanged. The following
+checks remain pending until a Hosting release is approved:
 
 - retry and confirm a universal listing publish after the latest Phase 12 rule deployment
 - complete one Paystack test-mode transaction and verify its Firestore updates
