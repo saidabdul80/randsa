@@ -14,10 +14,10 @@
         class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[18px] px-1.5 py-2 text-[10px] font-semibold transition sm:min-w-[64px] sm:px-2 sm:text-[11px]"
         :class="
           isActive(item.matchers)
-            ? item.to === '/add-property'
+            ? item.to === '/post-listing'
               ? 'bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-lg shadow-brand-500/30'
               : 'bg-ink text-white shadow-lg shadow-slate-900/20'
-            : item.to === '/add-property'
+            : item.to === '/post-listing'
               ? 'text-brand-700 hover:bg-brand-50 dark:text-brand-200 dark:hover:bg-brand-500/10'
               : 'text-slate-500 hover:bg-slate-100 hover:text-brand-700 dark:text-slate-300 dark:hover:bg-slate-800'
         "
@@ -31,7 +31,13 @@
 
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
-import { addCircleOutline, calendarOutline, homeOutline, personOutline } from 'ionicons/icons'
+import {
+  addCircleOutline,
+  albumsOutline,
+  calendarOutline,
+  homeOutline,
+  personOutline,
+} from 'ionicons/icons'
 import { RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -39,10 +45,16 @@ const route = useRoute()
 const navItems = [
   { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
   {
-    label: 'Add',
-    to: '/add-property',
+    label: 'My Listings',
+    to: '/my-listings',
+    icon: albumsOutline,
+    matchers: ['/my-listings'],
+  },
+  {
+    label: 'Post Listing',
+    to: '/post-listing',
     icon: addCircleOutline,
-    matchers: ['/add-property', '/edit-property'],
+    matchers: ['/post-listing', '/add-property', '/edit-property', '/edit-listing'],
   },
   {
     label: 'Bookings',

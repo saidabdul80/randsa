@@ -25,11 +25,20 @@ export interface PaymentRecord {
   verifiedAt: string | null
   gatewayStatus: string | null
   gatewayVerifiedAt: string | null
+  gatewayAccessCode: string | null
+  gatewayAuthorizationUrl: string | null
+  gatewayInitializedAt: string | null
 }
 
 export interface VerifyPaymentResult {
   payment: PaymentRecord
   gatewayStatus: string
+}
+
+export interface PaymentInitializationResult {
+  payment: PaymentRecord
+  authorizationUrl: string
+  accessCode: string
 }
 
 export interface PaymentTypeOption {
@@ -49,11 +58,9 @@ const paymentLabelMap: Record<PaymentType, string> = {
 
 const paymentDescriptionMap: Record<PaymentType, string> = {
   inspection_fee: 'Uses the property inspection fee from the listing.',
-  rent_deposit:
-    'Uses the caution fee for now as the local placeholder deposit amount until final backend rules are confirmed.',
+  rent_deposit: 'Uses the caution fee configured for the property.',
   full_rent_payment: 'Uses the full rent amount shown on the property listing.',
-  service_fee:
-    'Uses the agency fee for now as the local placeholder service fee until final Paystack rules are confirmed.',
+  service_fee: 'Uses the agency fee configured for the property.',
   booking_payment: 'Uses the estimated total stored on the selected booking.',
 }
 

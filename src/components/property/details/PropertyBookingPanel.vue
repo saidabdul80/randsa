@@ -256,10 +256,11 @@ defineEmits<{
 const contactLinks = computed(() => buildPropertyContactLinks(props.property.ownerPhone))
 const contactRoleLabel = computed(() => {
   const labels: Record<PropertyRecord['ownerRole'], string> = {
-    tenant: 'Property contact',
-    landlord: 'Landlord',
-    agent: 'Agent',
-    admin: 'Administrator',
+    user: 'Listing contact',
+    tenant: 'Listing contact',
+    landlord: 'Listing contact',
+    agent: 'Listing contact',
+    admin: 'Listing contact',
   }
 
   return labels[props.property.ownerRole]

@@ -1,5 +1,6 @@
 {
   "projects": {
+    "default": "randsa-67e93",
     "maxrange": "randsa-67e93"
   },
   "targets": {},

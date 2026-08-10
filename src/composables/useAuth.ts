@@ -11,7 +11,6 @@ import {
   logoutUser,
   toDisplayError,
 } from '../services/auth'
-import { isPropertyManagerRole } from '../types/property'
 import type { SessionUser, UserProfile } from '../types/user'
 
 interface AuthState {
@@ -226,12 +225,17 @@ export async function rehydrateAuthState() {
 
 export function useAuth() {
   const role = computed(() => state.profile?.role ?? null)
+  const canPostListings = computed(
+    () => Boolean(state.user) && state.profile?.accountStatus === 'active'
+  )
 
   return {
     state: readonly(state),
     isAuthenticated: computed(() => Boolean(state.user)),
     role,
-    canManageProperties: computed(() => isPropertyManagerRole(role.value)),
+    canPostListings,
+    // Compatibility alias for existing page-shell props while the UI uses Post Listing wording.
+    canManageProperties: canPostListings,
     isLocalAuthBypassEnabled: computed(() => isLocalAuthBypassEnabled),
   }
 }

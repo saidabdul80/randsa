@@ -364,8 +364,8 @@
           >
             <header class="widget-heading">
               <div>
-                <h2>Property moderation</h2>
-                <p>Review and moderate real marketplace listings.</p>
+                <h2>Marketplace moderation</h2>
+                <p>Review universal listings and legacy property records.</p>
               </div>
               <div class="widget-tools">
                 <button
@@ -487,6 +487,111 @@
                 </div>
               </div>
 
+              <section class="universal-listing-queue" aria-labelledby="universal-listing-heading">
+                <div class="universal-listing-heading">
+                  <div>
+                    <span>Universal marketplace</span>
+                    <h3 id="universal-listing-heading">Category submissions</h3>
+                  </div>
+                  <p>
+                    {{ pendingMarketplaceListingCount }} pending / {{ allListings.length }} total
+                  </p>
+                </div>
+                <div class="universal-listing-list">
+                  <article
+                    v-for="listing in visibleMarketplaceListings"
+                    :key="listing.id"
+                    class="moderation-row marketplace-moderation-row"
+                  >
+                    <div class="property-thumbnail">
+                      <img
+                        v-if="listing.media.coverImage"
+                        :src="listing.media.coverImage"
+                        :alt="listing.title"
+                        loading="lazy"
+                      />
+                      <IonIcon v-else :icon="storefrontOutline" aria-hidden="true" />
+                    </div>
+                    <div class="property-row-copy">
+                      <div>
+                        <strong>{{ listing.title }}</strong>
+                        <span class="status-pill" :class="listing.moderationStatus">
+                          {{ titleCase(listing.moderationStatus) }}
+                        </span>
+                      </div>
+                      <p>
+                        <IonIcon :icon="locationOutline" />
+                        {{ marketplaceListingLocation(listing) }}
+                      </p>
+                      <ul>
+                        <li>
+                          Category: <b>{{ listing.categoryName }}</b>
+                        </li>
+                        <li>
+                          Type: <b>{{ listing.subcategoryName }}</b>
+                        </li>
+                        <li>
+                          Owner: <b>{{ ownerName(listing.ownerId) }}</b>
+                        </li>
+                        <li>
+                          Price: <b>{{ formatMarketplaceListingPrice(listing) }}</b>
+                        </li>
+                        <li>
+                          Updated: <b>{{ formatShortDate(listing.updatedAt) }}</b>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="moderation-actions">
+                      <button
+                        v-if="listing.moderationStatus !== 'approved'"
+                        type="button"
+                        class="approve"
+                        :disabled="isProcessing"
+                        :aria-busy="isProcessing && activeMarketplaceListingId === listing.id"
+                        title="Approve listing"
+                        :aria-label="`Approve ${listing.title}`"
+                        @click="handleMarketplaceListingReview(listing.id, 'approved')"
+                      >
+                        <IonIcon :icon="checkmarkOutline" />
+                      </button>
+                      <button
+                        v-if="listing.moderationStatus !== 'rejected'"
+                        type="button"
+                        class="reject"
+                        :disabled="isProcessing"
+                        :aria-busy="isProcessing && activeMarketplaceListingId === listing.id"
+                        title="Reject listing"
+                        :aria-label="`Reject ${listing.title}`"
+                        @click="confirmMarketplaceListingRejection(listing.id, listing.title)"
+                      >
+                        <IonIcon :icon="closeOutline" />
+                      </button>
+                      <RouterLink :to="`/listings/${listing.id}`">
+                        View details <IonIcon :icon="arrowForwardOutline" />
+                      </RouterLink>
+                    </div>
+                  </article>
+                  <p v-if="!allListings.length" class="admin-empty compact">
+                    No universal marketplace submissions have been received yet.
+                  </p>
+                </div>
+                <button
+                  v-if="allListings.length > defaultPropertyLimit"
+                  type="button"
+                  class="universal-listing-toggle"
+                  @click="showAllMarketplaceListings = !showAllMarketplaceListings"
+                >
+                  {{
+                    showAllMarketplaceListings
+                      ? 'Show fewer submissions'
+                      : `View all ${allListings.length} submissions`
+                  }}
+                  <IonIcon
+                    :icon="showAllMarketplaceListings ? chevronUpOutline : arrowForwardOutline"
+                  />
+                </button>
+              </section>
+
               <div v-if="selectedPropertyIds.length" class="bulk-action-bar">
                 <strong>{{ selectedPropertyIds.length }} selected</strong>
                 <button type="button" @click="confirmBulkReview('approved')">
@@ -568,7 +673,8 @@
                       v-if="property.status !== 'approved'"
                       type="button"
                       class="approve"
-                      :disabled="isProcessing && activePropertyId === property.id"
+                      :disabled="isProcessing"
+                      :aria-busy="isProcessing && activePropertyId === property.id"
                       title="Approve listing"
                       :aria-label="`Approve ${property.title}`"
                       @click="handlePropertyReview(property.id, 'approved')"
@@ -579,7 +685,8 @@
                       v-if="property.status !== 'rejected'"
                       type="button"
                       class="reject"
-                      :disabled="isProcessing && activePropertyId === property.id"
+                      :disabled="isProcessing"
+                      :aria-busy="isProcessing && activePropertyId === property.id"
                       title="Reject listing"
                       :aria-label="`Reject ${property.title}`"
                       @click="confirmSinglePropertyRejection(property.id, property.title)"
@@ -934,12 +1041,16 @@
                     <button
                       type="button"
                       class="approve"
+                      :disabled="isProcessing"
+                      :aria-busy="isProcessing && activeVerificationId === request.id"
                       @click="handleVerificationReview(request.id, 'approved')"
                     >
                       <IonIcon :icon="checkmarkOutline" /> Approve</button
                     ><button
                       type="button"
                       class="reject"
+                      :disabled="isProcessing"
+                      :aria-busy="isProcessing && activeVerificationId === request.id"
                       @click="handleVerificationReview(request.id, 'rejected')"
                     >
                       <IonIcon :icon="closeOutline" /> Reject
@@ -1270,6 +1381,7 @@ import AdminTrendChart from '../components/admin/AdminTrendChart.vue'
 import AppShell from '../components/layout/AppShell.vue'
 import { useAgentVerification } from '../composables/useAgentVerification'
 import { signOutCurrentUser, useAuth } from '../composables/useAuth'
+import { useListings } from '../composables/useListings'
 import { useProperties } from '../composables/useProperties'
 import { authMode, db, functions, storage } from '../lib/firebase'
 import { listAllUserProfiles } from '../services/auth'
@@ -1281,6 +1393,7 @@ import type { BookingRecord } from '../types/booking'
 import type { NotificationRecord, NotificationType } from '../types/notification'
 import type { PaymentRecord } from '../types/payment'
 import type { PropertyCategory, PropertyRecord, PropertyStatus } from '../types/property'
+import type { ListingRecord } from '../types/listing'
 import type { UserProfile } from '../types/user'
 
 type DateRangeKey =
@@ -1336,7 +1449,12 @@ interface SavedPropertyFilter {
 const router = useRouter()
 const { state } = useAuth()
 const { properties, refresh: refreshProperties, reviewListing } = useProperties()
-const { requests, refreshAll, reviewRequest } = useAgentVerification()
+const {
+  allListings,
+  refreshAll: refreshAllMarketplaceListings,
+  review: reviewMarketplaceListing,
+} = useListings()
+const { requests, refreshAll: refreshAllVerifications, reviewRequest } = useAgentVerification()
 
 const userProfiles = ref<UserProfile[]>([])
 const payments = ref<PaymentRecord[]>([])
@@ -1353,6 +1471,7 @@ const hasLoadedOnce = ref(false)
 const isSigningOut = ref(false)
 const isMarkingNotifications = ref(false)
 const activePropertyId = ref('')
+const activeMarketplaceListingId = ref('')
 const activeVerificationId = ref('')
 const activeSection = ref('overview')
 const mobileSidebarOpen = ref(false)
@@ -1362,6 +1481,7 @@ const customizerOpen = ref(false)
 const floatingActionsOpen = ref(false)
 const propertyFiltersOpen = ref(false)
 const showAllProperties = ref(false)
+const showAllMarketplaceListings = ref(false)
 const showAllVerifications = ref(false)
 const propertyQuery = ref('')
 const propertyStatusFilter = ref<PropertyStatusFilter>('all')
@@ -1450,6 +1570,12 @@ const filterStorageKey = computed(
 const pendingPropertyCount = computed(
   () => properties.value.filter((property) => property.status === 'pending').length
 )
+const pendingMarketplaceListingCount = computed(
+  () => allListings.value.filter((listing) => listing.moderationStatus === 'pending').length
+)
+const totalPendingListingCount = computed(
+  () => pendingPropertyCount.value + pendingMarketplaceListingCount.value
+)
 const pendingVerificationCount = computed(
   () => requests.value.filter((request) => request.status === 'pending').length
 )
@@ -1461,10 +1587,10 @@ const adminNavigation = computed(() => [
   { id: 'overview', label: 'Control Center', target: 'overview', icon: homeOutline, badge: 0 },
   {
     id: 'properties',
-    label: 'Property Management',
+    label: 'Marketplace Management',
     target: 'properties',
     icon: storefrontOutline,
-    badge: pendingPropertyCount.value,
+    badge: totalPendingListingCount.value,
   },
   {
     id: 'verifications',
@@ -1540,6 +1666,16 @@ const propertyTabs = computed(() => [
     count: properties.value.filter((property) => property.status === 'rejected').length,
   },
 ])
+
+const visibleMarketplaceListings = computed(() =>
+  [...allListings.value]
+    .sort((left, right) => {
+      if (left.moderationStatus === 'pending' && right.moderationStatus !== 'pending') return -1
+      if (left.moderationStatus !== 'pending' && right.moderationStatus === 'pending') return 1
+      return right.updatedAt.localeCompare(left.updatedAt)
+    })
+    .slice(0, showAllMarketplaceListings.value ? undefined : defaultPropertyLimit)
+)
 
 const filteredProperties = computed(() => {
   const query = propertyQuery.value.toLowerCase()
@@ -1639,11 +1775,14 @@ const rangedUsers = computed(() =>
 const previousUsers = computed(() =>
   userProfiles.value.filter((user) => inBounds(user.createdAt, previousDateBounds.value))
 )
-const rangedProperties = computed(() =>
-  properties.value.filter((property) => inBounds(property.createdAt, dateBounds.value))
+const listingSubmissions = computed(() => [...properties.value, ...allListings.value])
+const rangedListingSubmissions = computed(() =>
+  listingSubmissions.value.filter((listing) => inBounds(listing.createdAt, dateBounds.value))
 )
-const previousProperties = computed(() =>
-  properties.value.filter((property) => inBounds(property.createdAt, previousDateBounds.value))
+const previousListingSubmissions = computed(() =>
+  listingSubmissions.value.filter((listing) =>
+    inBounds(listing.createdAt, previousDateBounds.value)
+  )
 )
 const currentRevenue = computed(() =>
   rangedPayments.value
@@ -1665,8 +1804,8 @@ const revenueSeries = computed(() =>
 )
 const bookingSeries = computed(() => buildSeries(bookings.value, (booking) => booking.createdAt))
 const userSeries = computed(() => buildSeries(userProfiles.value, (user) => user.createdAt))
-const propertySeries = computed(() =>
-  buildSeries(properties.value, (property) => property.createdAt)
+const listingSeries = computed(() =>
+  buildSeries(listingSubmissions.value, (listing) => listing.createdAt)
 )
 const notificationSeries = computed(() =>
   buildSeries(adminNotifications.value, (notification) => notification.createdAt)
@@ -1674,14 +1813,14 @@ const notificationSeries = computed(() =>
 
 const metrics = computed(() => [
   {
-    label: 'Pending properties',
-    value: formatNumber(pendingPropertyCount.value),
+    label: 'Pending listings',
+    value: formatNumber(totalPendingListingCount.value),
     icon: homeOutline,
     tone: 'blue',
     color: '#1769ef',
-    series: propertySeries.value,
-    trend: percentChange(rangedProperties.value.length, previousProperties.value.length),
-    trendTone: 'positive',
+    series: listingSeries.value,
+    trend: null,
+    trendTone: totalPendingListingCount.value ? 'negative' : 'positive',
     trendLabel: 'Current review queue',
   },
   {
@@ -1774,9 +1913,12 @@ const analyticsMetrics = computed(() => ({
   },
   listings: {
     label: 'Listings submitted',
-    value: formatNumber(rangedProperties.value.length),
-    trend: percentChange(rangedProperties.value.length, previousProperties.value.length),
-    series: propertySeries.value,
+    value: formatNumber(rangedListingSubmissions.value.length),
+    trend: percentChange(
+      rangedListingSubmissions.value.length,
+      previousListingSubmissions.value.length
+    ),
+    series: listingSeries.value,
     color: '#8b5cf6',
   },
 }))
@@ -1885,20 +2027,21 @@ const filteredUsers = computed(() => {
 })
 const userRoleCounts = computed(() => [
   {
-    label: 'Tenants',
-    value: userProfiles.value.filter((user) => user.role === 'tenant').length,
+    label: 'Standard accounts',
+    value: userProfiles.value.filter((user) => user.role !== 'admin').length,
     icon: personCircleOutline,
     tone: 'blue',
   },
   {
-    label: 'Landlords',
-    value: userProfiles.value.filter((user) => user.role === 'landlord').length,
+    label: 'Verified',
+    value: userProfiles.value.filter((user) => user.isVerified || user.isVerifiedAgent).length,
     icon: homeOutline,
     tone: 'green',
   },
   {
-    label: 'Agents',
-    value: userProfiles.value.filter((user) => user.role === 'agent').length,
+    label: 'Legacy profiles',
+    value: userProfiles.value.filter((user) => ['tenant', 'landlord', 'agent'].includes(user.role))
+      .length,
     icon: briefcaseOutline,
     tone: 'purple',
   },
@@ -2056,7 +2199,7 @@ const adminCommands = computed<AdminCommandItem[]>(() => {
     },
     {
       id: 'section:properties',
-      label: 'Property Management',
+      label: 'Marketplace Management',
       description: `${properties.value.length} loaded listings`,
       category: 'Navigation',
       keywords: ['listings moderation approve reject'],
@@ -2068,7 +2211,7 @@ const adminCommands = computed<AdminCommandItem[]>(() => {
       label: 'User Management',
       description: `${userProfiles.value.length} registered accounts`,
       category: 'Navigation',
-      keywords: ['tenants agents landlords administrators'],
+      keywords: ['users accounts profiles administrators'],
       icon: peopleOutline,
       to: '#users',
     },
@@ -2077,7 +2220,7 @@ const adminCommands = computed<AdminCommandItem[]>(() => {
       label: 'Verification Center',
       description: `${pendingVerificationCount.value} pending requests`,
       category: 'Navigation',
-      keywords: ['agents identity review'],
+      keywords: ['professional identity review'],
       icon: shieldCheckmarkOutline,
       to: '#verifications',
     },
@@ -2255,7 +2398,11 @@ async function handleRefresh(silent = false) {
   dashboardLoadError.value = ''
 
   try {
-    await Promise.all([refreshProperties(), refreshAll()])
+    await Promise.all([
+      refreshProperties(),
+      refreshAllMarketplaceListings(),
+      refreshAllVerifications(),
+    ])
     const users = await listAllUserProfiles()
     const [allPayments, allBookings] = await Promise.all([
       Promise.all(users.map((user) => listPaymentsForUser(user.uid))),
@@ -2295,6 +2442,35 @@ async function handlePropertyReview(propertyId: string, status: 'approved' | 're
   }
 }
 
+async function handleMarketplaceListingReview(listingId: string, status: 'approved' | 'rejected') {
+  if (!state.profile) return showError('Sign in as an admin before reviewing listings.')
+  isProcessing.value = true
+  activeMarketplaceListingId.value = listingId
+  try {
+    await reviewMarketplaceListing(listingId, state.profile, status)
+    showSuccess(
+      status === 'approved'
+        ? 'Marketplace listing approved successfully.'
+        : 'Marketplace listing rejected successfully.'
+    )
+  } catch (error) {
+    showError(error instanceof Error ? error.message : 'Could not review the marketplace listing.')
+  } finally {
+    isProcessing.value = false
+    activeMarketplaceListingId.value = ''
+  }
+}
+
+function confirmMarketplaceListingRejection(listingId: string, title: string) {
+  openConfirmation({
+    title: 'Reject marketplace listing?',
+    copy: `${title} will move to the rejected moderation queue.`,
+    label: 'Reject listing',
+    tone: 'danger',
+    action: () => handleMarketplaceListingReview(listingId, 'rejected'),
+  })
+}
+
 function confirmSinglePropertyRejection(propertyId: string, title: string) {
   openConfirmation({
     title: 'Reject property listing?',
@@ -2330,16 +2506,20 @@ async function handleVerificationReview(verificationId: string, status: 'approve
   if (status === 'rejected' && !note.trim())
     return showError('Add an admin note before rejecting a verification request.')
   isProcessing.value = true
+  activeVerificationId.value = verificationId
   try {
     await reviewRequest(state.profile, verificationId, status, note)
     showSuccess(
-      status === 'approved' ? 'Agent verification approved.' : 'Verification request rejected.'
+      status === 'approved'
+        ? 'Professional verification approved.'
+        : 'Verification request rejected.'
     )
     activeVerificationId.value = ''
   } catch (error) {
     showError(error instanceof Error ? error.message : 'Could not review the verification request.')
   } finally {
     isProcessing.value = false
+    activeVerificationId.value = ''
   }
 }
 
@@ -2745,6 +2925,22 @@ function propertyLocation(property: PropertyRecord) {
   return (
     [property.area, property.city, property.state].filter(Boolean).join(', ') || property.address
   )
+}
+function marketplaceListingLocation(listing: ListingRecord) {
+  return (
+    [listing.location.area, listing.location.city, listing.location.state]
+      .filter(Boolean)
+      .join(', ') || 'Location unavailable'
+  )
+}
+function formatMarketplaceListingPrice(listing: ListingRecord) {
+  if (listing.pricing.priceType === 'free') return 'Free'
+  if (listing.pricing.priceType === 'contact') return 'Contact for price'
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: listing.pricing.currency || 'NGN',
+    maximumFractionDigits: 0,
+  }).format(listing.pricing.amount)
 }
 function titleCase(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
@@ -3885,6 +4081,56 @@ kbd {
 }
 .moderation-list {
   padding: 0 13px;
+}
+.universal-listing-queue {
+  border-bottom: 1px solid var(--admin-border);
+  background: #fbfcff;
+  padding: 0 13px;
+}
+.universal-listing-heading {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--admin-border);
+}
+.universal-listing-heading span {
+  color: var(--admin-blue);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.universal-listing-heading h3 {
+  margin: 2px 0 0;
+  color: var(--admin-text);
+  font-size: 10px;
+}
+.universal-listing-heading p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 8px;
+}
+.marketplace-moderation-row {
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+}
+.marketplace-moderation-row:last-child {
+  border-bottom: 0;
+}
+.universal-listing-toggle {
+  display: flex;
+  min-height: 36px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-top: 1px solid var(--admin-border);
+  background: transparent;
+  color: var(--admin-blue);
+  font-size: 8px;
+  font-weight: 800;
 }
 .moderation-select-all {
   display: flex;
@@ -5142,6 +5388,12 @@ kbd {
   .moderation-row {
     grid-template-columns: auto 60px minmax(0, 1fr);
   }
+  .marketplace-moderation-row {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+  .marketplace-moderation-row .moderation-actions {
+    grid-column: 1 / -1;
+  }
   .property-thumbnail {
     width: 60px;
   }
@@ -5272,7 +5524,8 @@ kbd {
   color: #f5f8fc;
 }
 :global(.dark) .smart-filter-panel,
-:global(.dark) .verification-review-form {
+:global(.dark) .verification-review-form,
+:global(.dark) .universal-listing-queue {
   background: #152334;
 }
 :global(.dark) .property-tabs button,

@@ -21,6 +21,7 @@ export type PropertyType =
   | 'House rent'
   | 'Shop rent'
   | 'Office space'
+  | 'Warehouse'
   | 'Apartment'
   | 'Self-contained'
   | 'Flat'
@@ -31,6 +32,8 @@ export type PropertyType =
   | 'Event space'
   | 'Event centre'
   | 'Horse rental'
+  | 'Hotel or guest house'
+  | 'Other property'
   | 'Other rental'
 
 export type PropertyImageSource = 'local' | 'remote'
@@ -252,11 +255,23 @@ export function showsResidentialRoomFields(propertyType: PropertyType) {
 }
 
 export function allowsCommercialFieldGroup(propertyType: PropertyType) {
-  return propertyType === 'Shop rent' || propertyType === 'Office space'
+  return (
+    propertyType === 'Shop rent' || propertyType === 'Office space' || propertyType === 'Warehouse'
+  )
+}
+
+export function isListingCapableRole(role: UserRole | null | undefined) {
+  return (
+    role === 'user' ||
+    role === 'tenant' ||
+    role === 'landlord' ||
+    role === 'agent' ||
+    role === 'admin'
+  )
 }
 
 export function isPropertyManagerRole(role: UserRole | null | undefined) {
-  return role === 'landlord' || role === 'agent' || role === 'admin'
+  return isListingCapableRole(role)
 }
 
 export function buildPropertyContactLinks(phoneNumber: string): PropertyContactLinks {

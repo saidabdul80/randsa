@@ -273,7 +273,7 @@
                 <h2 class="text-xs font-bold">Delivery status</h2>
               </div>
               <p class="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-300">
-                Inspection reminders run automatically on a schedule. You can also check for
+                Booking reminders run automatically on a schedule. You can also check for due
                 reminders now.
               </p>
               <button
@@ -295,11 +295,9 @@
                 <h2 class="text-xs font-bold">Reminder logic</h2>
               </div>
               <div class="mt-3 grid gap-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
-                <p>
-                  Inspection reminders are generated when a booking is within the next 24 hours.
-                </p>
-                <p>Booking confirmations are created when an inspection is scheduled.</p>
-                <p>Payment confirmations are created when a payment changes status.</p>
+                <p>Reminders are generated when a booking begins within the next 24 hours.</p>
+                <p>Booking confirmations are created when a reservation is scheduled.</p>
+                <p>Payment confirmations are created after a payment is verified.</p>
               </div>
             </section>
           </aside>
@@ -367,7 +365,7 @@ const pageError = computed(
 const isBusy = computed(() => isLoading.value || isRefreshing.value)
 
 const filterLabels: Record<NotificationType, string> = {
-  inspection_reminder: 'Inspections',
+  inspection_reminder: 'Reminders',
   booking_confirmation: 'Bookings',
   payment_confirmation: 'Payments',
   rent_due_reminder: 'Rent',

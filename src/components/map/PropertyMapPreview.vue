@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import L from 'leaflet'
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 
 import {
   configureLeafletAssets,
@@ -43,6 +43,7 @@ const props = defineProps<{
 const mapElement = ref<HTMLDivElement | null>(null)
 const map = shallowRef<L.Map | null>(null)
 const marker = shallowRef<L.Marker | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   configureLeafletAssets()
@@ -50,20 +51,26 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  map.value?.remove()
-  map.value = null
-  marker.value = null
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  destroyMap()
 })
 
 watch(
   () => [props.latitude, props.longitude, props.title, props.priceLabel] as const,
-  () => {
+  async () => {
+    await nextTick()
     createOrUpdateMap()
   }
 )
 
 function createOrUpdateMap() {
-  if (!mapElement.value || !hasCoordinates(props.latitude, props.longitude)) {
+  if (!hasCoordinates(props.latitude, props.longitude)) {
+    destroyMap()
+    return
+  }
+
+  if (!mapElement.value) {
     return
   }
 
@@ -76,6 +83,10 @@ function createOrUpdateMap() {
 
   const latLng: [number, number] = [latitude, longitude]
 
+  if (map.value && map.value.getContainer() !== mapElement.value) {
+    destroyMap()
+  }
+
   if (!map.value) {
     map.value = L.map(mapElement.value, {
       zoomControl: true,
@@ -84,11 +95,11 @@ function createOrUpdateMap() {
     }).setView(latLng, defaultPreviewZoom)
 
     createOsmTileLayer().addTo(map.value)
+    observeMapElement()
+    requestAnimationFrame(() => map.value?.invalidateSize())
   } else {
     map.value.setView(latLng, defaultPreviewZoom)
   }
-
-  const popupMarkup = `<strong>${props.title}</strong><br />${props.priceLabel}`
 
   if (!marker.value) {
     marker.value = L.marker(latLng).addTo(map.value)
@@ -96,6 +107,35 @@ function createOrUpdateMap() {
     marker.value.setLatLng(latLng)
   }
 
-  marker.value.bindPopup(popupMarkup).openPopup()
+  marker.value.bindPopup(createPopupContent()).openPopup()
+}
+
+function createPopupContent() {
+  const content = document.createElement('div')
+  const title = document.createElement('strong')
+  title.textContent = props.title
+  content.append(title)
+
+  if (props.priceLabel) {
+    content.append(document.createElement('br'), document.createTextNode(props.priceLabel))
+  }
+
+  return content
+}
+
+function destroyMap() {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  map.value?.remove()
+  map.value = null
+  marker.value = null
+}
+
+function observeMapElement() {
+  if (!mapElement.value || typeof ResizeObserver === 'undefined') return
+
+  resizeObserver?.disconnect()
+  resizeObserver = new ResizeObserver(() => map.value?.invalidateSize())
+  resizeObserver.observe(mapElement.value)
 }
 </script>

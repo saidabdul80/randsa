@@ -183,7 +183,7 @@ export function validateAgentVerificationInput(input: AgentVerificationFormInput
   }
 
   if (!input.whatsappNumber) {
-    throw new Error('Add a WhatsApp number so tenants can reach the verified agent.')
+    throw new Error('Add a WhatsApp number so interested users can reach you.')
   }
 
   if (!input.officeAddress) {
@@ -235,8 +235,8 @@ export async function submitAgentVerification(
   agent: UserProfile,
   input: AgentVerificationFormInput
 ) {
-  if (agent.role !== 'agent') {
-    throw new Error('Only agent accounts can submit verification requests in this phase.')
+  if (agent.role === 'admin') {
+    throw new Error('Admin accounts review professional verification requests.')
   }
 
   const sanitized = sanitizeFormInput(input)
@@ -254,10 +254,10 @@ export async function submitAgentVerification(
     existing?.authorizationDocument.remoteUrl,
   ].filter(Boolean) as string[]
 
-  let profilePhotoUrl = ''
-  let idDocumentUrl = ''
+  let profilePhotoUrl: string
+  let idDocumentUrl: string
   let cacDocumentUrl: string | null = null
-  let authorizationDocumentUrl = ''
+  let authorizationDocumentUrl: string
 
   try {
     ;[profilePhotoUrl] = await uploadVerificationAssets(agent, [sanitized.profilePhoto!])
@@ -318,8 +318,7 @@ export async function submitAgentVerification(
           authorizationDocument: record.authorizationDocument,
           status: record.status,
           adminNote: record.adminNote,
-          submittedAt:
-            shouldCreateNewSubmission || !existing ? serverTimestamp() : record.submittedAt,
+          submittedAt: serverTimestamp(),
           reviewedAt: null,
         },
         { merge: true }

@@ -7,8 +7,9 @@ import {
   reviewPropertyStatus,
   updateProperty,
 } from '../services/properties'
+import { getDesignedMarketplaceProperty } from '../data/designedMarketplaceProperties'
 import {
-  isPropertyManagerRole,
+  isListingCapableRole,
   type PropertyFormInput,
   type PropertyRecord,
 } from '../types/property'
@@ -49,6 +50,9 @@ export function useProperties() {
   }
 
   async function findById(propertyId: string) {
+    const designedProperty = getDesignedMarketplaceProperty(propertyId)
+    if (designedProperty) return designedProperty
+
     const property = await getPropertyById(propertyId)
 
     if (property) {
@@ -133,8 +137,7 @@ export function useProperties() {
     hasLoaded: computed(() => hasLoaded.value),
     isLoading: computed(() => isLoading.value || isRefreshing.value),
     error: computed(() => error.value),
-    canCreateProperty: (role: UserProfile['role'] | null | undefined) =>
-      isPropertyManagerRole(role),
+    canCreateProperty: (role: UserProfile['role'] | null | undefined) => isListingCapableRole(role),
     refresh,
     findById,
     saveNewProperty,

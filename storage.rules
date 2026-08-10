@@ -15,73 +15,142 @@ service firebase.storage {
     }
 
     function currentUserRole() {
-      return currentUserExists() ? userDoc().data.role : null;
+      return currentUserExists() ? userDoc().data.get('role', 'user') : 'user';
+    }
+
+    function currentUserIsActive() {
+      return currentUserExists()
+        && userDoc().data.get('accountStatus', 'active') == 'active';
     }
 
     function isAdmin() {
-      return currentUserRole() == 'admin';
+      return currentUserIsActive() && currentUserRole() == 'admin';
     }
 
-    function isPropertyManager() {
-      return ['landlord', 'agent', 'admin'].hasAny([currentUserRole()]);
+    function isSupportedImage(contentType) {
+      return contentType in [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/heic',
+        'image/heif'
+      ];
+    }
+
+    function isSafeFileName(fileName) {
+      return fileName.size() > 0
+        && fileName.size() <= 200
+        && fileName.matches('^[A-Za-z0-9][A-Za-z0-9._-]*$');
     }
 
     function isAllowedPropertyImageUpload() {
       return request.resource != null
-        && request.resource.contentType.matches('image/.*')
-        && request.resource.size < 2 * 1024 * 1024;
+        && isSupportedImage(request.resource.contentType)
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024;
     }
 
     function isAllowedVerificationDocumentUpload() {
       return request.resource != null
         && (
-          request.resource.contentType.matches('image/.*')
+          isSupportedImage(request.resource.contentType)
           || request.resource.contentType == 'application/pdf'
         )
-        && request.resource.size < 2 * 1024 * 1024;
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024;
     }
 
     function isAllowedUserFileUpload() {
       return request.resource != null
         && (
-          request.resource.contentType.matches('image/.*')
+          isSupportedImage(request.resource.contentType)
           || request.resource.contentType == 'application/pdf'
         )
-        && request.resource.size < 2 * 1024 * 1024;
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024;
     }
 
     function canManageOwnPath(ownerId) {
-      return signedIn() && (request.auth.uid == ownerId || isAdmin());
+      return signedIn()
+        && (request.auth.uid == ownerId || isAdmin());
     }
 
-    // Assumed future upload path:
-    // properties/{ownerId}/{propertyId}/{fileName}
+    function canReadPropertyAsset(ownerId, propertyId) {
+      return canManageOwnPath(ownerId)
+        || (
+          firestore.exists(/databases/(default)/documents/properties/$(propertyId))
+          && firestore.get(/databases/(default)/documents/properties/$(propertyId)).data.status
+            == 'approved'
+        );
+    }
+
+    function canReadListingAsset(ownerId, listingId) {
+      return canManageOwnPath(ownerId)
+        || (
+          firestore.exists(/databases/(default)/documents/listings/$(listingId))
+          && firestore.get(/databases/(default)/documents/listings/$(listingId)).data.status
+            == 'active'
+          && firestore.get(/databases/(default)/documents/listings/$(listingId)).data.moderationStatus
+            == 'approved'
+        );
+    }
+
     match /properties/{ownerId}/{propertyId}/{fileName} {
-      allow read: if true;
+      allow read: if canReadPropertyAsset(ownerId, propertyId);
       allow create, update: if signedIn()
+        && currentUserIsActive()
+        && isSafeFileName(fileName)
         && isAllowedPropertyImageUpload()
-        && ((request.auth.uid == ownerId && isPropertyManager()) || isAdmin());
+        && (request.auth.uid == ownerId || isAdmin());
       allow delete: if canManageOwnPath(ownerId);
     }
 
-    // Assumed future upload path:
-    // agent-verifications/{agentId}/{fileName}
+    match /listings/{ownerId}/{listingId}/{fileName} {
+      allow read: if canReadListingAsset(ownerId, listingId);
+      allow create, update: if signedIn()
+        && isSafeFileName(fileName)
+        && isAllowedPropertyImageUpload()
+        && (request.auth.uid == ownerId || isAdmin());
+      allow delete: if canManageOwnPath(ownerId);
+    }
+
+    match /listing-private/{ownerId}/{listingId}/{fileName} {
+      allow read: if signedIn() && (request.auth.uid == ownerId || isAdmin());
+      allow create, update: if signedIn()
+        && currentUserIsActive()
+        && isSafeFileName(fileName)
+        && request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024
+        && (request.auth.uid == ownerId || isAdmin());
+      allow delete: if canManageOwnPath(ownerId);
+    }
+
     match /agent-verifications/{agentId}/{fileName} {
       allow read: if signedIn() && (request.auth.uid == agentId || isAdmin());
       allow create, update: if signedIn()
+        && currentUserIsActive()
+        && isSafeFileName(fileName)
         && isAllowedVerificationDocumentUpload()
         && (request.auth.uid == agentId || isAdmin());
       allow delete: if canManageOwnPath(agentId);
     }
 
-    // Assumed future upload path:
-    // users/{userId}/{fileName}
     match /users/{userId}/{fileName} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create, update: if signedIn()
+        && currentUserIsActive()
+        && isSafeFileName(fileName)
         && isAllowedUserFileUpload()
         && (request.auth.uid == userId || isAdmin());
-      allow delete: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if canManageOwnPath(userId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

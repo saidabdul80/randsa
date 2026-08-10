@@ -12,8 +12,9 @@
           Migrate older browser-only records into Firebase
         </h3>
         <p class="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">
-          This moves local properties, bookings, and agent verification records owned by the current
-          signed-in account into Firestore so they appear across devices and admin review screens.
+          This moves local marketplace listings, properties, bookings, and verification records
+          owned by the current signed-in account into Firebase so they appear across devices and
+          review screens.
         </p>
       </div>
 
@@ -27,7 +28,15 @@
       </button>
     </div>
 
-    <div v-if="preview" class="mt-5 grid gap-3 md:grid-cols-3">
+    <div v-if="preview" class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-[20px] bg-white/80 px-4 py-4 dark:bg-slate-950/60">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
+          Marketplace listings
+        </p>
+        <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">
+          {{ preview.listings.eligible }} eligible of {{ preview.listings.detected }} detected
+        </p>
+      </article>
       <article class="rounded-[20px] bg-white/80 px-4 py-4 dark:bg-slate-950/60">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
           Properties
@@ -148,7 +157,8 @@ async function handleMigrate() {
     resultNotes.value = result.notes
     messageTone.value = 'success'
     message.value =
-      `Migration complete. Properties: ${result.properties.migrated} moved, ${result.properties.skipped} skipped, ${result.properties.failed} failed. ` +
+      `Migration complete. Marketplace listings: ${result.listings.migrated} moved, ${result.listings.skipped} skipped, ${result.listings.failed} failed. ` +
+      `Properties: ${result.properties.migrated} moved, ${result.properties.skipped} skipped, ${result.properties.failed} failed. ` +
       `Bookings: ${result.bookings.migrated} moved, ${result.bookings.skipped} skipped, ${result.bookings.failed} failed. ` +
       `Verification: ${result.verifications.migrated} moved, ${result.verifications.skipped} skipped, ${result.verifications.failed} failed.`
     preview.value = await getLocalDataMigrationPreview(profile.value)

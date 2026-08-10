@@ -1,13 +1,13 @@
 <template>
   <AppShell
     eyebrow="Trust"
-    title="Agent verification"
-    description="Submit identity, office, and authorization details so admins can review your agent profile."
+    title="Professional verification"
+    description="Submit identity, office, and authorization details so admins can review your professional profile."
     :show-bottom-nav="false"
   >
     <section class="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[1.1fr_0.9fr]">
       <div class="glass-panel p-6 sm:p-8">
-        <template v-if="profile?.role === 'agent'">
+        <template v-if="profile?.role !== 'admin'">
           <div class="rounded-[24px] border px-4 py-4 text-sm" :class="statusToneClass">
             <span class="font-semibold">Current status:</span> {{ statusLabel }}
             <span v-if="currentRequest?.reviewedAt">
@@ -63,7 +63,7 @@
               <VerificationUploadField
                 v-model="form.profilePhoto"
                 label="Profile photo"
-                description="Upload a clear face photo for agent identity review."
+                description="Upload a clear face photo for identity review."
                 accept="image/*"
                 :preview-as-image="true"
               />
@@ -121,10 +121,7 @@
           <div
             class="rounded-[24px] border border-sky-200 bg-sky-50 px-5 py-5 text-sm text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200"
           >
-            Agent verification is only available to accounts with the
-            <span class="font-semibold">agent</span> role. In local bypass mode, you can switch to
-            the agent role from the profile page and come back here to test the full verification
-            flow.
+            Admin accounts review professional verification requests from the admin dashboard.
           </div>
         </template>
       </div>
@@ -271,7 +268,7 @@ watch(currentRequest, (request) => {
 
 async function handleSubmit() {
   if (!profile.value) {
-    errorMessage.value = 'Sign in before submitting agent verification.'
+    errorMessage.value = 'Sign in before submitting professional verification.'
     return
   }
 

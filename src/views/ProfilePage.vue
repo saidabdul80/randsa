@@ -69,7 +69,7 @@
                       <IonIcon :icon="checkmarkCircle" aria-hidden="true" /> Verified
                     </span>
                   </div>
-                  <p>{{ roleLabel }} account</p>
+                  <p>{{ profile?.role === 'admin' ? 'Admin account' : 'RANDSA account' }}</p>
                   <div class="completion-inline" aria-label="Account completion">
                     <span><i :style="{ width: `${completionScore}%` }" /></span>
                     <strong>{{ completionScore }}% complete</strong>
@@ -213,7 +213,11 @@
               </div>
             </section>
 
-            <section class="account-panel verification-panel" aria-labelledby="verification-title">
+            <section
+              v-if="profile?.role !== 'admin'"
+              class="account-panel verification-panel"
+              aria-labelledby="verification-title"
+            >
               <div class="section-heading">
                 <div>
                   <p>Trust &amp; identity</p>
@@ -246,16 +250,12 @@
                 <div class="verification-guidance">
                   <h3>{{ verificationGuidance.title }}</h3>
                   <p>{{ verificationGuidance.copy }}</p>
-                  <ul v-if="profile?.role === 'agent'">
+                  <ul>
                     <li>Profile photograph and identity document</li>
                     <li>Contact and office information</li>
                     <li>Authorization document</li>
                   </ul>
-                  <RouterLink
-                    v-if="profile?.role === 'agent'"
-                    to="/agent-verification"
-                    class="primary-command"
-                  >
+                  <RouterLink to="/agent-verification" class="primary-command">
                     {{ verificationActionLabel }}
                     <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
                   </RouterLink>
@@ -270,10 +270,9 @@
             >
               <div class="section-heading">
                 <div>
-                  <p>Access control</p>
-                  <h2 id="role-access-title">Role permissions</h2>
+                  <p>Unified access</p>
+                  <h2 id="role-access-title">Account capabilities</h2>
                 </div>
-                <span class="role-badge">{{ roleLabel }}</span>
               </div>
               <p>{{ roleSummary }}</p>
               <ul>
@@ -392,7 +391,7 @@
             <div class="account-summary__sticky">
               <section>
                 <div class="account-summary__topline">
-                  <p>Current role</p>
+                  <p>Account access</p>
                   <RouterLink
                     to="/register?redirect=/profile"
                     class="icon-only"
@@ -402,13 +401,13 @@
                     <IonIcon :icon="createOutline" aria-hidden="true" />
                   </RouterLink>
                 </div>
-                <span class="role-badge">{{ roleLabel }}</span>
+                <span class="role-badge">Unified account</span>
                 <p>{{ roleSummary }}</p>
-                <a href="#role-access" class="secondary-command">View role permissions</a>
+                <a href="#role-access" class="secondary-command">View account capabilities</a>
               </section>
 
               <section class="summary-metrics">
-                <div>
+                <div v-if="profile?.role !== 'admin'">
                   <span>Verification</span
                   ><strong class="status-badge" :class="verificationTone">{{
                     verificationLabel
@@ -431,7 +430,7 @@
                 <span><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" /></span>
                 <div>
                   <strong>Account protected</strong
-                  ><small>Firebase authentication and role-based access are active.</small>
+                  ><small>Firebase authentication and account access are active.</small>
                 </div>
               </section>
             </div>
@@ -446,6 +445,7 @@
 import { IonIcon } from '@ionic/vue'
 import {
   alertCircleOutline,
+  albumsOutline,
   arrowForwardOutline,
   calendarOutline,
   cardOutline,
@@ -499,12 +499,12 @@ const isSigningOut = ref(false)
 const errorMessage = ref('')
 const copyStatus = ref('')
 const isNoticeDismissed = ref(false)
-const switchableRoles: UserRole[] = ['tenant', 'landlord', 'agent', 'admin']
+const switchableRoles: UserRole[] = ['user', 'admin']
 
 const profile = computed(() => state.profile)
 const user = computed(() => state.user)
 const displayName = computed(() => profile.value?.fullName || user.value?.email || 'RANDSA User')
-const roleLabel = computed(() => titleCase(profile.value?.role ?? 'tenant'))
+const roleLabel = computed(() => titleCase(profile.value?.role ?? 'user'))
 const verificationLabel = computed(() =>
   titleCase(formatVerificationStatusLabel(profile.value?.verificationStatus ?? 'not_submitted'))
 )
@@ -518,13 +518,16 @@ const verificationTone = computed(() => {
 const noticeMessage = computed(() => {
   if (isNoticeDismissed.value) return ''
   if (route.query.notice === 'property-manager-only') {
-    return 'Only landlord, agent, and admin accounts can open Add Property. Your current role does not have listing access yet.'
+    return 'Posting is available to every signed-in account. Open Post Listing to continue.'
   }
   if (route.query.notice === 'admin-only') {
     return 'Only admin accounts can open that page. Sign in with an admin account to use moderation tools.'
   }
   if (route.query.notice === 'agent-only') {
-    return 'Only agent accounts can open the verification form.'
+    return 'Professional verification is optional and available to standard accounts.'
+  }
+  if (route.query.notice === 'account-inactive') {
+    return 'This action is unavailable while your account is suspended or disabled. Contact support if you believe this is a mistake.'
   }
   return ''
 })
@@ -545,9 +548,6 @@ const completionChecks = computed(() => {
     { label: 'Phone number', complete: Boolean(profile.value?.phone.trim()) },
     { label: 'Profile photo', complete: Boolean(profile.value?.photoURL.trim()) },
   ]
-  if (profile.value?.role === 'agent') {
-    checks.push({ label: 'Agent verification', complete: Boolean(profile.value.isVerifiedAgent) })
-  }
   return checks
 })
 const completionScore = computed(() => {
@@ -614,6 +614,20 @@ const informationRows = computed(() => [
 const quickActions = computed(() => {
   const actions = [
     {
+      title: 'Post Listing',
+      copy: 'Create and manage your own marketplace listing.',
+      to: '/post-listing',
+      icon: documentTextOutline,
+      tone: 'is-green',
+    },
+    {
+      title: 'My listings',
+      copy: 'Manage listings, statuses, edits, and performance.',
+      to: '/my-listings',
+      icon: albumsOutline,
+      tone: 'is-blue',
+    },
+    {
       title: 'My bookings',
       copy: 'Review inspection and rental bookings.',
       to: '/my-bookings',
@@ -642,25 +656,15 @@ const quickActions = computed(() => {
       tone: 'is-green',
     },
   ]
-  if (canManageProperties.value) {
-    actions.push({
-      title: 'Add property',
-      copy: 'Create a new marketplace listing.',
-      to: '/add-property',
-      icon: documentTextOutline,
-      tone: 'is-green',
-    })
-  }
-  if (profile.value?.role === 'agent') {
+  if (profile.value?.role !== 'admin') {
     actions.push({
       title: 'Verification',
-      copy: 'Manage your agent verification.',
+      copy: 'Manage optional professional verification.',
       to: '/agent-verification',
       icon: idCardOutline,
       tone: 'is-amber',
     })
-  }
-  if (profile.value?.role === 'admin') {
+  } else {
     actions.push({
       title: 'Admin tools',
       copy: 'Open moderation and review tools.',
@@ -680,7 +684,7 @@ const verificationStages = computed<
     return [
       { label: 'Submitted', copy: 'Verification documents received.', state: 'complete' },
       { label: 'Under review', copy: 'Administrative review completed.', state: 'complete' },
-      { label: 'Approved', copy: 'Agent verification approved.', state: 'complete' },
+      { label: 'Approved', copy: 'Professional verification approved.', state: 'complete' },
     ]
   }
   if (status === 'rejected') {
@@ -699,34 +703,28 @@ const verificationStages = computed<
   }
   return [
     { label: 'Not submitted', copy: 'No verification request is on file.', state: 'current' },
-    { label: 'Under review', copy: 'Begins after an agent submits documents.', state: 'upcoming' },
+    { label: 'Under review', copy: 'Begins after you submit documents.', state: 'upcoming' },
     { label: 'Approved', copy: 'Available after successful review.', state: 'upcoming' },
   ]
 })
 const verificationGuidance = computed(() => {
-  if (profile.value?.role !== 'agent') {
-    return {
-      title: 'Agent-only verification',
-      copy: 'The current verification workflow is available only to agent accounts.',
-    }
-  }
-  if (profile.value.verificationStatus === 'pending') {
+  if (profile.value?.verificationStatus === 'pending') {
     return {
       title: 'Review in progress',
       copy: 'Processing time depends on the current administrator review queue.',
     }
   }
-  if (profile.value.verificationStatus === 'approved') {
-    return { title: 'Verification complete', copy: 'Your account is marked as a verified agent.' }
+  if (profile.value?.verificationStatus === 'approved') {
+    return { title: 'Verification complete', copy: 'Your account is professionally verified.' }
   }
-  if (profile.value.verificationStatus === 'rejected') {
+  if (profile.value?.verificationStatus === 'rejected') {
     return {
       title: 'Updates required',
       copy: 'Open the verification form to review and resubmit supported documents.',
     }
   }
   return {
-    title: 'Start agent verification',
+    title: 'Optional professional verification',
     copy: 'Submit the existing identity, office, and authorization requirements for review.',
   }
 })
@@ -735,33 +733,26 @@ const verificationActionLabel = computed(() =>
 )
 
 const roleSummary = computed(() => {
-  const role = profile.value?.role ?? 'tenant'
-  if (role === 'admin')
-    return 'Full moderation and listing-management access is enabled for this account.'
-  if (role === 'agent')
-    return 'Create and manage listings, bookings, and your agent verification request.'
-  if (role === 'landlord')
-    return 'Create and manage property listings and their associated booking activity.'
-  return 'Explore, save, book, pay, and receive updates across the rental marketplace.'
+  if (profile.value?.role === 'admin') {
+    return 'Post, book, save, and manage your activity, with administration and moderation tools enabled.'
+  }
+  return 'Post listings, book, save, pay, and manage your own activity from one account.'
 })
 const rolePermissions = computed(() => {
   const base = [
     'Explore approved rental listings',
-    'Save listings and manage bookings',
-    'Open payments and notifications',
+    'Post and manage your own listings',
+    'Book rentals and manage your bookings',
+    'Save listings, make payments, and review notifications',
   ]
-  if (canManageProperties.value) base.push('Create and manage property listings')
-  if (profile.value?.role === 'agent') base.push('Submit an agent verification request')
-  if (profile.value?.role === 'admin') base.push('Open administration and moderation tools')
+  if (profile.value?.role === 'admin') {
+    base.push('Open administration and moderation tools')
+  } else {
+    base.push('Choose optional professional verification')
+  }
   return base
 })
-const roleAction = computed(() => {
-  if (profile.value?.role === 'admin') return { label: 'Open admin tools', to: '/admin' }
-  if (profile.value?.role === 'agent')
-    return { label: 'Manage verification', to: '/agent-verification' }
-  if (profile.value?.role === 'landlord') return { label: 'Add property', to: '/add-property' }
-  return null
-})
+const roleAction = { label: 'Post Listing', to: '/post-listing' }
 
 const settingsItems = computed(() => [
   { title: 'Theme', value: 'Uses your app and system theme', icon: colorPaletteOutline, to: '' },
@@ -774,7 +765,7 @@ const settingsItems = computed(() => [
   },
   {
     title: 'Privacy & security',
-    value: 'Protected by current account permissions',
+    value: 'Protected by current account security',
     icon: lockClosedOutline,
     to: '',
   },

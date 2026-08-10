@@ -3,6 +3,10 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png?url'
 import iconUrl from 'leaflet/dist/images/marker-icon.png?url'
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png?url'
 
+import { hasCoordinates, normalizeLatitude, normalizeLongitude } from '../utils/coordinates'
+
+export { hasCoordinates } from '../utils/coordinates'
+
 export const osmTileProvider = {
   url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   attribution:
@@ -38,13 +42,6 @@ export function createOsmTileLayer() {
   })
 }
 
-export function hasCoordinates(
-  latitude: number | null | undefined,
-  longitude: number | null | undefined
-): boolean {
-  return typeof latitude === 'number' && typeof longitude === 'number'
-}
-
 export function getMapCenter(
   latitude: number | null | undefined,
   longitude: number | null | undefined
@@ -53,5 +50,5 @@ export function getMapCenter(
     return defaultMapCenter
   }
 
-  return [latitude as number, longitude as number]
+  return [normalizeLatitude(latitude) as number, normalizeLongitude(longitude) as number]
 }

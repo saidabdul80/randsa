@@ -18,6 +18,7 @@ export function createRouter() {
         path: '/login',
         name: 'login',
         component: () => import('../views/LoginPage.vue'),
+        meta: { guestOnly: true },
       },
       {
         path: '/register',
@@ -36,16 +37,34 @@ export function createRouter() {
         component: () => import('../views/PropertyDetailsPage.vue'),
       },
       {
-        path: '/add-property',
-        name: 'add-property',
+        path: '/listings/:listingId',
+        name: 'marketplace-listing-details',
+        component: () => import('../views/MarketplaceListingDetailsPage.vue'),
+      },
+      {
+        path: '/post-listing',
+        name: 'post-listing',
+        alias: '/add-property',
         component: () => import('../views/AddPropertyPage.vue'),
-        meta: { requiresAuth: true, requiresPropertyManager: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true },
+      },
+      {
+        path: '/edit-listing/:listingId',
+        name: 'edit-listing',
+        component: () => import('../views/AddPropertyPage.vue'),
+        meta: { requiresAuth: true, requiresActiveAccount: true },
+      },
+      {
+        path: '/my-listings',
+        name: 'my-listings',
+        component: () => import('../views/MyListingsPage.vue'),
+        meta: { requiresAuth: true },
       },
       {
         path: '/edit-property/:propertyId',
         name: 'edit-property',
         component: () => import('../views/EditPropertyPage.vue'),
-        meta: { requiresAuth: true, requiresPropertyManager: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true },
       },
       {
         path: '/saved-properties',
@@ -57,7 +76,7 @@ export function createRouter() {
         path: '/booking/:propertyId?',
         name: 'booking',
         component: () => import('../views/BookingPage.vue'),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true },
       },
       {
         path: '/my-bookings',
@@ -69,13 +88,13 @@ export function createRouter() {
         path: '/payment/:propertyId?',
         name: 'payment',
         component: () => import('../views/PaymentPage.vue'),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true },
       },
       {
         path: '/agent-verification',
         name: 'agent-verification',
         component: () => import('../views/AgentVerificationPage.vue'),
-        meta: { requiresAuth: true, requiresAgent: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true },
       },
       {
         path: '/notifications',
@@ -93,8 +112,9 @@ export function createRouter() {
         path: '/admin',
         name: 'admin',
         component: () => import('../views/AdminDashboardPage.vue'),
-        meta: { requiresAuth: true, requiresAdmin: true },
+        meta: { requiresAuth: true, requiresActiveAccount: true, requiresAdmin: true },
       },
+      { path: '/:pathMatch(.*)*', redirect: '/home' },
     ],
     scrollBehavior() {
       return { top: 0 }
@@ -105,16 +125,15 @@ export function createRouter() {
     const needsResolvedAuth = Boolean(
       to.meta.requiresAuth ||
       to.meta.guestOnly ||
-      to.meta.requiresAdmin ||
-      to.meta.requiresPropertyManager ||
-      to.meta.requiresAgent
+      to.meta.requiresActiveAccount ||
+      to.meta.requiresAdmin
     )
 
     if (needsResolvedAuth) {
       await ensureAuthReady()
     }
 
-    const { canManageProperties, isAuthenticated, role, state } = useAuth()
+    const { isAuthenticated, role, state } = useAuth()
 
     if (to.meta.requiresAuth && !isAuthenticated.value) {
       return {
@@ -130,6 +149,13 @@ export function createRouter() {
       }
     }
 
+    if (to.meta.requiresActiveAccount && state.profile?.accountStatus !== 'active') {
+      return {
+        path: '/profile',
+        query: { notice: 'account-inactive' },
+      }
+    }
+
     if (to.meta.requiresAdmin && role.value !== 'admin') {
       return {
         path: '/profile',
@@ -137,21 +163,18 @@ export function createRouter() {
       }
     }
 
-    if (to.meta.requiresPropertyManager && !canManageProperties.value) {
-      return {
-        path: '/profile',
-        query: { notice: 'property-manager-only' },
-      }
-    }
-
-    if (to.meta.requiresAgent && role.value !== 'agent') {
-      return {
-        path: '/profile',
-        query: { notice: 'agent-only' },
-      }
+    if (to.name === 'register' && isAuthenticated.value && state.profile) {
+      return role.value === 'admin' ? '/admin' : '/home'
     }
 
     if (to.meta.guestOnly && isAuthenticated.value) {
+      if (!state.profile) {
+        return {
+          path: '/register',
+          query: { notice: 'complete-profile', redirect: to.fullPath },
+        }
+      }
+
       return role.value === 'admin' ? '/admin' : '/home'
     }
 

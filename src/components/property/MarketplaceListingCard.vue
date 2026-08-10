@@ -8,8 +8,8 @@
     :data-tablet-span="layout.tabletSpan"
     :data-mobile-span="layout.mobileSpan"
     :data-low-resolution="isLowResolution ? 'true' : 'false'"
-    :data-property-id="listing.id ?? ''"
-    class="marketplace-card group min-w-0 overflow-hidden rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_36px_-28px_rgba(16,32,51,0.45)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-28px_rgba(16,32,51,0.58)] focus-within:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+    :data-property-id="listing.id"
+    class="marketplace-card group relative isolate min-w-0 overflow-hidden rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_36px_-28px_rgba(16,32,51,0.45)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-28px_rgba(16,32,51,0.58)] focus-within:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
     :class="{
       'marketplace-card--desktop-wide-left': layout.desktopPosition === 'left',
       'marketplace-card--desktop-wide-right': layout.desktopPosition === 'right',
@@ -26,60 +26,88 @@
     @mouseleave="$emit('highlight', '')"
     @focusin="emitHighlight"
   >
+    <RouterLink
+      :to="listing.detailPath"
+      class="marketplace-card__card-link absolute inset-0 z-[3] rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+      :aria-label="`View details for ${listing.title}`"
+    >
+      <span class="sr-only">View details for {{ listing.title }}</span>
+    </RouterLink>
+
     <div
-      class="marketplace-card__media relative overflow-hidden bg-slate-100 dark:bg-slate-800"
+      class="marketplace-card__media bg-slate-100 dark:bg-slate-800"
       :style="{ aspectRatio: effectiveImageRatio }"
     >
       <img
+        v-if="listing.image"
         :src="listing.image"
         :alt="`${listing.title} in ${listing.location}`"
-        class="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.035]"
+        class="marketplace-card__image absolute inset-0 z-0 h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.035]"
         loading="lazy"
         decoding="async"
         @load="handleImageLoad"
       />
+      <div v-else class="marketplace-card__image-empty" aria-hidden="true">
+        <ion-icon :icon="emptyStateIcon" />
+      </div>
 
-      <div class="absolute inset-x-2.5 top-2.5 flex items-start justify-between gap-2">
-        <div class="flex min-w-0 flex-wrap gap-1.5">
+      <div
+        class="pointer-events-none absolute inset-x-2.5 top-2.5 z-[4] flex items-start justify-between gap-2"
+      >
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 pr-1">
           <span
-            class="max-w-full truncate rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-bold text-slate-800 shadow-sm backdrop-blur-md dark:bg-slate-950/85 dark:text-white"
+            class="marketplace-card__title-badge min-w-0 truncate rounded-full bg-brand-700 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm sm:text-[11px]"
+            :title="listing.title"
           >
-            {{ listing.propertyType }}
+            {{ listing.title }}
           </span>
           <span
-            v-if="listing.isAvailable"
-            class="rounded-full bg-emerald-50/95 px-2.5 py-1 text-[10px] font-bold text-emerald-700 shadow-sm backdrop-blur-md dark:bg-emerald-950/85 dark:text-emerald-200"
+            v-if="statusBadgeLabel"
+            class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-md"
+            :class="
+              statusBadgeTone === 'booking'
+                ? 'bg-red-600 text-white'
+                : statusBadgeTone === 'available'
+                  ? 'bg-emerald-50/95 text-emerald-700 dark:bg-emerald-950/85 dark:text-emerald-200'
+                  : 'bg-white/90 text-slate-700 dark:bg-slate-950/80 dark:text-slate-100'
+            "
+            :title="listing.availabilityLabel"
+            :aria-label="listing.availabilityLabel"
           >
-            Available
+            {{ statusBadgeLabel }}
           </span>
         </div>
 
         <button
-          v-if="listing.record"
+          v-if="listing.id"
           type="button"
-          class="marketplace-card__favorite inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/92 text-lg text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 dark:bg-slate-950/85 dark:text-slate-100"
-          :class="isSaved ? 'text-rose-600 dark:text-rose-400' : ''"
+          class="marketplace-card__favorite pointer-events-auto inline-flex h-9 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-2 text-xl shadow-none transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-wait disabled:opacity-60"
+          :class="{
+            'is-saved text-red-600': isSaved,
+            'text-white': !isSaved,
+          }"
           :aria-label="
-            isSaved ? `Remove ${listing.title} from saved properties` : `Save ${listing.title}`
+            isSaved ? `Remove ${listing.title} from saved listings` : `Save ${listing.title}`
           "
           :aria-pressed="isSaved"
           :disabled="isSaving"
-          @click="$emit('toggle-saved', listing.record)"
+          @click.stop="$emit('toggle-saved', listing)"
         >
-          <ion-icon :icon="isSaved ? heart : heartOutline" aria-hidden="true" />
+          <ion-icon :icon="heart" aria-hidden="true" />
         </button>
       </div>
 
-      <div v-if="showListingActions && listing.record" class="marketplace-card__quick-actions">
+      <div v-if="showListingActions" class="marketplace-card__quick-actions">
         <button
           type="button"
           :aria-label="`Quick view ${listing.title}`"
           title="Quick view"
-          @click="$emit('quick-view', listing.record)"
+          @click.stop="$emit('quick-view', listing)"
         >
           <ion-icon :icon="eyeOutline" aria-hidden="true" />
         </button>
         <button
+          v-if="listing.propertyRecord"
           type="button"
           :class="{ 'is-active': isCompared }"
           :aria-label="`${isCompared ? 'Remove' : 'Add'} ${listing.title} ${
@@ -87,7 +115,7 @@
           } comparison`"
           :aria-pressed="isCompared"
           title="Compare"
-          @click="$emit('toggle-compare', listing.record)"
+          @click.stop="$emit('toggle-compare', listing)"
         >
           <ion-icon :icon="gitCompareOutline" aria-hidden="true" />
         </button>
@@ -95,19 +123,13 @@
     </div>
 
     <div class="marketplace-card__body p-3.5 sm:p-4">
-      <div class="marketplace-card__identity flex min-w-0 items-start justify-between gap-3">
-        <div class="marketplace-card__identity-copy min-w-0">
-          <h3
-            class="marketplace-card__title truncate text-sm font-extrabold tracking-normal text-ink dark:text-white sm:text-base"
-          >
-            {{ listing.title }}
-          </h3>
-          <p
-            class="marketplace-card__location truncate text-[11px] font-medium text-slate-500 dark:text-slate-300 sm:text-xs"
-          >
-            {{ listing.location }}
-          </p>
-        </div>
+      <div
+        class="marketplace-card__location flex min-w-0 items-center gap-1.5 text-slate-500 dark:text-slate-300"
+      >
+        <ion-icon :icon="locationOutline" class="shrink-0" aria-hidden="true" />
+        <p class="min-w-0 truncate text-[11px] font-semibold sm:text-xs">
+          {{ listing.location }}
+        </p>
       </div>
 
       <div
@@ -120,7 +142,7 @@
           class="inline-flex min-w-0 items-center gap-1.5"
           :title="item.label"
         >
-          <ion-icon :icon="item.icon" aria-hidden="true" />
+          <ion-icon :icon="metadataIcon(item.kind)" aria-hidden="true" />
           <span class="truncate">{{ item.value }}</span>
           <span class="sr-only">{{ item.label }}</span>
         </span>
@@ -132,20 +154,15 @@
         >
           {{ listing.price }}
           <span
+            v-if="listing.paymentDuration"
             class="marketplace-card__period text-[10px] font-medium text-slate-500 dark:text-slate-300 sm:text-[11px]"
           >
             / {{ listing.paymentDuration }}
           </span>
         </p>
-        <RouterLink
-          v-if="listing.id"
-          :to="`/properties/${listing.id}`"
-          class="marketplace-card__details inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-base text-ink transition hover:bg-ink hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:bg-slate-800 dark:text-white dark:hover:bg-brand-600"
-          :aria-label="`View details for ${listing.title}`"
-        >
-          <ion-icon :icon="arrowForwardOutline" aria-hidden="true" />
-        </RouterLink>
       </div>
+
+      <div class="marketplace-card__masonry-fill" aria-hidden="true"></div>
     </div>
   </article>
 </template>
@@ -155,38 +172,30 @@ import { computed, ref } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { RouterLink } from 'vue-router'
 import {
-  arrowForwardOutline,
   bedOutline,
+  briefcaseOutline,
+  calendarOutline,
   carOutline,
+  cubeOutline,
   eyeOutline,
   gitCompareOutline,
   heart,
-  heartOutline,
+  leafOutline,
+  locationOutline,
+  phonePortraitOutline,
   resizeOutline,
+  speedometerOutline,
+  storefrontOutline,
+  syncOutline,
+  timeOutline,
   waterOutline,
 } from 'ionicons/icons'
 
-import type { PropertyRecord } from '../../types/property'
+import { isInspectionMode, resolveBookingMode } from '../../services/bookingModes'
+import { getMarketplaceCategory } from '../../config/marketplaceCategories'
+import type { MarketplaceDiscoveryItem, MarketplaceMetadataKind } from '../../types/marketplace'
 
 type MarketplaceVariant = 'property' | 'car' | 'event' | 'horse' | 'office'
-
-interface MarketplaceListing {
-  key: string
-  id: string | null
-  title: string
-  location: string
-  beds: number
-  parking: number
-  baths: number
-  price: string
-  paymentDuration: string
-  propertyType: string
-  isAvailable: boolean
-  image: string
-  shopSize?: string
-  canSpanWide: boolean
-  record: PropertyRecord | null
-}
 
 interface ListingLayout {
   variant: MarketplaceVariant
@@ -202,7 +211,7 @@ interface ListingLayout {
 
 const props = withDefaults(
   defineProps<{
-    listing: MarketplaceListing
+    listing: MarketplaceDiscoveryItem
     layout: ListingLayout
     isSaved: boolean
     isCompared?: boolean
@@ -220,13 +229,35 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  'toggle-saved': [property: PropertyRecord]
-  'quick-view': [property: PropertyRecord]
-  'toggle-compare': [property: PropertyRecord]
+  'toggle-saved': [item: MarketplaceDiscoveryItem]
+  'quick-view': [item: MarketplaceDiscoveryItem]
+  'toggle-compare': [item: MarketplaceDiscoveryItem]
   highlight: [propertyId: string]
 }>()
 
 const isLowResolution = ref(false)
+
+const usesDirectBooking = computed(() => {
+  if (props.listing.propertyRecord) {
+    return !isInspectionMode(resolveBookingMode(props.listing.propertyRecord))
+  }
+
+  return props.listing.availabilityTone === 'booking'
+})
+
+const statusBadgeTone = computed(() => {
+  if (props.listing.propertyRecord) return usesDirectBooking.value ? 'booking' : 'available'
+  return props.listing.availabilityTone
+})
+
+const statusBadgeLabel = computed(() => {
+  if (props.listing.propertyRecord) return usesDirectBooking.value ? 'B' : 'A'
+  return props.listing.availabilityLabel
+})
+
+const emptyStateIcon = computed(
+  () => getMarketplaceCategory(props.listing.categoryId)?.icon ?? storefrontOutline
+)
 
 const effectiveImageRatio = computed(() =>
   isLowResolution.value &&
@@ -238,34 +269,29 @@ const effectiveImageRatio = computed(() =>
     : props.layout.imageRatio
 )
 
-const metadata = computed(() => {
-  if (props.layout.variant === 'office') {
-    return [
-      props.listing.shopSize
-        ? { label: 'Floor area', value: props.listing.shopSize, icon: resizeOutline }
-        : null,
-      props.listing.parking > 0
-        ? { label: 'Parking', value: String(props.listing.parking), icon: carOutline }
-        : null,
-    ].filter((item): item is NonNullable<typeof item> => Boolean(item))
-  }
+const metadata = computed(() => props.listing.metadata)
 
-  if (props.layout.variant !== 'property') {
-    return []
+function metadataIcon(kind: MarketplaceMetadataKind) {
+  const icons: Record<MarketplaceMetadataKind, string> = {
+    area: resizeOutline,
+    bathrooms: waterOutline,
+    bedrooms: bedOutline,
+    brand: storefrontOutline,
+    condition: syncOutline,
+    delivery: carOutline,
+    employment: briefcaseOutline,
+    mileage: speedometerOutline,
+    model: cubeOutline,
+    parking: carOutline,
+    quantity: leafOutline,
+    'service-area': locationOutline,
+    storage: phonePortraitOutline,
+    transmission: syncOutline,
+    workplace: storefrontOutline,
+    year: calendarOutline,
   }
-
-  return [
-    props.listing.beds > 0
-      ? { label: 'Bedrooms', value: String(props.listing.beds), icon: bedOutline }
-      : null,
-    props.listing.baths > 0
-      ? { label: 'Bathrooms', value: String(props.listing.baths), icon: waterOutline }
-      : null,
-    props.listing.parking > 0
-      ? { label: 'Parking spaces', value: String(props.listing.parking), icon: carOutline }
-      : null,
-  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
-})
+  return icons[kind] ?? timeOutline
+}
 
 function handleImageLoad(event: Event) {
   const image = event.currentTarget as HTMLImageElement
@@ -273,9 +299,7 @@ function handleImageLoad(event: Event) {
 }
 
 function emitHighlight() {
-  if (props.listing.id) {
-    emit('highlight', props.listing.id)
-  }
+  emit('highlight', props.listing.id)
 }
 </script>
 
@@ -285,19 +309,70 @@ function emitHighlight() {
   align-self: start;
 }
 
+.marketplace-card--rendered-wide::after {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 35%;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.55) 0%,
+    rgb(0 0 0 / 0.28) 45%,
+    rgb(0 0 0 / 0) 100%
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.marketplace-card__image {
+  pointer-events: none;
+}
+
+.marketplace-card__image-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, rgb(239 246 255), rgb(248 250 252));
+  color: rgb(37 99 235);
+  font-size: 3rem;
+}
+
+:global(.dark) .marketplace-card__image-empty {
+  background: linear-gradient(145deg, rgb(15 23 42), rgb(30 41 59));
+  color: rgb(147 197 253);
+}
+
+.marketplace-card__media {
+  position: relative;
+  overflow: hidden;
+}
+
 .marketplace-card__body {
+  --marketplace-card-body-gap: 5px;
+
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--marketplace-card-body-gap);
+  background: white;
 }
 
-.marketplace-card__identity-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.marketplace-card__masonry-fill {
+  display: none;
 }
 
-.marketplace-card__title,
+.marketplace-card--masonry-filled .marketplace-card__masonry-fill {
+  display: block;
+  flex: 0 0 var(--marketplace-card-masonry-fill, 0px);
+  height: var(--marketplace-card-masonry-fill, 0px);
+  margin-top: calc(var(--marketplace-card-body-gap) * -1);
+  pointer-events: none;
+}
+
 .marketplace-card__location,
 .marketplace-card__metadata,
 .marketplace-card__price,
@@ -314,10 +389,33 @@ function emitHighlight() {
   box-shadow: 0 0 0 3px rgb(59 130 246 / 0.14);
 }
 
+.marketplace-card__favorite.is-saved,
+.marketplace-card__favorite.is-saved:hover {
+  border-color: transparent;
+  background: transparent;
+  color: rgb(220 38 38);
+}
+
+.marketplace-card__favorite {
+  transform: translateY(-7px);
+}
+
+.marketplace-card__favorite:hover {
+  transform: translateY(-7px) scale(1.1);
+}
+
+.marketplace-card__favorite ion-icon {
+  filter: none;
+}
+
+.marketplace-card__quick-actions ion-icon {
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.72));
+}
+
 .marketplace-card.marketplace-card--rendered-wide {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  overflow: visible;
+  overflow: hidden;
   border-color: transparent;
   background: transparent;
   box-shadow: none;
@@ -354,24 +452,9 @@ function emitHighlight() {
   width: 100%;
   background: transparent;
   color: white;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.62);
 }
 
-.marketplace-card--rendered-wide .marketplace-card__body::before {
-  position: absolute;
-  z-index: -1;
-  inset: -88px 0 0;
-  border-radius: 0 0 18px 18px;
-  background: linear-gradient(
-    180deg,
-    rgb(15 23 42 / 0) 0%,
-    rgb(15 23 42 / 0.3) 42%,
-    rgb(8 15 28 / 0.72) 100%
-  );
-  content: '';
-  pointer-events: none;
-}
-
-.marketplace-card--rendered-wide .marketplace-card__title,
 .marketplace-card--rendered-wide .marketplace-card__location,
 .marketplace-card--rendered-wide .marketplace-card__metadata,
 .marketplace-card--rendered-wide .marketplace-card__price,
@@ -379,54 +462,35 @@ function emitHighlight() {
   color: white;
 }
 
-.marketplace-card--rendered-wide .marketplace-card__location,
 .marketplace-card--rendered-wide .marketplace-card__period {
-  color: rgb(255 255 255 / 0.82);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__title,
-.marketplace-card--rendered-wide .marketplace-card__location,
-.marketplace-card--rendered-wide .marketplace-card__metadata,
-.marketplace-card--rendered-wide .marketplace-card__price {
-  text-shadow: 0 1px 2px rgb(2 6 23 / 0.58);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__details {
-  border: 1px solid rgb(255 255 255 / 0.52);
-  background: rgb(255 255 255 / 0.92);
-  color: rgb(15 23 42);
-  backdrop-filter: blur(12px);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__details:hover {
-  background: white;
-  color: rgb(15 23 42);
+  color: rgb(255 255 255 / 0.78);
 }
 
 .marketplace-card--rendered-wide:has(.marketplace-card__quick-actions) .marketplace-card__price {
-  max-width: calc(100% - 150px);
+  max-width: calc(100% - 108px);
 }
 
 .marketplace-card--rendered-wide .marketplace-card__quick-actions {
   z-index: 4;
-  right: 68px;
+  right: 14px;
   bottom: 14px;
 }
 
 .marketplace-card--rendered-wide .marketplace-card__quick-actions button {
-  border-color: rgb(255 255 255 / 0.38);
-  background: rgb(15 23 42 / 0.68);
+  border-color: transparent;
+  background: transparent;
   color: white;
 }
 
 .marketplace-card--rendered-wide .marketplace-card__quick-actions button:hover,
 .marketplace-card--rendered-wide .marketplace-card__quick-actions button.is-active {
-  background: white;
-  color: rgb(15 23 42);
+  background: transparent;
+  color: white;
 }
 
 .marketplace-card__quick-actions {
   position: absolute;
+  z-index: 4;
   right: 10px;
   bottom: 10px;
   display: flex;
@@ -438,26 +502,22 @@ function emitHighlight() {
   width: 40px;
   height: 40px;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 0.7);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.9);
-  color: rgb(51 65 85);
-  box-shadow: 0 10px 24px -16px rgb(15 23 42 / 0.65);
-  backdrop-filter: blur(12px);
+  border: 0;
+  background: transparent;
+  color: white;
+  box-shadow: none;
+  transition: transform 160ms ease;
 }
 
 .marketplace-card__quick-actions button:hover,
 .marketplace-card__quick-actions button.is-active {
-  background: rgb(37 99 235);
+  background: transparent;
   color: white;
+  transform: scale(1.12);
 }
 
-.marketplace-card--emphasized .marketplace-card__title {
-  font-size: 1.05rem;
-}
-
-.marketplace-card:hover .marketplace-card__details {
-  transform: translateX(2px);
+:global(.dark) .marketplace-card:not(.marketplace-card--rendered-wide) .marketplace-card__body {
+  background: rgb(15 23 42);
 }
 
 @media (min-width: 1024px) and (max-width: 1254px) {
@@ -511,9 +571,10 @@ function emitHighlight() {
     padding: 0.75rem;
   }
 
-  .marketplace-card:not(.marketplace-card--mobile-wide) .marketplace-card__favorite {
-    height: 2.75rem;
-    width: 2.75rem;
+  .marketplace-card__quick-actions {
+    right: 8px;
+    bottom: 8px;
+    gap: 2px;
   }
 }
 
@@ -526,7 +587,6 @@ function emitHighlight() {
 @media (prefers-reduced-motion: reduce) {
   .marketplace-card,
   .marketplace-card img,
-  .marketplace-card__details,
   .marketplace-card__favorite {
     transition: none !important;
   }
@@ -535,8 +595,7 @@ function emitHighlight() {
     transform: none;
   }
 
-  .marketplace-card:hover img,
-  .marketplace-card:hover .marketplace-card__details {
+  .marketplace-card:hover img {
     transform: none;
   }
 }

@@ -42,16 +42,16 @@
           <div>
             <p class="saved-breadcrumb"><span>RANDSA</span> / SAVED</p>
             <div class="saved-title-row">
-              <h1 id="saved-page-title">Saved properties</h1>
+              <h1 id="saved-page-title">Saved listings</h1>
               <span aria-hidden="true"><IonIcon :icon="heartOutline" /></span>
             </div>
-            <p>Your favorite properties now live here for quick return visits.</p>
+            <p>Your favorite marketplace listings now live here for quick return visits.</p>
           </div>
 
           <div class="saved-header-actions">
             <label class="sort-control">
               <span>Sort by</span>
-              <select v-model="sortMode" aria-label="Sort saved properties">
+              <select v-model="sortMode" aria-label="Sort saved listings">
                 <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
@@ -68,7 +68,7 @@
           </div>
         </header>
 
-        <section class="saved-summary" aria-label="Saved properties summary">
+        <section class="saved-summary" aria-label="Saved listings summary">
           <article v-for="stat in summaryStats" :key="stat.label">
             <span class="saved-summary__icon" :class="stat.tone" aria-hidden="true">
               <IonIcon :icon="stat.icon" />
@@ -83,7 +83,7 @@
         <div class="saved-mobile-controls">
           <label class="sort-control">
             <span>Sort by</span>
-            <select v-model="sortMode" aria-label="Sort saved properties">
+            <select v-model="sortMode" aria-label="Sort saved listings">
               <option v-for="option in sortOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
@@ -102,7 +102,7 @@
         <section
           v-if="isInitialLoading"
           class="saved-skeleton-grid"
-          aria-label="Loading saved properties"
+          aria-label="Loading saved listings"
         >
           <article v-for="index in 4" :key="index" class="saved-skeleton" aria-hidden="true">
             <span class="saved-skeleton__media" />
@@ -115,8 +115,8 @@
             ><IonIcon :icon="alertCircleOutline" aria-hidden="true"
           /></span>
           <div>
-            <h2>Saved properties could not be loaded</h2>
-            <p>Check your connection and try loading your saved properties again.</p>
+            <h2>Saved listings could not be loaded</h2>
+            <p>Check your connection and try loading your saved listings again.</p>
           </div>
           <button type="button" :disabled="isRetrying" @click="retryLoad">
             <IonSpinner v-if="isRetrying" name="crescent" aria-hidden="true" />
@@ -129,22 +129,19 @@
           <section
             v-if="visibleSavedItems.length"
             class="saved-desktop-grid"
-            aria-label="Saved property listings"
+            aria-label="Saved marketplace listings"
           >
             <article
               v-for="item in visibleSavedItems"
-              :key="item.property.id"
+              :key="item.record.id"
               class="saved-property-card"
             >
               <div class="saved-property-card__media">
-                <RouterLink
-                  :to="`/properties/${item.property.id}`"
-                  :aria-label="`View ${item.property.title}`"
-                >
+                <RouterLink :to="item.item.detailPath" :aria-label="`View ${item.item.title}`">
                   <img
-                    v-if="item.property.images[0]"
-                    :src="item.property.images[0]"
-                    :alt="`${item.property.title} property`"
+                    v-if="item.item.image"
+                    :src="item.item.image"
+                    :alt="item.item.title"
                     loading="lazy"
                     decoding="async"
                   />
@@ -156,7 +153,7 @@
                 <button
                   type="button"
                   class="saved-heart-button"
-                  :aria-label="`Remove ${item.property.title} from saved properties`"
+                  :aria-label="`Remove ${item.item.title} from saved listings`"
                   @click="openRemoveDialog(item)"
                 >
                   <IonIcon :icon="heart" aria-hidden="true" />
@@ -166,12 +163,10 @@
               <div class="saved-property-card__body">
                 <div class="saved-property-card__title-row">
                   <div>
-                    <RouterLink :to="`/properties/${item.property.id}`">{{
-                      item.property.title
-                    }}</RouterLink>
+                    <RouterLink :to="item.item.detailPath">{{ item.item.title }}</RouterLink>
                     <p>
                       <IonIcon :icon="locationOutline" aria-hidden="true" />{{
-                        propertyLocation(item.property)
+                        item.item.location || 'Location not added'
                       }}
                     </p>
                   </div>
@@ -180,13 +175,15 @@
                   </button>
                 </div>
                 <p class="saved-property-card__price">
-                  {{ formatCurrency(item.property.rentPrice) }}
-                  <span>/ {{ item.property.paymentDuration }}</span>
+                  {{ item.item.price }}
+                  <span v-if="item.item.paymentDuration">/ {{ item.item.paymentDuration }}</span>
                 </p>
                 <div class="saved-badges">
-                  <span class="is-type">{{ item.property.propertyType }}</span>
-                  <span :class="item.property.isAvailable ? 'is-available' : 'is-unavailable'">
-                    {{ item.property.isAvailable ? 'Available' : 'Unavailable' }}
+                  <span class="is-type">{{
+                    item.item.subcategoryName || item.item.categoryName
+                  }}</span>
+                  <span class="is-available">
+                    {{ item.item.availabilityLabel }}
                   </span>
                 </div>
               </div>
@@ -199,7 +196,7 @@
                     ><strong>{{ formatSavedDate(item.savedAt) }}</strong></span
                   >
                 </span>
-                <RouterLink :to="`/properties/${item.property.id}`">
+                <RouterLink :to="item.item.detailPath">
                   View details <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
                 </RouterLink>
               </footer>
@@ -209,18 +206,18 @@
           <section
             v-if="visibleSavedItems.length"
             class="saved-mobile-list"
-            aria-label="Saved property listings"
+            aria-label="Saved marketplace listings"
           >
-            <article v-for="item in visibleSavedItems" :key="item.property.id">
+            <article v-for="item in visibleSavedItems" :key="item.record.id">
               <RouterLink
-                :to="`/properties/${item.property.id}`"
+                :to="item.item.detailPath"
                 class="saved-mobile-item__media"
-                :aria-label="`View ${item.property.title}`"
+                :aria-label="`View ${item.item.title}`"
               >
                 <img
-                  v-if="item.property.images[0]"
-                  :src="item.property.images[0]"
-                  :alt="`${item.property.title} property`"
+                  v-if="item.item.image"
+                  :src="item.item.image"
+                  :alt="item.item.title"
                   loading="lazy"
                   decoding="async"
                 />
@@ -231,12 +228,10 @@
 
               <div class="saved-mobile-item__content">
                 <div class="saved-mobile-item__heading">
-                  <RouterLink :to="`/properties/${item.property.id}`">{{
-                    item.property.title
-                  }}</RouterLink>
+                  <RouterLink :to="item.item.detailPath">{{ item.item.title }}</RouterLink>
                   <button
                     type="button"
-                    :aria-label="`Remove ${item.property.title} from saved properties`"
+                    :aria-label="`Remove ${item.item.title} from saved listings`"
                     @click="openRemoveDialog(item)"
                   >
                     <IonIcon :icon="heart" aria-hidden="true" />
@@ -244,17 +239,21 @@
                 </div>
                 <p class="saved-mobile-location">
                   <IonIcon :icon="locationOutline" aria-hidden="true" />{{
-                    propertyLocation(item.property)
+                    item.item.location || 'Location not added'
                   }}
                 </p>
                 <p class="saved-mobile-price">
-                  {{ formatCurrency(item.property.rentPrice) }} /
-                  {{ item.property.paymentDuration }}
+                  {{ item.item.price }}
+                  <template v-if="item.item.paymentDuration">
+                    / {{ item.item.paymentDuration }}</template
+                  >
                 </p>
                 <div class="saved-badges">
-                  <span class="is-type">{{ item.property.propertyType }}</span>
-                  <span :class="item.property.isAvailable ? 'is-available' : 'is-unavailable'">
-                    {{ item.property.isAvailable ? 'Available' : 'Unavailable' }}
+                  <span class="is-type">{{
+                    item.item.subcategoryName || item.item.categoryName
+                  }}</span>
+                  <span class="is-available">
+                    {{ item.item.availabilityLabel }}
                   </span>
                 </div>
               </div>
@@ -273,7 +272,7 @@
               ><IonIcon :icon="funnelOutline" aria-hidden="true"
             /></span>
             <div>
-              <h2>No saved properties match these filters</h2>
+              <h2>No saved listings match these filters</h2>
               <p>Clear your filters to return to your full saved list.</p>
             </div>
             <button type="button" @click="clearAppliedFilters">Clear filters</button>
@@ -285,10 +284,10 @@
               <IonIcon :icon="heart" />
             </span>
             <div>
-              <h2>No more saved properties yet?</h2>
-              <p>Explore listings and save the properties you want to revisit.</p>
+              <h2>No more saved listings yet?</h2>
+              <p>Browse the marketplace and save the listings you want to revisit.</p>
             </div>
-            <RouterLink to="/properties">Explore properties</RouterLink>
+            <RouterLink to="/home#listings">Browse listings</RouterLink>
           </section>
         </template>
 
@@ -297,13 +296,12 @@
             <IonIcon :icon="businessOutline" />
             <span><IonIcon :icon="heart" /></span>
           </div>
-          <h2>No saved properties yet?</h2>
+          <h2>No saved listings yet?</h2>
           <p>
-            Explore listings and tap the heart icon to save properties you love. They will appear
-            here.
+            Browse listings and tap the heart icon to save items you love. They will appear here.
           </p>
-          <RouterLink to="/properties">
-            <IonIcon :icon="searchOutline" aria-hidden="true" /> Explore properties
+          <RouterLink to="/home#listings">
+            <IonIcon :icon="searchOutline" aria-hidden="true" /> Browse listings
           </RouterLink>
         </section>
       </main>
@@ -340,11 +338,11 @@
 
             <div class="saved-filter-fields">
               <label>
-                <span>Property type</span>
-                <select v-model="filterDraft.propertyType">
-                  <option value="all">All property types</option>
-                  <option v-for="type in propertyTypeOptions" :key="type" :value="type">
-                    {{ type }}
+                <span>Category</span>
+                <select v-model="filterDraft.categoryId">
+                  <option value="all">All categories</option>
+                  <option v-for="category in categoryOptions" :key="category" :value="category">
+                    {{ category }}
                   </option>
                 </select>
               </label>
@@ -426,8 +424,8 @@
               ><IonIcon :icon="trashOutline"
             /></span>
             <h2 id="remove-saved-title">Remove from saved?</h2>
-            <p id="remove-saved-description">This property will be removed from your saved list.</p>
-            <strong>{{ pendingRemoval.property.title }}</strong>
+            <p id="remove-saved-description">This listing will be removed from your saved list.</p>
+            <strong>{{ pendingRemoval.item.title }}</strong>
             <footer>
               <button type="button" :disabled="isRemoving" @click="closeRemoveDialog">
                 Cancel
@@ -478,7 +476,6 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
-  eyeOutline,
   funnelOutline,
   heart,
   heartOutline,
@@ -488,7 +485,6 @@ import {
   personOutline,
   refreshOutline,
   searchOutline,
-  timeOutline,
   trashOutline,
 } from 'ionicons/icons'
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
@@ -497,23 +493,30 @@ import { RouterLink, useRoute } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import AppBottomNav from '../components/navigation/AppBottomNav.vue'
 import { useAuth } from '../composables/useAuth'
+import { useListings } from '../composables/useListings'
 import { useProperties } from '../composables/useProperties'
 import { useSavedProperties } from '../composables/useSavedProperties'
+import { designedMarketplacePropertyRecords } from '../data/designedMarketplaceProperties'
+import {
+  listingToMarketplaceItem,
+  propertyToMarketplaceItem,
+} from '../services/marketplaceDiscovery'
 import type { SavedPropertyRecord } from '../services/savedProperties'
-import type { PropertyRecord, PropertyType } from '../types/property'
+import type { MarketplaceDiscoveryItem } from '../types/marketplace'
+import { savedItemKey } from '../utils/savedRecords'
 
 type SortMode = 'newest' | 'oldest' | 'price-low' | 'price-high' | 'name-asc' | 'name-desc'
 type AvailabilityFilter = 'all' | 'available' | 'unavailable'
 type SavedPeriodFilter = 'all' | '7' | '30' | '90'
 
 interface SavedItem {
-  property: PropertyRecord
+  item: MarketplaceDiscoveryItem
   record: SavedPropertyRecord
   savedAt: string
 }
 
 interface SavedFilters {
-  propertyType: PropertyType | 'all'
+  categoryId: string
   location: string
   availability: AvailabilityFilter
   savedPeriod: SavedPeriodFilter
@@ -530,7 +533,19 @@ const {
   error: propertyLoadError,
   refresh: refreshProperties,
 } = useProperties()
-const { refresh: refreshSaved, savedRecords, toggleSavedProperty } = useSavedProperties()
+const {
+  publicListings,
+  isLoading: areListingsLoading,
+  refreshPublic: refreshPublicListings,
+} = useListings()
+const {
+  refresh: refreshSaved,
+  savedRecords,
+  toggleSavedItem,
+  isLoading: areSavedRecordsLoading,
+  hasLoaded: haveSavedRecordsLoaded,
+  error: savedRecordsError,
+} = useSavedProperties()
 
 const sortMode = ref<SortMode>('newest')
 const isFiltersOpen = ref(false)
@@ -546,7 +561,7 @@ let toastTimer: number | null = null
 let previousBodyOverflow = ''
 
 const createEmptyFilters = (): SavedFilters => ({
-  propertyType: 'all',
+  categoryId: 'all',
   location: 'all',
   availability: 'all',
   savedPeriod: 'all',
@@ -571,10 +586,10 @@ const sidebarItems = computed(() => [
   ...(canManageProperties.value
     ? [
         {
-          label: 'Add property',
-          to: '/add-property',
+          label: 'Post Listing',
+          to: '/post-listing',
           icon: addCircleOutline,
-          matchers: ['/add-property', '/edit-property'],
+          matchers: ['/post-listing', '/add-property', '/edit-property', '/edit-listing'],
         },
       ]
     : []),
@@ -585,7 +600,7 @@ const sidebarItems = computed(() => [
     matchers: ['/my-bookings', '/booking'],
   },
   {
-    label: 'Saved Properties',
+    label: 'Saved listings',
     to: '/saved-properties',
     icon: bookmarkOutline,
     matchers: ['/saved-properties'],
@@ -601,27 +616,36 @@ const sidebarItems = computed(() => [
 ])
 
 const savedItems = computed<SavedItem[]>(() => {
-  const propertyMap = new Map(properties.value.map((property) => [property.id, property]))
+  const marketplaceItems = [
+    ...designedMarketplacePropertyRecords.map((property) =>
+      propertyToMarketplaceItem(property, { source: 'fallback' })
+    ),
+    ...properties.value.map((property) => propertyToMarketplaceItem(property)),
+    ...publicListings.value.map(listingToMarketplaceItem),
+  ]
+  const itemMap = new Map(
+    marketplaceItems.map((item) => [savedItemKey(item.id, item.saveSource), item])
+  )
   return savedRecords.value.flatMap((record) => {
-    const savedProperty = propertyMap.get(record.propertyId)
-    return savedProperty ? [{ property: savedProperty, record, savedAt: record.createdAt }] : []
+    const savedItem = itemMap.get(savedItemKey(record.propertyId, record.source))
+    return savedItem ? [{ item: savedItem, record, savedAt: record.createdAt }] : []
   })
 })
 
-const propertyTypeOptions = computed(() =>
-  [...new Set(savedItems.value.map((item) => item.property.propertyType))].sort((left, right) =>
+const categoryOptions = computed(() =>
+  [...new Set(savedItems.value.map((item) => item.item.categoryName))].sort((left, right) =>
     left.localeCompare(right)
   )
 )
 const locationOptions = computed(() =>
-  [...new Set(savedItems.value.map((item) => item.property.state).filter(Boolean))].sort(
+  [...new Set(savedItems.value.map((item) => item.item.state).filter(Boolean))].sort(
     (left, right) => left.localeCompare(right)
   )
 )
 const activeFilterCount = computed(() => {
   const filters = appliedFilters.value
   return [
-    filters.propertyType !== 'all',
+    filters.categoryId !== 'all',
     filters.location !== 'all',
     filters.availability !== 'all',
     filters.savedPeriod !== 'all',
@@ -633,16 +657,17 @@ const visibleSavedItems = computed(() => {
   const filters = appliedFilters.value
   const now = Date.now()
   const filtered = savedItems.value.filter((item) => {
-    if (filters.propertyType !== 'all' && item.property.propertyType !== filters.propertyType)
+    if (filters.categoryId !== 'all' && item.item.categoryName !== filters.categoryId) return false
+    if (filters.location !== 'all' && item.item.state !== filters.location) return false
+    if (filters.availability === 'available' && item.item.availabilityLabel === 'Unavailable')
       return false
-    if (filters.location !== 'all' && item.property.state !== filters.location) return false
-    if (filters.availability === 'available' && !item.property.isAvailable) return false
-    if (filters.availability === 'unavailable' && item.property.isAvailable) return false
-    if (filters.minPrice !== null && item.property.rentPrice < filters.minPrice) return false
+    if (filters.availability === 'unavailable' && item.item.availabilityLabel !== 'Unavailable')
+      return false
+    if (filters.minPrice !== null && item.item.numericPrice < filters.minPrice) return false
     if (
       filters.maxPrice !== null &&
       filters.maxPrice > 0 &&
-      item.property.rentPrice > filters.maxPrice
+      item.item.numericPrice > filters.maxPrice
     )
       return false
     if (filters.savedPeriod !== 'all') {
@@ -654,28 +679,52 @@ const visibleSavedItems = computed(() => {
 
   return [...filtered].sort((left, right) => {
     if (sortMode.value === 'oldest') return left.savedAt.localeCompare(right.savedAt)
-    if (sortMode.value === 'price-low') return left.property.rentPrice - right.property.rentPrice
-    if (sortMode.value === 'price-high') return right.property.rentPrice - left.property.rentPrice
-    if (sortMode.value === 'name-asc')
-      return left.property.title.localeCompare(right.property.title)
-    if (sortMode.value === 'name-desc')
-      return right.property.title.localeCompare(left.property.title)
+    if (sortMode.value === 'price-low') return left.item.numericPrice - right.item.numericPrice
+    if (sortMode.value === 'price-high') return right.item.numericPrice - left.item.numericPrice
+    if (sortMode.value === 'name-asc') return left.item.title.localeCompare(right.item.title)
+    if (sortMode.value === 'name-desc') return right.item.title.localeCompare(left.item.title)
     return right.savedAt.localeCompare(left.savedAt)
   })
 })
 const summaryStats = computed(() => [
   {
-    label: 'Saved properties',
+    label: 'Saved listings',
     value: savedItems.value.length,
     icon: heartOutline,
     tone: 'is-blue',
   },
-  { label: 'Viewed this week', value: 0, icon: calendarOutline, tone: 'is-green' },
-  { label: 'Shortlisted', value: 0, icon: eyeOutline, tone: 'is-amber' },
-  { label: 'Recently removed', value: 0, icon: timeOutline, tone: 'is-purple' },
+  {
+    label: 'Saved this week',
+    value: savedItems.value.filter(
+      (item) => new Date(item.savedAt).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000
+    ).length,
+    icon: calendarOutline,
+    tone: 'is-green',
+  },
+  {
+    label: 'Properties',
+    value: savedItems.value.filter((item) => item.record.source === 'property').length,
+    icon: homeOutline,
+    tone: 'is-amber',
+  },
+  {
+    label: 'Marketplace',
+    value: savedItems.value.filter((item) => item.record.source === 'listing').length,
+    icon: businessOutline,
+    tone: 'is-purple',
+  },
 ])
-const isInitialLoading = computed(() => !havePropertiesLoaded.value && arePropertiesLoading.value)
-const hasLoadError = computed(() => !havePropertiesLoaded.value && Boolean(propertyLoadError.value))
+const isInitialLoading = computed(
+  () =>
+    (!havePropertiesLoaded.value && arePropertiesLoading.value) ||
+    areListingsLoading.value ||
+    (!haveSavedRecordsLoaded.value && areSavedRecordsLoading.value)
+)
+const hasLoadError = computed(
+  () =>
+    Boolean(savedRecordsError.value) ||
+    (!havePropertiesLoaded.value && Boolean(propertyLoadError.value))
+)
 const profileInitial = computed(() =>
   (state.profile?.fullName || state.profile?.email || 'R').trim().charAt(0).toUpperCase()
 )
@@ -687,7 +736,15 @@ const isAnyDialogOpen = computed(() => isFiltersOpen.value || Boolean(pendingRem
 
 watch(
   () => state.profile?.uid,
-  (userId) => refreshSaved(userId),
+  async (userId) => {
+    if (!userId) {
+      await refreshSaved(userId)
+      return
+    }
+    await Promise.all([refreshSaved(userId), refreshProperties(), refreshPublicListings()]).catch(
+      () => undefined
+    )
+  },
   { immediate: true }
 )
 
@@ -709,10 +766,13 @@ onBeforeUnmount(() => {
 async function retryLoad() {
   isRetrying.value = true
   try {
-    await refreshProperties()
-    refreshSaved(state.profile?.uid)
+    await Promise.all([
+      refreshSaved(state.profile?.uid),
+      refreshProperties(),
+      refreshPublicListings(),
+    ])
   } catch {
-    showToast('Saved properties could not be loaded. Please try again.', 'is-error')
+    showToast('Saved listings could not be loaded. Please try again.', 'is-error')
   } finally {
     isRetrying.value = false
   }
@@ -774,12 +834,12 @@ async function confirmRemove() {
   if (!item || isRemoving.value) return
   isRemoving.value = true
   try {
-    await toggleSavedProperty(state.profile?.uid, item.property)
+    await toggleSavedItem(state.profile?.uid, item.item)
     pendingRemoval.value = null
-    showToast('Property removed from saved properties.', 'is-success')
+    showToast('Listing removed from saved items.', 'is-success')
     restoreFocus()
   } catch {
-    showToast('The property could not be removed. Please try again.', 'is-error')
+    showToast('The listing could not be removed. Please try again.', 'is-error')
   } finally {
     isRemoving.value = false
   }
@@ -845,21 +905,6 @@ function dismissToast() {
 
 function isNavigationActive(matchers: string[]) {
   return matchers.some((matcher) => route.path === matcher || route.path.startsWith(`${matcher}/`))
-}
-
-function propertyLocation(property: PropertyRecord) {
-  return (
-    [property.area, property.city, property.state].filter(Boolean).join(', ') ||
-    'Location unavailable'
-  )
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(value)
 }
 
 function formatSavedDate(value: string) {

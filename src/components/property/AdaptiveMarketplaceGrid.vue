@@ -4,15 +4,17 @@
     class="adaptive-marketplace-grid"
     :class="`adaptive-marketplace-grid--${displayMode}`"
     role="list"
-    aria-label="Property listings"
+    aria-label="Marketplace listings"
   >
     <MarketplaceListingCard
       v-for="item in resolvedListings"
       :key="item.listing.key"
       :listing="item.listing"
       :layout="item.layout"
-      :is-saved="Boolean(item.listing.id && savedPropertyIds.has(item.listing.id))"
-      :is-compared="Boolean(item.listing.id && comparedPropertyIds?.has(item.listing.id))"
+      :is-saved="savedPropertyIds.has(item.listing.id)"
+      :is-compared="
+        Boolean(item.listing.propertyRecord && comparedPropertyIds?.has(item.listing.id))
+      "
       :is-highlighted="item.listing.id === highlightedPropertyId"
       :is-saving="isSaving"
       :show-listing-actions="showListingActions"
@@ -28,30 +30,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import type { PropertyRecord } from '../../types/property'
+import type { MarketplaceDiscoveryItem } from '../../types/marketplace'
 import MarketplaceListingCard from './MarketplaceListingCard.vue'
 
 type MarketplaceVariant = 'property' | 'car' | 'event' | 'horse' | 'office'
 type ImageRatio = '16 / 9' | '3 / 2' | '4 / 3' | '1 / 1' | '4 / 5'
-
-interface MarketplaceListing {
-  key: string
-  id: string | null
-  title: string
-  location: string
-  beds: number
-  parking: number
-  baths: number
-  price: string
-  numericPrice: number
-  paymentDuration: string
-  propertyType: string
-  isAvailable: boolean
-  image: string
-  shopSize?: string
-  canSpanWide: boolean
-  record: PropertyRecord | null
-}
 
 interface ListingLayout {
   variant: MarketplaceVariant
@@ -67,7 +50,7 @@ interface ListingLayout {
 
 const props = withDefaults(
   defineProps<{
-    listings: MarketplaceListing[]
+    listings: MarketplaceDiscoveryItem[]
     savedPropertyIds: Set<string>
     comparedPropertyIds?: Set<string>
     highlightedPropertyId?: string
@@ -84,9 +67,9 @@ const props = withDefaults(
 )
 
 defineEmits<{
-  'toggle-saved': [property: PropertyRecord]
-  'quick-view': [property: PropertyRecord]
-  'toggle-compare': [property: PropertyRecord]
+  'toggle-saved': [item: MarketplaceDiscoveryItem]
+  'quick-view': [item: MarketplaceDiscoveryItem]
+  'toggle-compare': [item: MarketplaceDiscoveryItem]
   highlight: [propertyId: string]
 }>()
 
@@ -102,7 +85,7 @@ const resolvedListings = computed(() => {
   const narrowWideIndex = props.listings.findIndex((listing) => listing.canSpanWide)
 
   return props.listings.map((listing, index) => {
-    const variant = resolveVariant(`${listing.propertyType} ${listing.title}`.toLowerCase())
+    const variant = resolveVariant(listing)
     const desktopPosition = desktopWideCards.get(index) ?? null
     const largeDesktopPosition = largeDesktopWideCards.get(index) ?? null
     const useDesktopWideLayout = desktopPosition !== null
@@ -145,7 +128,13 @@ onBeforeUnmount(() => {
   if (layoutFrame !== null) window.cancelAnimationFrame(layoutFrame)
 })
 
-function resolveVariant(identity: string): MarketplaceVariant {
+function resolveVariant(listing: MarketplaceDiscoveryItem): MarketplaceVariant {
+  const identity = `${listing.subcategoryName} ${listing.title}`.toLowerCase()
+  if (listing.categoryId === 'vehicles') return 'car'
+  if (listing.categoryId === 'leisure-activities') {
+    return /\b(horse|equestrian)\b/.test(identity) ? 'horse' : 'event'
+  }
+  if (listing.categoryId !== 'property') return 'property'
   if (/\b(car|vehicle|suv|sedan)\b/.test(identity)) return 'car'
   if (/\b(event|venue|hall|marquee)\b/.test(identity)) return 'event'
   if (/\b(horse|equestrian)\b/.test(identity)) return 'horse'
@@ -153,7 +142,11 @@ function resolveVariant(identity: string): MarketplaceVariant {
   return 'property'
 }
 
-function resolveWideCards(listings: MarketplaceListing[], columnCount: 4 | 5, wideLimit: number) {
+function resolveWideCards(
+  listings: MarketplaceDiscoveryItem[],
+  columnCount: 4 | 5,
+  wideLimit: number
+) {
   const wideCards = new Map<number, 'left' | 'right'>()
   if (!wideLimit) return wideCards
 
@@ -235,6 +228,8 @@ function updateMasonryRows() {
       const cardLayout = resolveRenderedCardLayout(card, columnCount)
       const span = Math.min(cardLayout.span, columnCount)
 
+      card.classList.remove('marketplace-card--masonry-filled')
+      card.style.removeProperty('--marketplace-card-masonry-fill')
       card.classList.toggle('marketplace-card--rendered-wide', span === 2)
       card.style.gridColumn = `span ${span}`
       card.style.gridRow = 'auto'
@@ -248,6 +243,12 @@ function updateMasonryRows() {
   })
 
   const columnEndRows = Array.from({ length: columnCount }, () => 1)
+  const columnTailCards: Array<{ card: HTMLElement; span: number } | null> = Array.from(
+    { length: columnCount },
+    () => null
+  )
+  const cardPlacements = new Map<HTMLElement, { rowStart: number; rowSpan: number }>()
+  const masonryFillRows = new Map<HTMLElement, number>()
   let columnCursor = 0
 
   measurements.forEach(({ card, cardLayout, span, rowSpan }) => {
@@ -261,14 +262,39 @@ function updateMasonryRows() {
     const rowStart = Math.max(...columnEndRows.slice(columnStart, columnStart + span))
     const nextColumnEnd = rowStart + rowSpan
 
+    if (span === 2) {
+      for (let column = columnStart; column < columnStart + span; column += 1) {
+        const missingRows = rowStart - columnEndRows[column]
+        const tailCard = columnTailCards[column]
+
+        if (missingRows > 0 && tailCard?.span === 1) {
+          masonryFillRows.set(
+            tailCard.card,
+            Math.max(masonryFillRows.get(tailCard.card) ?? 0, missingRows)
+          )
+        }
+      }
+    }
+
     card.style.gridColumn = `${columnStart + 1} / span ${span}`
     card.style.gridRow = `${rowStart} / span ${rowSpan}`
+    cardPlacements.set(card, { rowStart, rowSpan })
 
     for (let column = columnStart; column < columnStart + span; column += 1) {
       columnEndRows[column] = nextColumnEnd
+      columnTailCards[column] = { card, span }
     }
 
     columnCursor = (columnStart + span) % columnCount
+  })
+
+  masonryFillRows.forEach((fillRows, card) => {
+    const placement = cardPlacements.get(card)
+    if (!placement) return
+
+    card.classList.add('marketplace-card--masonry-filled')
+    card.style.setProperty('--marketplace-card-masonry-fill', `${fillRows * rowHeight}px`)
+    card.style.gridRow = `${placement.rowStart} / span ${placement.rowSpan + fillRows}`
   })
 }
 

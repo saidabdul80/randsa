@@ -7,20 +7,25 @@
         <div>
           <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Map picker</p>
           <p class="mt-2 text-sm leading-6 text-mist dark:text-slate-300">
-            Tap the map or drag the marker to place the property accurately. OpenStreetMap is the
+            Tap the map or drag the marker to place the listing accurately. OpenStreetMap is the
             current free tile provider, and the tile source can be swapped later if needed.
           </p>
         </div>
         <button
           type="button"
           class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-          @click="resetToDefaultCenter"
+          @click="recenterMap"
         >
-          Reset map center
+          Recenter map
         </button>
       </div>
 
-      <div ref="mapElement" class="mt-4 h-80 overflow-hidden rounded-[24px]" />
+      <div
+        ref="mapElement"
+        class="mt-4 h-80 overflow-hidden rounded-[24px]"
+        role="application"
+        aria-label="Listing location map picker"
+      />
 
       <div class="mt-4 grid gap-4 sm:grid-cols-2">
         <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -28,7 +33,10 @@
           <input
             :value="latitude ?? ''"
             type="number"
+            :min="MIN_LATITUDE"
+            :max="MAX_LATITUDE"
             step="any"
+            :aria-invalid="Boolean(coordinateError)"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             @input="handleCoordinateInput('latitude', $event)"
           />
@@ -38,12 +46,19 @@
           <input
             :value="longitude ?? ''"
             type="number"
+            :min="MIN_LONGITUDE"
+            :max="MAX_LONGITUDE"
             step="any"
+            :aria-invalid="Boolean(coordinateError)"
             class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-400 dark:border-slate-700 dark:bg-slate-950"
             @input="handleCoordinateInput('longitude', $event)"
           />
         </label>
       </div>
+
+      <p v-if="coordinateError" class="mt-3 text-sm font-semibold text-red-600" role="alert">
+        {{ coordinateError }}
+      </p>
 
       <div
         class="mt-4 rounded-[20px] bg-slate-50 px-4 py-4 text-sm text-slate-700 dark:bg-slate-900/70 dark:text-slate-200"
@@ -64,11 +79,17 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vu
 import {
   configureLeafletAssets,
   createOsmTileLayer,
-  defaultMapCenter,
   defaultPickerZoom,
   getMapCenter,
   hasCoordinates,
 } from '../../lib/map'
+import {
+  getCoordinateValidationError,
+  MAX_LATITUDE,
+  MAX_LONGITUDE,
+  MIN_LATITUDE,
+  MIN_LONGITUDE,
+} from '../../utils/coordinates'
 
 const props = defineProps<{
   latitude: number | null
@@ -87,6 +108,11 @@ const emit = defineEmits<{
 const mapElement = ref<HTMLDivElement | null>(null)
 const map = shallowRef<L.Map | null>(null)
 const marker = shallowRef<L.Marker | null>(null)
+let resizeObserver: ResizeObserver | null = null
+
+const coordinateError = computed(() =>
+  getCoordinateValidationError(props.latitude, props.longitude)
+)
 
 const locationSummary = computed(() => {
   const parts = [props.address, props.area, props.city, props.state]
@@ -129,9 +155,17 @@ onMounted(() => {
   })
 
   syncMarker()
+  requestAnimationFrame(() => map.value?.invalidateSize())
+
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => map.value?.invalidateSize())
+    resizeObserver.observe(mapElement.value)
+  }
 })
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
   map.value?.remove()
   map.value = null
   marker.value = null
@@ -144,10 +178,11 @@ watch(
   }
 )
 
-function resetToDefaultCenter() {
-  emit('update:latitude', defaultMapCenter[0])
-  emit('update:longitude', defaultMapCenter[1])
-  map.value?.setView(defaultMapCenter, defaultPickerZoom)
+function recenterMap() {
+  map.value?.setView(
+    getMapCenter(props.latitude, props.longitude),
+    hasCoordinates(props.latitude, props.longitude) ? 15 : defaultPickerZoom
+  )
 }
 
 function handleCoordinateInput(field: 'latitude' | 'longitude', event: Event) {

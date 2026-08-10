@@ -103,9 +103,15 @@
     </div>
 
     <div v-if="normalizedImages.length" class="property-gallery__overlays">
-      <span class="property-gallery__status" :class="{ 'is-unavailable': !isAvailable }">
+      <span
+        class="property-gallery__status"
+        :class="{
+          'is-booking': isAvailable && availabilityLabel === 'Booking',
+          'is-unavailable': !isAvailable,
+        }"
+      >
         <span aria-hidden="true" />
-        {{ isAvailable ? 'Available' : 'Unavailable' }}
+        {{ isAvailable ? availabilityLabel : 'Unavailable' }}
       </span>
       <span class="property-gallery__counter">
         {{ activeIndex + 1 }} / {{ normalizedImages.length }}
@@ -145,11 +151,17 @@ import { computed, ref, watch } from 'vue'
 
 import PropertyLightbox from './PropertyLightbox.vue'
 
-const props = defineProps<{
-  images: string[]
-  title: string
-  isAvailable: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    images: string[]
+    title: string
+    isAvailable: boolean
+    availabilityLabel?: 'Available' | 'Booking'
+  }>(),
+  {
+    availabilityLabel: 'Available',
+  }
+)
 
 const activeIndex = ref(0)
 const isLightboxOpen = ref(false)
@@ -349,6 +361,10 @@ function handlePointerUp(event: PointerEvent) {
 
 .property-gallery__status.is-unavailable span {
   background: rgb(245 158 11);
+}
+
+.property-gallery__status.is-booking span {
+  background: rgb(220 38 38);
 }
 
 .property-gallery__view-all {

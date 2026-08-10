@@ -1,362 +1,224 @@
 # RANDSA Final Deliverables
 
-## 1. Complete Folder Structure
+## Product Delivered
 
-High-signal project structure:
+RANDSA is now a unified rental and marketplace application rather than a property-only
+platform. Every active registered account can publish listings. Legacy roles remain
+readable for migration compatibility, but they do not control posting access. The admin
+role remains privileged and is never selectable during registration.
+
+## Application Structure
 
 ```text
-RANDSA
-├── src
-│   ├── assets
-│   ├── components
-│   │   ├── layout
-│   │   ├── map
-│   │   ├── navigation
-│   │   ├── profile
-│   │   ├── property
-│   │   └── verification
-│   ├── composables
-│   ├── lib
-│   ├── router
-│   ├── services
-│   ├── theme
-│   ├── types
-│   └── views
-├── public
-│   ├── firebase-messaging-sw.js
-│   └── firebaseseetings
-├── functions
-│   ├── index.js
-│   └── package.json
-├── firestore.rules
-├── firestore.indexes.json
-├── storage.rules
-├── firebase.json
-├── PROJECT_PLAN.md
-├── TASK_CHECKLIST.md
-└── README.md
+RANDSA/
+|-- src/
+|   |-- components/
+|   |   |-- auth/
+|   |   |-- booking/
+|   |   |-- layout/
+|   |   |-- listing-form/
+|   |   |-- map/
+|   |   |-- navigation/
+|   |   |-- notifications/
+|   |   |-- profile/
+|   |   `-- property/
+|   |-- composables/
+|   |-- config/
+|   |-- data/
+|   |-- lib/
+|   |-- router/
+|   |-- services/
+|   |-- types/
+|   |-- utils/
+|   `-- views/
+|-- functions/
+|   |-- index.js
+|   |-- booking-engine.js
+|   |-- notification-engine.js
+|   |-- payment-engine.js
+|   `-- test/
+|-- public/firebase-messaging-sw.js
+|-- docs/
+|-- firestore.rules
+|-- firestore.indexes.json
+|-- storage.rules
+|-- firebase.json
+`-- package.json
 ```
 
-Detailed app folders:
+## Major User Flows
 
-- `src/views`: app pages
-- `src/components/property`: listing form, uploader, filters, sort, field groups
-- `src/components/map`: map preview and location picker
-- `src/components/verification`: verification document upload UI
-- `src/services`: business logic and storage/data access
-- `src/composables`: shared state wrappers for auth, properties, payments, bookings, notifications, verification, saved properties
-- `src/lib`: Firebase bootstrapping, Paystack loader, map config, image compression, messaging
+### Authentication and Accounts
 
-## 2. Firebase Setup Guide
+- Email/password and Google authentication
+- Popup-to-redirect fallback for Google sign-in
+- Safe internal return-path validation
+- Firestore profile completion
+- Active, suspended, and disabled account handling
+- Unified account access for posting
+- Optional professional verification
+- Admin-only moderation routes and data access
 
-Use the full setup guide in [docs/FIREBASE_SETUP.md](./docs/FIREBASE_SETUP.md).
+### Marketplace Listings
 
-Short version:
+- Category and subcategory selection
+- Reusable six-step listing wizard
+- Dynamic category-specific fields
+- Draft save and restore
+- Public media and private PDF handling
+- Owner editing, deletion, and status management
+- Admin approval and rejection
+- Responsive marketplace discovery cards
+- Search, category, price, availability, and category-specific filters
+- Saved listings, comparison, quick view, and recently viewed history
 
-1. Create or select your Firebase project
-2. Enable:
-   - Authentication
-   - Firestore
-   - Storage
-   - Cloud Functions
-   - Cloud Messaging
-3. Fill `.env.local`
-4. Install Functions dependencies:
-   - `cd functions`
-   - `npm.cmd install`
-5. Set the Paystack secret:
-   - `firebase functions:secrets:set PAYSTACK_SECRET_KEY`
-6. Deploy:
-   - `firebase deploy --only firestore:rules,firestore:indexes,storage`
-   - `firebase deploy --only functions`
+### Booking and Payments
 
-## 3. Firestore Collection Structure
+- Adaptive booking modes for inspection, overnight, hourly, daily, service, and purchase flows
+- Backend booking availability and conflict checks
+- Backend-authoritative booking creation
+- Booking cancellation and reminder fields
+- Backend-created Paystack references
+- Amount, currency, email, metadata, and ownership verification
+- Signed Paystack webhook handling
+- Atomic payment and related booking updates
 
-Implemented and planned structure:
+### Notifications
 
-### `users/{userId}`
+- In-app notification inbox
+- FCM browser token registration
+- Foreground and service-worker notification handling
+- Backend notification creation
+- Hourly inspection reminder schedule
+- Manual reminder scan for live verification
+- Duplicate prevention and stale-token cleanup
 
-```ts
-{
-  ;(fullName, email, phone, role, photoURL, isVerifiedAgent, verificationStatus, createdAt)
-}
+### Administration
+
+- Property and universal listing moderation
+- Verification review
+- Firebase-mode user listing
+- Booking and payment visibility
+- Notification and activity summaries
+- Account role/status controls protected by Firestore rules
+
+## Main Routes
+
+```text
+/home
+/login
+/register
+/post-listing
+/edit-listing/:listingId
+/my-listings
+/listings/:listingId
+/properties/:propertyId
+/saved-properties
+/booking/:propertyId?
+/my-bookings
+/payment/:propertyId?
+/notifications
+/agent-verification
+/profile
+/admin
 ```
 
-### `users/{userId}/tokens/{tokenId}`
+`/add-property` remains an alias for `/post-listing`, and `/properties` redirects to the
+marketplace section on Home.
 
-```ts
-{
-  ;(userId, token, device, createdAt)
-}
+## Firebase Data Model
+
+### Core collections
+
+- `users/{userId}`: profile, admin-compatible legacy role, verification, and account status
+- `users/{userId}/tokens/{tokenId}`: FCM token, device label, and creation timestamp
+- `listings/{listingId}`: universal public/moderation listing data
+- `listingPrivate/{listingId}`: owner-only private document URL and metadata
+- `properties/{propertyId}`: legacy property records kept for compatibility
+- `savedProperties/{savedId}`: source-aware saved property or universal listing identity
+- `bookings/{bookingId}`: booking mode, schedule, status, payment status, and reminder state
+- `payments/{paymentId}`: backend reference, amount, type, status, and verification metadata
+- `notifications/{notificationId}`: inbox and delivery metadata
+- `agentVerifications/{verificationId}`: optional professional verification submission
+
+### Storage paths
+
+```text
+users/{userId}/{fileName}
+agent-verifications/{userId}/{fileName}
+properties/{ownerId}/{propertyId}/{fileName}
+listings/{ownerId}/{listingId}/{fileName}
+listing-private/{ownerId}/{listingId}/{fileName}
 ```
 
-### `properties/{propertyId}`
+Uploads are restricted by ownership, supported content type, a 2 MB size limit, and safe
+file names. Public reads are limited to approved/active listing media. The universal
+listing owner upload path intentionally avoids a Firestore profile lookup so authenticated
+owner uploads remain reliable; the final Firestore listing write still requires an active
+account.
 
-```ts
-{
-  ;(title,
-    description,
-    category,
-    propertyType,
-    rentPrice,
-    cautionFee,
-    agencyFee,
-    inspectionFee,
-    paymentDuration,
-    state,
-    city,
-    area,
-    address,
-    latitude,
-    longitude,
-    bedrooms,
-    bathrooms,
-    toilets,
-    shopSize,
-    roadAccess,
-    marketArea,
-    electricityAvailability,
-    security,
-    waterAccess,
-    kitchen,
-    parking,
-    water,
-    electricity,
-    amenities,
-    images,
-    ownerId,
-    ownerRole,
-    ownerPhone,
-    status,
-    isAvailable,
-    createdAt,
-    updatedAt)
-}
-```
+## Cloud Functions
 
-### `agentVerifications/{verificationId}`
+Implemented exports in `functions/index.js`:
 
-```ts
-{
-  ;(agentId,
-    fullName,
-    phone,
-    whatsappNumber,
-    officeAddress,
-    profilePhoto,
-    idDocument,
-    cacDocument,
-    authorizationDocument,
-    status,
-    adminNote,
-    submittedAt,
-    reviewedAt)
-}
-```
-
-### `payments/{paymentId}`
-
-```ts
-{
-  ;(userId,
-    propertyId,
-    agentId,
-    propertyTitle,
-    payerName,
-    payerEmail,
-    amount,
-    paymentType,
-    paystackReference,
-    status,
-    verificationMode,
-    createdAt,
-    verifiedAt)
-}
-```
-
-### `bookings/{bookingId}`
-
-```ts
-{
-  ;(userId,
-    propertyId,
-    agentId,
-    inspectionDate,
-    inspectionTime,
-    status,
-    paymentStatus,
-    reminderSent,
-    guestPhone,
-    notes,
-    createdAt,
-    updatedAt)
-}
-```
-
-### `savedProperties/{savedId}`
-
-```ts
-{
-  ;(userId, propertyId, createdAt)
-}
-```
-
-### `notifications/{notificationId}`
-
-```ts
-{
-  ;(userId,
-    type,
-    title,
-    body,
-    channel,
-    relatedPropertyId,
-    relatedBookingId,
-    relatedPaymentId,
-    createdAt,
-    deliveredAt,
-    readAt)
-}
-```
-
-## 4. Pages and Components
-
-Main pages in `src/views`:
-
-- SplashScreen
-- OnboardingPage
-- LoginPage
-- RegisterPage
-- HomePage
-- PropertyListPage
-- PropertyDetailsPage
-- AddPropertyPage
-- EditPropertyPage
-- SavedPropertiesPage
-- BookingPage
-- MyBookingsPage
-- PaymentPage
-- AgentVerificationPage
-- NotificationsPage
-- ProfilePage
-- AdminDashboardPage
-
-Important shared components:
-
-- `AppShell.vue`
-- `AppBottomNav.vue`
-- `PropertyForm.vue`
-- `PropertyImageUploader.vue`
-- `PropertyFilterPanel.vue`
-- `PropertySortSelect.vue`
-- `PropertyLocationPicker.vue`
-- `PropertyMapPreview.vue`
-- `VerificationUploadField.vue`
-- `StoragePathTester.vue`
-
-## 5. Paystack Cloud Function Code
-
-The real Paystack verification function lives in:
-
-- [functions/index.js](./functions/index.js)
-
-Current callable exports:
-
+- `getBookingAvailability`
+- `createUniversalBooking`
+- `initializePaystackPayment`
 - `verifyPaystackPayment`
+- `paystackWebhook`
 - `createNotificationRecord`
+- `runInspectionReminderScan`
+- `processInspectionReminders`
 
-`verifyPaystackPayment` does the right backend shape already:
+The Paystack secret must exist as the Firebase Functions secret `PAYSTACK_SECRET_KEY`.
 
-- requires auth
-- loads the payment document
-- checks ownership
-- verifies the Paystack reference against Paystack’s API
-- checks amount match
-- updates Firestore with verified status
+## Security Delivered
 
-Important deployment reminder:
+- Public reads only for approved legacy properties and active/approved universal listings
+- Owner-only private listing data
+- Immutable listing ownership
+- Explicit owner/admin moderation transitions
+- Backend-only payment and booking creation
+- User notification edits limited to setting `readAt`
+- Source-aware saved-item ownership
+- Admin-only user listing and moderation
+- Active-account guards on write-sensitive routes
+- Safe same-app authentication redirects
+- Explicit Storage deny fallback
+- Static regression tests for rules and indexes
 
-- `verifyPaystackPayment` is coded, but the live secret/deploy flow still needs to be completed and re-tested end to end.
+## Verification Commands
 
-## 6. Firebase Notification Setup
+```powershell
+npm run lint
+npm run format:check
+npm run test
+npm run build
+```
 
-Current implementation status:
+The final Phase 15 verification should report zero lint errors. Existing warnings, if any,
+must be listed rather than hidden. Vite currently reports a large main-chunk warning; this
+is a performance follow-up and does not fail the production build.
 
-- Firebase Messaging token registration exists in `src/lib/messaging.ts`
-- Service worker exists in `public/firebase-messaging-sw.js`
-- Token records save to `users/{userId}/tokens/{tokenId}`
-- Notification records are created through the callable function `createNotificationRecord`
-- Browser push delivery is attempted from the Cloud Function using saved tokens
+## Deployment State
 
-Still deferred:
+- Firebase project configured in `.firebaserc`: `randsa-67e93`
+- Git remote configured: `https://github.com/Mohd633284/RANDSA.git`
+- Phase 12 listing-rule correction and a prior Hosting build were deployed during testing
+- Phase 14 token and filename hardening is staged locally and still requires rule deployment
+- Functions and Hosting should be redeployed from the final verified commit
 
-- scheduled backend reminder jobs for bookings and rent due dates
-- production-grade reminder orchestration
-- full end-to-end live FCM re-test after the latest cleanup
+## Required Live Acceptance
 
-## 7. Leaflet Map Integration
+Automated tests cannot replace these real-service checks:
 
-Current map implementation:
+1. Publish a universal listing with images and confirm the Firestore document is pending review.
+2. Approve it as admin and confirm it becomes publicly readable.
+3. Complete one Paystack test payment and confirm payment and booking updates.
+4. Register push notifications, create a booking within 24 hours, run the reminder scan,
+   confirm the notification document, and confirm `reminderSent == true`.
+5. Confirm saved listings persist across a second browser session.
+6. Smoke-test Home, Post Listing, My Listings, details, bookings, notifications, profile,
+   and admin on phone and desktop.
 
-- Leaflet + OpenStreetMap is active
-- property details page shows a map preview
-- add/edit property flows support location selection
-- latitude and longitude are saved in property records
-- OpenStreetMap attribution is included
-- map setup is isolated so the tile provider can be swapped later if needed
-
-Key files:
-
-- `src/components/map/PropertyMapPreview.vue`
-- `src/components/map/PropertyLocationPicker.vue`
-- `src/lib/map.ts`
-
-## 8. Security Rules
-
-Current security files:
-
-- [firestore.rules](./firestore.rules)
-- [storage.rules](./storage.rules)
-- [firestore.indexes.json](./firestore.indexes.json)
-
-The rules now cover:
-
-- auth-required save/book/pay flows
-- owner-only property edits
-- admin-only listing review
-- admin-only agent review
-- user-only payment reads
-- approved-public property reads
-- protected upload paths for:
-  - `properties/{ownerId}/{propertyId}/{fileName}`
-  - `agent-verifications/{agentId}/{fileName}`
-  - `users/{userId}/{fileName}`
-
-## 9. Step-by-Step Implementation
-
-Use [docs/IMPLEMENTATION_GUIDE.md](./docs/IMPLEMENTATION_GUIDE.md) for the full phase-by-phase breakdown.
-
-## 10. Clean Responsive UI
-
-Current UI state:
-
-- shared shell and mobile navigation
-- responsive layouts across home, listings, details, profile, and admin
-- upgraded premium card system
-- stronger search and catalog layout
-- improved property details action stack
-- cleaner admin dashboard hierarchy
-
-Note:
-
-- the latest Phase 13 visual pass should still be reviewed manually across mobile and desktop before calling the UI fully final.
-
-## Deferred / Return Later
-
-These are the main items we intentionally parked and should revisit:
-
-1. Complete live Paystack backend deployment and end-to-end verification testing
-2. Finish scheduled FCM reminder backend flow
-3. Reconfirm the latest UI pass visually after the blank-page regression fixes
-4. Re-test admin dashboard behavior fully in Firebase mode
-5. Revisit large bundle warnings when product stability work is complete
+The exact release procedure is in [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md).

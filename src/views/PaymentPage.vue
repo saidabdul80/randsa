@@ -611,7 +611,7 @@ import {
   walletOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/layout/AppShell.vue'
 import AppBottomNav from '../components/navigation/AppBottomNav.vue'
@@ -621,7 +621,6 @@ import { useNotifications } from '../composables/useNotifications'
 import { usePayments } from '../composables/usePayments'
 import { useProperties } from '../composables/useProperties'
 import { isLocalPaymentBypassEnabled } from '../lib/payments'
-import { openPaystackCheckout } from '../lib/paystack'
 import {
   buildPaymentTypeOptions,
   formatNaira,
@@ -635,6 +634,7 @@ import {
 import type { PropertyRecord } from '../types/property'
 
 const route = useRoute()
+const router = useRouter()
 const propertyId = computed(() => (route.params.propertyId as string | undefined) ?? '')
 const bookingId = computed(() =>
   typeof route.query.bookingId === 'string' ? route.query.bookingId : ''
@@ -647,8 +647,16 @@ const {
   error: propertyError,
   findById,
 } = useProperties()
-const { payments, isLoading, refreshForUser, startPayment, finishLocalPayment, verifyPayment } =
-  usePayments()
+const {
+  payments,
+  isLoading,
+  refreshForUser,
+  getPaymentById,
+  startPayment,
+  prepareCheckout,
+  finishLocalPayment,
+  verifyPayment,
+} = usePayments()
 const { addPaymentConfirmation } = useNotifications()
 
 const property = ref<PropertyRecord | null>(null)
@@ -662,6 +670,7 @@ const setupTone = ref<'success' | 'error'>('success')
 const hasAttemptedCreate = ref(false)
 const isHistoryLoading = ref(false)
 const historyError = ref('')
+const handledPaymentCallback = ref('')
 
 const paymentTypeValues: PaymentType[] = [
   'inspection_fee',
@@ -858,11 +867,77 @@ async function loadPayments() {
   historyError.value = ''
   try {
     await refreshForUser(state.profile?.uid)
+    await handleReturnedPaystackPayment()
   } catch (caughtError) {
     historyError.value =
       caughtError instanceof Error ? caughtError.message : 'Could not load payment history.'
   } finally {
     isHistoryLoading.value = false
+  }
+}
+
+async function handleReturnedPaystackPayment() {
+  if (isLocalPaymentBypassEnabled || !state.profile) return
+
+  const callbackPaymentId =
+    typeof route.query.paymentId === 'string' ? route.query.paymentId.trim() : ''
+  const callbackReferenceValue =
+    typeof route.query.reference === 'string'
+      ? route.query.reference
+      : typeof route.query.trxref === 'string'
+        ? route.query.trxref
+        : ''
+  const callbackReference = callbackReferenceValue.trim()
+  const callbackKey = `${callbackPaymentId}:${callbackReference}`
+  if (!callbackPaymentId || !callbackReference || handledPaymentCallback.value === callbackKey)
+    return
+
+  handledPaymentCallback.value = callbackKey
+  const payment =
+    payments.value.find((item) => item.id === callbackPaymentId) ??
+    (await getPaymentById(callbackPaymentId))
+
+  if (!payment || payment.userId !== state.profile.uid) {
+    setupTone.value = 'error'
+    setupMessage.value = 'The returned Paystack payment could not be matched to your account.'
+    return
+  }
+
+  activePayment.value = payment
+  if (payment.paystackReference !== callbackReference) {
+    setupTone.value = 'error'
+    setupMessage.value = 'Paystack returned an unexpected payment reference.'
+    return
+  }
+
+  try {
+    activePayment.value = await verifyPayment(payment.id, state.profile.uid, callbackReference)
+    let notificationNotice = ''
+    if (activePayment.value.status === 'success') {
+      try {
+        await addPaymentConfirmation(state.profile, activePayment.value)
+      } catch {
+        notificationNotice =
+          ' The payment was verified, but the notification could not be synced yet.'
+      }
+    }
+    setupTone.value = activePayment.value.status === 'success' ? 'success' : 'error'
+    setupMessage.value =
+      activePayment.value.status === 'success'
+        ? `Paystack payment verified successfully.${notificationNotice}`
+        : 'Paystack returned, but the transaction was not successful.'
+
+    const nextQuery = { ...route.query }
+    delete nextQuery.paymentId
+    delete nextQuery.reference
+    delete nextQuery.trxref
+    await router.replace({ query: nextQuery })
+  } catch (caughtError) {
+    setupTone.value = 'error'
+    setupMessage.value =
+      caughtError instanceof Error
+        ? caughtError.message
+        : 'Could not verify the returned Paystack payment.'
   }
 }
 
@@ -946,7 +1021,7 @@ async function handleCreatePayment() {
     setupTone.value = 'success'
     setupMessage.value = isLocalPaymentBypassEnabled
       ? 'Pending payment created. You can now simulate Paystack success or failure locally.'
-      : 'Pending payment created. You can now open Paystack checkout or verify the reference after an external payment attempt.'
+      : 'Secure payment initialized. You can now continue to Paystack checkout.'
   } catch (caughtError) {
     setupTone.value = 'error'
     setupMessage.value =
@@ -995,36 +1070,11 @@ async function handleOpenPaystackCheckout() {
 
   setupMessage.value = ''
   try {
-    const result = await openPaystackCheckout({
-      email: state.profile.email,
-      amount: activePayment.value.amount,
-      reference: activePayment.value.paystackReference,
-      metadata: {
-        paymentId: activePayment.value.id,
-        propertyId: property.value.id,
-        paymentType: activePayment.value.paymentType,
-        bookingId: activePayment.value.bookingId,
-        userId: state.profile.uid,
-      },
-    })
-
-    activePayment.value = await verifyPayment(
-      activePayment.value.id,
-      state.profile.uid,
-      result.reference
-    )
-    let notificationNotice = ''
-    try {
-      await addPaymentConfirmation(state.profile, activePayment.value)
-    } catch {
-      notificationNotice =
-        ' Payment verification succeeded, but the notification could not be synced yet.'
-    }
+    const initialization = await prepareCheckout(activePayment.value)
+    activePayment.value = initialization.payment
     setupTone.value = 'success'
-    setupMessage.value =
-      activePayment.value.status === 'success'
-        ? `Paystack payment verified successfully.${notificationNotice}`
-        : `The payment was checked, but Paystack did not confirm success.${notificationNotice}`
+    setupMessage.value = 'Redirecting to secure Paystack checkout...'
+    window.location.assign(initialization.authorizationUrl)
   } catch (caughtError) {
     setupTone.value = 'error'
     setupMessage.value =

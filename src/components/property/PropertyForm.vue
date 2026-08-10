@@ -301,6 +301,7 @@ const propertyTypes: PropertyType[] = [
   'House rent',
   'Shop rent',
   'Office space',
+  'Warehouse',
   'Apartment',
   'Self-contained',
   'Flat',
@@ -311,6 +312,8 @@ const propertyTypes: PropertyType[] = [
   'Event space',
   'Event centre',
   'Horse rental',
+  'Hotel or guest house',
+  'Other property',
   'Other rental',
 ]
 

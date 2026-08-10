@@ -133,8 +133,67 @@ export function getBookingPricingUnit(
 }
 
 function parseLocalDateTime(date: string, time: string) {
-  const value = new Date(`${date}T${time}:00+01:00`)
+  const dateValue = normalizeBookingDateValue(date)
+  const timeValue = normalizeBookingTimeValue(time)
+  if (!dateValue || !timeValue) return null
+
+  const value = new Date(`${dateValue}T${timeValue}:00+01:00`)
   return Number.isNaN(value.getTime()) ? null : value
+}
+
+export function normalizeBookingDateValue(value: unknown) {
+  const rawValue = String(value ?? '').trim()
+  const isoMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const localizedMatch = rawValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  let year: number
+  let month: number
+  let day: number
+
+  if (isoMatch) {
+    ;[, year, month, day] = isoMatch.map(Number)
+  } else if (localizedMatch) {
+    const first = Number(localizedMatch[1])
+    const second = Number(localizedMatch[2])
+    year = Number(localizedMatch[3])
+    month = first > 12 ? second : first
+    day = first > 12 ? first : second
+  } else {
+    return null
+  }
+
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() + 1 !== month ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+export function normalizeBookingTimeValue(value: unknown) {
+  const rawValue = String(value ?? '').trim()
+  const twelveHourMatch = rawValue.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i)
+  const twentyFourHourMatch = rawValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  let hours: number
+  let minutes: number
+
+  if (twelveHourMatch) {
+    hours = Number(twelveHourMatch[1])
+    minutes = Number(twelveHourMatch[2])
+    if (hours < 1 || hours > 12 || minutes > 59) return null
+    hours = (hours % 12) + (twelveHourMatch[3].toLowerCase() === 'pm' ? 12 : 0)
+  } else if (twentyFourHourMatch) {
+    hours = Number(twentyFourHourMatch[1])
+    minutes = Number(twentyFourHourMatch[2])
+    if (hours > 23 || minutes > 59) return null
+  } else {
+    return null
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
 export function calculateBookingDurationMinutes(startAt: Date, endAt: Date) {
@@ -239,10 +298,11 @@ export function validateUniversalBookingInput(input: BookingInput, property: Pro
     throw new Error(`The minimum booking duration is ${minimumDuration} minutes.`)
   }
 
-  const endDate = input.endDate || input.inspectionDate
+  const startDate = normalizeBookingDateValue(input.inspectionDate) ?? ''
+  const endDate = normalizeBookingDateValue(input.endDate || input.inspectionDate) ?? ''
   if (
     (property.availabilityConfig?.blockedDates ?? []).some(
-      (date) => date >= input.inspectionDate && date <= endDate
+      (date) => date >= startDate && date <= endDate
     )
   ) {
     throw new Error('The selected booking period includes an unavailable date.')

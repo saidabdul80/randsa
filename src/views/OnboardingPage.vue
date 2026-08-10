@@ -2,7 +2,7 @@
   <AppShell
     eyebrow="Welcome"
     title="A smoother way to rent and list properties"
-    description="Start with the role that fits you, then move through discovery, booking, payment, and account tools with less friction."
+    description="Create one account to discover, post, book, save, and manage your own rental activity with less friction."
     :show-bottom-nav="false"
   >
     <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -16,8 +16,8 @@
           Browse homes, shops, offices, and apartments with confidence.
         </h2>
         <p class="mt-4 max-w-2xl text-sm leading-7 text-mist dark:text-slate-300">
-          RANDSA brings rental search, listing management, inspection booking, and trust workflows
-          into one mobile-friendly experience.
+          RANDSA brings rental search, Post Listing, inspection booking, saved properties, and
+          optional professional verification into one mobile-friendly experience.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <RouterLink
@@ -59,13 +59,13 @@ const onboardingItems = [
   },
   {
     tag: 'Trust',
-    title: 'Verified professionals',
-    copy: 'Agent profiles can submit documents for admin review so tenants see clearer trust signals.',
+    title: 'Optional professional verification',
+    copy: 'Any standard account can submit professional details for admin review and clearer trust signals.',
   },
   {
     tag: 'Action',
-    title: 'Quick booking paths',
-    copy: 'Booking, payment, and saved property routes stay close to every listing decision.',
+    title: 'Post, book, and save',
+    copy: 'Posting, booking, payment, and saved property routes stay close to every listing decision.',
   },
 ]
 </script>

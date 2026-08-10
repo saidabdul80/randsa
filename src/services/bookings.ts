@@ -15,7 +15,12 @@ import { httpsCallable } from 'firebase/functions'
 
 import { authMode, db, firebaseConfigError, functions, isFirebaseConfigured } from '../lib/firebase'
 import { listPaymentsForUser } from './payments'
-import { isInspectionMode, validateUniversalBookingInput } from './bookingModes'
+import {
+  isInspectionMode,
+  normalizeBookingDateValue,
+  normalizeBookingTimeValue,
+  validateUniversalBookingInput,
+} from './bookingModes'
 import type { BookingInput, BookingMode, BookingPricingUnit, BookingRecord } from '../types/booking'
 import type { PaymentRecord } from '../types/payment'
 import type { PropertyRecord } from '../types/property'
@@ -65,6 +70,11 @@ function writeBookings(bookings: BookingRecord[]) {
   }
 
   window.localStorage.setItem(LOCAL_BOOKINGS_KEY, JSON.stringify(bookings))
+}
+
+async function clearAvailabilityCaches(userId: string, propertyId: string) {
+  const { clearKnownInspectionAvailabilityCache } = await import('./inspectionAvailability')
+  clearKnownInspectionAvailabilityCache(userId, propertyId)
 }
 
 function sortBookings(bookings: BookingRecord[]) {
@@ -227,12 +237,27 @@ export function validateBookingInput(input: BookingInput, property: PropertyReco
   return validateUniversalBookingInput(input, property)
 }
 
+function normalizeBookingInput(input: BookingInput): BookingInput {
+  return {
+    ...input,
+    inspectionDate: normalizeBookingDateValue(input.inspectionDate) ?? input.inspectionDate,
+    inspectionTime: normalizeBookingTimeValue(input.inspectionTime) ?? input.inspectionTime,
+    endDate: input.endDate
+      ? (normalizeBookingDateValue(input.endDate) ?? input.endDate)
+      : input.endDate,
+    endTime: input.endTime
+      ? (normalizeBookingTimeValue(input.endTime) ?? input.endTime)
+      : input.endTime,
+  }
+}
+
 export async function createBooking(
   input: BookingInput,
   user: UserProfile,
   property: PropertyRecord
 ) {
-  const selection = validateBookingInput(input, property)
+  const normalizedInput = normalizeBookingInput(input)
+  const selection = validateBookingInput(normalizedInput, property)
 
   if (authMode !== 'local') {
     if (!functions) {
@@ -243,8 +268,10 @@ export async function createBooking(
       BookingInput & { propertyId: string },
       { booking: BookingRecord }
     >(functions, 'createUniversalBooking')
-    const result = await callable({ ...input, propertyId: property.id })
-    return mapDocToBookingRecord(result.data.booking.id, result.data.booking)
+    const result = await callable({ ...normalizedInput, propertyId: property.id })
+    const booking = mapDocToBookingRecord(result.data.booking.id, result.data.booking)
+    await clearAvailabilityCaches(user.uid, property.id)
+    return booking
   }
 
   const bookings = readBookings()
@@ -266,7 +293,7 @@ export async function createBooking(
   }
 
   const { findBookingConflict } = await import('./bookingAvailability')
-  if (findBookingConflict(input, property, bookings)) {
+  if (findBookingConflict(normalizedInput, property, bookings)) {
     throw new Error('This time is no longer available. Please select another option.')
   }
 
@@ -283,27 +310,28 @@ export async function createBooking(
     agentId: property.ownerId,
     bookingMode: selection.bookingMode,
     listingCategory: property.propertyType,
-    inspectionDate: input.inspectionDate,
-    inspectionTime: input.inspectionTime,
+    inspectionDate: normalizedInput.inspectionDate,
+    inspectionTime: normalizedInput.inspectionTime,
     startAt: selection.startAt,
     endAt: selection.endAt,
     durationMinutes: selection.durationMinutes,
     quantity: selection.quantity,
     pricingUnit: selection.pricingUnit,
     estimatedTotal: selection.estimatedTotal,
-    categoryDetails: input.categoryDetails,
+    categoryDetails: normalizedInput.categoryDetails,
     status: 'pending',
     paymentStatus: isInspectionMode(selection.bookingMode)
       ? (latestInspectionPayment?.status ?? 'pending')
       : 'pending',
     reminderSent: false,
-    guestPhone: input.guestPhone.trim(),
-    notes: input.notes.trim(),
+    guestPhone: normalizedInput.guestPhone.trim(),
+    notes: normalizedInput.notes.trim(),
     createdAt: now,
     updatedAt: now,
   }
 
   writeBookings([booking, ...bookings])
+  await clearAvailabilityCaches(user.uid, property.id)
   return booking
 }
 
@@ -324,6 +352,8 @@ export async function cancelBooking(bookingId: string, userId: string) {
       status: 'cancelled',
       updatedAt: serverTimestamp(),
     })
+
+    await clearAvailabilityCaches(userId, current.propertyId)
 
     return (
       (await getBookingById(bookingId)) ?? {
@@ -357,6 +387,7 @@ export async function cancelBooking(bookingId: string, userId: string) {
 
   bookings[index] = nextBooking
   writeBookings(bookings)
+  await clearAvailabilityCaches(userId, current.propertyId)
   return nextBooking
 }
 

@@ -1,19 +1,35 @@
 const admin = require('firebase-admin')
-const { HttpsError, onCall } = require('firebase-functions/v2/https')
+const { HttpsError, onCall, onRequest } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { defineSecret } = require('firebase-functions/params')
+const {
+  buildPaymentReference,
+  getExpectedPaymentAmount,
+  hasValidPaystackSignature,
+  isSupportedPaymentType,
+  mapGatewayStatusToPaymentStatus,
+  normalizePaymentCallbackUrl,
+  parsePaystackInitialization,
+} = require('./payment-engine')
 const {
   getBookingModeConfig,
   getAvailabilityConfig,
   getEligibleAgentSchedules,
   getBookingRange,
   isInspectionMode,
+  isMatchingBookingRequest,
+  normalizeBookingDateValue,
+  normalizeBookingTimeValue,
   rangesOverlap,
-  resolveBookingMode,
   sanitizeCategoryDetails,
   usesTimeSlotTimeline,
   validateBookingSelection,
 } = require('./booking-engine')
+const {
+  buildNotificationId,
+  isReminderDue,
+  isStaleMessagingTokenError,
+} = require('./notification-engine')
 
 admin.initializeApp()
 
@@ -49,27 +65,10 @@ function mapPaymentSnapshot(snapshot) {
     verifiedAt: normalizeTimestamp(data.verifiedAt),
     gatewayStatus: data.gatewayStatus || null,
     gatewayVerifiedAt: normalizeTimestamp(data.gatewayVerifiedAt),
+    gatewayAccessCode: data.gatewayAccessCode || null,
+    gatewayAuthorizationUrl: data.gatewayAuthorizationUrl || null,
+    gatewayInitializedAt: normalizeTimestamp(data.gatewayInitializedAt),
   }
-}
-
-function getExpectedPaymentAmount(property, paymentType) {
-  if (paymentType === 'inspection_fee') {
-    return Number(property.inspectionFee || 0)
-  }
-
-  if (paymentType === 'rent_deposit') {
-    return Number(property.cautionFee || 0)
-  }
-
-  if (paymentType === 'service_fee') {
-    return Number(property.agencyFee || 0)
-  }
-
-  if (paymentType === 'full_rent_payment') {
-    return Number(property.rentPrice || 0)
-  }
-
-  return 0
 }
 
 async function assertPaymentMatchesProperty(payment) {
@@ -131,6 +130,118 @@ async function assertPaymentMatchesProperty(payment) {
   }
 
   return { property, expectedAmount, bookingSnapshot }
+}
+
+function validateGatewayPayment(paymentId, payment, expectedAmount, gatewayData) {
+  const gatewayStatus = String(gatewayData?.status || '').toLowerCase()
+  const gatewayAmount = Number(gatewayData?.amount || 0)
+  const gatewayCurrency = String(gatewayData?.currency || '').toUpperCase()
+  const gatewayReference = String(gatewayData?.reference || '').trim()
+  const gatewayCustomerEmail = String(gatewayData?.customer?.email || '')
+    .trim()
+    .toLowerCase()
+  const metadataPaymentId = String(gatewayData?.metadata?.paymentId || '').trim()
+  const expectedGatewayAmount = Math.round(expectedAmount * 100)
+  const expectedEmail = String(payment.payerEmail || '')
+    .trim()
+    .toLowerCase()
+
+  if (!gatewayData || gatewayReference !== payment.paystackReference) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Paystack returned an unexpected verification response.'
+    )
+  }
+
+  if (gatewayAmount !== expectedGatewayAmount) {
+    throw new HttpsError(
+      'failed-precondition',
+      `Amount mismatch. Expected ${expectedGatewayAmount} kobo but received ${gatewayAmount} kobo.`
+    )
+  }
+
+  if (gatewayCurrency !== 'NGN') {
+    throw new HttpsError(
+      'failed-precondition',
+      `Currency mismatch. Expected NGN but received ${gatewayCurrency || 'an empty value'}.`
+    )
+  }
+
+  if (expectedEmail && gatewayCustomerEmail !== expectedEmail) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Paystack customer email did not match the payment record email.'
+    )
+  }
+
+  if (payment.gatewayInitializedAt && metadataPaymentId !== paymentId) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Paystack metadata payment ID did not match the payment record.'
+    )
+  }
+
+  if (metadataPaymentId && metadataPaymentId !== paymentId) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Paystack metadata payment ID did not match the payment record.'
+    )
+  }
+
+  return {
+    gatewayAmount,
+    gatewayCurrency,
+    gatewayCustomerEmail,
+    gatewayReference,
+    gatewayStatus,
+  }
+}
+
+async function finalizePaymentFromGateway(paymentRef, paymentSnapshot, gatewayData) {
+  const payment = paymentSnapshot.data()
+  if (!payment) throw new HttpsError('internal', 'The payment record could not be read.')
+
+  if (payment.status === 'success' && payment.verificationMode === 'backend_verified') {
+    const completedPayment = mapPaymentSnapshot(paymentSnapshot)
+    await ensurePaymentConfirmationNotification(completedPayment)
+    return {
+      payment: completedPayment,
+      gatewayStatus: String(payment.gatewayStatus || 'success').toLowerCase(),
+    }
+  }
+
+  const { expectedAmount, bookingSnapshot } = await assertPaymentMatchesProperty(payment)
+  const gateway = validateGatewayPayment(paymentSnapshot.id, payment, expectedAmount, gatewayData)
+  const nextStatus = mapGatewayStatusToPaymentStatus(gateway.gatewayStatus)
+  const batch = db.batch()
+
+  batch.update(paymentRef, {
+    status: nextStatus,
+    verificationMode: nextStatus === 'success' ? 'backend_verified' : 'backend_required',
+    verifiedAt: nextStatus === 'success' ? admin.firestore.FieldValue.serverTimestamp() : null,
+    gatewayStatus: gateway.gatewayStatus,
+    gatewayCurrency: gateway.gatewayCurrency,
+    gatewayAmount: gateway.gatewayAmount,
+    gatewayReference: gateway.gatewayReference,
+    gatewayCustomerEmail: gateway.gatewayCustomerEmail,
+    gatewayVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+  })
+
+  if (nextStatus === 'success' && bookingSnapshot?.exists) {
+    batch.update(bookingSnapshot.ref, {
+      paymentStatus: 'success',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  }
+
+  await batch.commit()
+  const updatedSnapshot = await paymentRef.get()
+  const updatedPayment = mapPaymentSnapshot(updatedSnapshot)
+  await ensurePaymentConfirmationNotification(updatedPayment)
+  return {
+    payment: updatedPayment,
+    gatewayStatus: gateway.gatewayStatus,
+  }
 }
 
 function mapBookingSnapshot(snapshot) {
@@ -218,28 +329,19 @@ async function ensureBookingConfirmationNotification(booking, propertyTitle) {
   })
 }
 
-function sanitizeIdSegment(value) {
-  return (
-    String(value || 'none')
-      .replace(/[^a-zA-Z0-9_-]/g, '')
-      .slice(0, 80) || 'none'
-  )
-}
+async function ensurePaymentConfirmationNotification(payment) {
+  if (payment.status !== 'success') return null
 
-function buildNotificationId(input) {
-  if (input.relatedBookingId) {
-    return `notification-${input.type}-${sanitizeIdSegment(input.userId)}-${sanitizeIdSegment(input.relatedBookingId)}`
-  }
-
-  if (input.relatedPaymentId) {
-    return `notification-${input.type}-${sanitizeIdSegment(input.userId)}-${sanitizeIdSegment(input.relatedPaymentId)}`
-  }
-
-  if (input.relatedPropertyId) {
-    return `notification-${input.type}-${sanitizeIdSegment(input.userId)}-${sanitizeIdSegment(input.relatedPropertyId)}`
-  }
-
-  return `notification-${sanitizeIdSegment(input.type)}-${sanitizeIdSegment(input.userId)}-${Date.now()}`
+  return createNotificationDocument({
+    userId: payment.userId,
+    type: 'payment_confirmation',
+    title: 'Payment confirmed',
+    body: `${payment.propertyTitle || 'Your listing'} payment was confirmed successfully.`,
+    channel: await getNotificationChannelForUser(payment.userId),
+    relatedPropertyId: payment.propertyId || null,
+    relatedBookingId: payment.bookingId || null,
+    relatedPaymentId: payment.id,
+  })
 }
 
 function mapNotificationSnapshot(snapshot) {
@@ -264,13 +366,26 @@ function mapNotificationSnapshot(snapshot) {
 async function createNotificationDocument(input) {
   const notificationId = buildNotificationId(input)
   const notificationRef = db.collection('notifications').doc(notificationId)
-  const existingSnapshot = await notificationRef.get()
+  const created = await db.runTransaction(async (transaction) => {
+    const existingSnapshot = await transaction.get(notificationRef)
+    if (existingSnapshot.exists) return false
 
-  if (existingSnapshot.exists) {
-    return mapNotificationSnapshot(existingSnapshot)
+    transaction.set(notificationRef, buildNotificationDocumentData(input))
+    return true
+  })
+
+  const notificationSnapshot = await notificationRef.get()
+  const notification = mapNotificationSnapshot(notificationSnapshot)
+
+  if (created && notification.channel === 'browser') {
+    await sendBrowserNotificationSafely(input.userId, notification)
   }
 
-  await notificationRef.set({
+  return notification
+}
+
+function buildNotificationDocumentData(input) {
+  return {
     userId: input.userId,
     type: input.type,
     title: input.title,
@@ -282,16 +397,7 @@ async function createNotificationDocument(input) {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
     readAt: null,
-  })
-
-  const createdSnapshot = await notificationRef.get()
-  const notification = mapNotificationSnapshot(createdSnapshot)
-
-  if (notification.channel === 'browser') {
-    await sendBrowserNotification(input.userId, notification)
   }
-
-  return notification
 }
 
 async function getNotificationChannelForUser(userId) {
@@ -304,34 +410,14 @@ async function getNotificationChannelForUser(userId) {
   return tokensSnapshot.empty ? 'in_app' : 'browser'
 }
 
-function isBookingEligibleForReminder(data) {
-  return (
-    data && data.reminderSent !== true && data.status !== 'cancelled' && data.status !== 'completed'
-  )
-}
-
-function getTimeUntilInspectionMs(data) {
-  const range = getBookingRange(data)
-  return range ? range.startAt.getTime() - Date.now() : Number.POSITIVE_INFINITY
-}
-
 async function processInspectionReminderSnapshots(bookingSnapshots) {
   const created = []
 
   for (const bookingSnapshot of bookingSnapshots) {
     const data = bookingSnapshot.data() || {}
+    const range = getBookingRange(data)
 
-    if (!isBookingEligibleForReminder(data)) {
-      continue
-    }
-
-    const timeUntilInspection = getTimeUntilInspectionMs(data)
-
-    if (
-      !Number.isFinite(timeUntilInspection) ||
-      timeUntilInspection < 0 ||
-      timeUntilInspection > 24 * 60 * 60 * 1000
-    ) {
+    if (!range || !isReminderDue(data, range.startAt)) {
       continue
     }
 
@@ -344,9 +430,10 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
       propertyTitle = propertySnapshot.data()?.title || propertyTitle
     }
 
-    const channel = await getNotificationChannelForUser(String(data.userId || ''))
-    const notification = await createNotificationDocument({
-      userId: String(data.userId || ''),
+    const userId = String(data.userId || '')
+    const channel = await getNotificationChannelForUser(userId)
+    const input = {
+      userId,
       type: 'inspection_reminder',
       title: modeConfig.reminderTitle,
       body: `${modeConfig.reminderLead} for ${propertyTitle} begins within the next 24 hours.`,
@@ -354,13 +441,38 @@ async function processInspectionReminderSnapshots(bookingSnapshots) {
       relatedPropertyId: data.propertyId ? String(data.propertyId) : null,
       relatedBookingId: bookingSnapshot.id,
       relatedPaymentId: null,
+    }
+    const notificationId = buildNotificationId(input)
+    const notificationRef = db.collection('notifications').doc(notificationId)
+
+    const wasCreated = await db.runTransaction(async (transaction) => {
+      const [currentBookingSnapshot, existingNotificationSnapshot] = await Promise.all([
+        transaction.get(bookingSnapshot.ref),
+        transaction.get(notificationRef),
+      ])
+      const currentData = currentBookingSnapshot.data() || {}
+      const currentRange = getBookingRange(currentData)
+
+      if (!currentBookingSnapshot.exists || !currentRange) return false
+      if (!isReminderDue(currentData, currentRange.startAt)) return false
+
+      transaction.update(bookingSnapshot.ref, {
+        reminderSent: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+
+      if (existingNotificationSnapshot.exists) return false
+
+      transaction.set(notificationRef, buildNotificationDocumentData(input))
+      return true
     })
 
-    await bookingSnapshot.ref.update({
-      reminderSent: true,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
+    if (!wasCreated) continue
 
+    const notification = mapNotificationSnapshot(await notificationRef.get())
+    if (notification.channel === 'browser') {
+      await sendBrowserNotificationSafely(userId, notification)
+    }
     created.push(notification)
   }
 
@@ -425,7 +537,7 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
   const existingBookingSnapshot = await bookingRef.get()
   if (existingBookingSnapshot.exists) {
     const existingBooking = mapBookingSnapshot(existingBookingSnapshot)
-    if (existingBooking.userId !== request.auth.uid || existingBooking.propertyId !== propertyId) {
+    if (!isMatchingBookingRequest(existingBooking, request.auth.uid, propertyId)) {
       throw new HttpsError('permission-denied', 'This booking request ID is already in use.')
     }
     const existingPropertySnapshot = await db.collection('properties').doc(propertyId).get()
@@ -444,34 +556,23 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
   )
   const requestingUserSnapshot = await db.collection('users').doc(request.auth.uid).get()
   const requestingUserIsAdmin = requestingUserSnapshot.data()?.role === 'admin'
-  let initialSelection
   try {
-    initialSelection = validateBookingSelection(input, initialProperty)
+    validateBookingSelection(input, initialProperty)
   } catch (error) {
     throw toHttpsBookingError(error)
   }
 
-  const paymentSnapshot = await db
+  const paymentQuery = db
     .collection('payments')
     .where('userId', '==', request.auth.uid)
     .where('propertyId', '==', propertyId)
-    .get()
-  const latestInspectionPayment = paymentSnapshot.docs
-    .map((document) => document.data())
-    .filter((payment) => payment.paymentType === 'inspection_fee')
-    .sort(
-      (left, right) => (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0)
-    )[0]
-  const initialPaymentStatus = isInspectionMode(initialSelection.bookingMode)
-    ? latestInspectionPayment?.status || 'pending'
-    : 'pending'
 
   let createdSnapshot
   try {
     await db.runTransaction(async (transaction) => {
       const existingSnapshot = await transaction.get(bookingRef)
       if (existingSnapshot.exists) {
-        if (existingSnapshot.data()?.userId !== request.auth.uid) {
+        if (!isMatchingBookingRequest(existingSnapshot.data(), request.auth.uid, propertyId)) {
           throw new HttpsError('permission-denied', 'This booking request ID is already in use.')
         }
         return
@@ -494,6 +595,7 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
       const availabilityConfig = getAvailabilityConfig(property, selection.bookingMode)
       const bookingsQuery = db.collection('bookings').where('propertyId', '==', propertyId)
       const bookingsSnapshot = await transaction.get(bookingsQuery)
+      const paymentSnapshot = await transaction.get(paymentQuery)
       const activeBookingDocs = bookingsSnapshot.docs.filter((document) => {
         const status = document.data()?.status
         return status !== 'cancelled' && status !== 'completed'
@@ -512,6 +614,17 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
           )
         }
       }
+
+      const latestInspectionPayment = paymentSnapshot.docs
+        .map((document) => document.data())
+        .filter((payment) => payment.paymentType === 'inspection_fee')
+        .sort(
+          (left, right) =>
+            (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0)
+        )[0]
+      const paymentStatus = isInspectionMode(selection.bookingMode)
+        ? latestInspectionPayment?.status || 'pending'
+        : 'pending'
 
       let assignedAgentId = String(property.ownerId || '')
       if (usesTimeSlotTimeline(selection.bookingMode)) {
@@ -576,8 +689,8 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         agentId: assignedAgentId,
         bookingMode: selection.bookingMode,
         listingCategory: String(property.propertyType || property.category || ''),
-        inspectionDate: String(input.inspectionDate || ''),
-        inspectionTime: String(input.inspectionTime || ''),
+        inspectionDate: normalizeBookingDateValue(input.inspectionDate) || '',
+        inspectionTime: normalizeBookingTimeValue(input.inspectionTime) || '',
         startAt: admin.firestore.Timestamp.fromDate(selection.startAt),
         endAt: admin.firestore.Timestamp.fromDate(selection.endAt),
         durationMinutes: selection.durationMinutes,
@@ -586,7 +699,7 @@ exports.createUniversalBooking = onCall({ invoker: 'public' }, async (request) =
         estimatedTotal: selection.estimatedTotal,
         categoryDetails: sanitizeCategoryDetails(input.categoryDetails),
         status: 'pending',
-        paymentStatus: initialPaymentStatus,
+        paymentStatus,
         reminderSent: false,
         guestPhone: String(input.guestPhone || '')
           .trim()
@@ -620,7 +733,7 @@ async function sendBrowserNotification(userId, notification) {
   })
 
   if (!tokenDocs.length) {
-    return
+    return { successCount: 0, failureCount: 0 }
   }
 
   const tokens = tokenDocs.map((docSnapshot) => docSnapshot.data().token)
@@ -647,19 +760,216 @@ async function sendBrowserNotification(userId, notification) {
 
   const staleTokenRefs = response.responses
     .map((result, index) => ({ result, ref: tokenDocs[index].ref }))
-    .filter(({ result }) => {
-      const code = result.error?.code || ''
-      return (
-        code.includes('registration-token-not-registered') ||
-        code.includes('invalid-registration-token')
-      )
-    })
+    .filter(({ result }) => isStaleMessagingTokenError(result.error))
     .map(({ ref }) => ref)
 
   if (staleTokenRefs.length) {
     await Promise.all(staleTokenRefs.map((ref) => ref.delete()))
   }
+
+  return {
+    successCount: response.successCount,
+    failureCount: response.failureCount,
+  }
 }
+
+async function sendBrowserNotificationSafely(userId, notification) {
+  try {
+    return await sendBrowserNotification(userId, notification)
+  } catch (error) {
+    console.error('Browser notification delivery failed', {
+      notificationId: notification.id,
+      userId,
+      error,
+    })
+    return { successCount: 0, failureCount: 1 }
+  }
+}
+
+exports.initializePaystackPayment = onCall(
+  {
+    secrets: [paystackSecretKey],
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError('unauthenticated', 'Sign in before starting a payment.')
+    }
+
+    const paymentId = String(request.data?.paymentId || '').trim()
+    let reference
+    try {
+      reference = buildPaymentReference(paymentId)
+    } catch (error) {
+      throw new HttpsError(
+        'invalid-argument',
+        error instanceof Error ? error.message : 'A valid payment request ID is required.'
+      )
+    }
+
+    const paymentRef = db.collection('payments').doc(paymentId)
+    const existingSnapshot = await paymentRef.get()
+    const existingPayment = existingSnapshot.data() || null
+
+    if (existingPayment && existingPayment.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'This payment request belongs to another account.')
+    }
+
+    if (existingPayment?.status === 'success') {
+      throw new HttpsError('failed-precondition', 'This payment has already been completed.')
+    }
+
+    const propertyId = String(request.data?.propertyId || existingPayment?.propertyId || '').trim()
+    const paymentType = String(
+      request.data?.paymentType || existingPayment?.paymentType || ''
+    ).trim()
+    const bookingId = String(request.data?.bookingId || existingPayment?.bookingId || '').trim()
+    const requestedAmount = Number(request.data?.amount ?? existingPayment?.amount ?? 0)
+
+    if (!propertyId || !isSupportedPaymentType(paymentType)) {
+      throw new HttpsError('invalid-argument', 'Select a valid property and payment type.')
+    }
+
+    const userSnapshot = await db.collection('users').doc(request.auth.uid).get()
+    const user = userSnapshot.data() || {}
+    if (user.accountStatus && user.accountStatus !== 'active') {
+      throw new HttpsError('permission-denied', 'This account cannot start new payments.')
+    }
+
+    const payerEmail = String(request.auth.token.email || user.email || '')
+      .trim()
+      .toLowerCase()
+    if (!payerEmail) {
+      throw new HttpsError('failed-precondition', 'Your account needs a verified email address.')
+    }
+
+    const paymentCandidate = {
+      userId: request.auth.uid,
+      propertyId,
+      bookingId: bookingId || null,
+      agentId: existingPayment?.agentId || '',
+      amount: requestedAmount,
+      paymentType,
+    }
+    const { property, expectedAmount } = await assertPaymentMatchesProperty(paymentCandidate)
+
+    if (property.status !== 'approved' && !existingPayment?.gatewayInitializedAt) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Payments can only be started for an approved property.'
+      )
+    }
+
+    if (requestedAmount !== expectedAmount) {
+      throw new HttpsError(
+        'failed-precondition',
+        `Use the configured ${expectedAmount} NGN amount for this payment type.`
+      )
+    }
+
+    if (
+      existingPayment?.gatewayAuthorizationUrl &&
+      existingPayment?.gatewayAccessCode &&
+      existingPayment?.paystackReference === reference
+    ) {
+      return {
+        payment: mapPaymentSnapshot(existingSnapshot),
+        authorizationUrl: existingPayment.gatewayAuthorizationUrl,
+        accessCode: existingPayment.gatewayAccessCode,
+      }
+    }
+
+    let callbackUrl
+    try {
+      callbackUrl = normalizePaymentCallbackUrl(request.data?.callbackUrl)
+    } catch (error) {
+      throw new HttpsError(
+        'invalid-argument',
+        error instanceof Error ? error.message : 'A valid payment callback URL is required.'
+      )
+    }
+
+    const secret = paystackSecretKey.value()
+    if (!secret) {
+      throw new HttpsError(
+        'failed-precondition',
+        'PAYSTACK_SECRET_KEY is missing. Set the Firebase Functions secret before starting payments.'
+      )
+    }
+
+    const initializeResponse = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: payerEmail,
+        amount: Math.round(expectedAmount * 100),
+        currency: 'NGN',
+        reference,
+        callback_url: callbackUrl,
+        metadata: {
+          paymentId,
+          propertyId,
+          paymentType,
+          bookingId: bookingId || null,
+          userId: request.auth.uid,
+          cancel_action: callbackUrl,
+        },
+      }),
+    })
+
+    const initializePayload = await initializeResponse.json().catch(() => null)
+    if (!initializeResponse.ok) {
+      console.error('Paystack initialization failed', {
+        status: initializeResponse.status,
+        message: initializePayload?.message || 'Unknown Paystack error',
+      })
+      throw new HttpsError('unavailable', 'Paystack could not initialize this payment right now.')
+    }
+
+    let initialization
+    try {
+      initialization = parsePaystackInitialization(initializePayload, reference)
+    } catch (error) {
+      console.error('Invalid Paystack initialization response', error)
+      throw new HttpsError('internal', 'Paystack returned an invalid checkout response.')
+    }
+
+    const paymentPayload = {
+      userId: request.auth.uid,
+      propertyId,
+      bookingId: bookingId || null,
+      agentId: String(property.ownerId || ''),
+      propertyTitle: String(property.title || ''),
+      payerName: String(user.fullName || request.auth.token.name || ''),
+      payerEmail,
+      amount: expectedAmount,
+      paymentType,
+      paystackReference: reference,
+      status: 'pending',
+      verificationMode: 'backend_required',
+      verifiedAt: null,
+      gatewayStatus: 'initialized',
+      gatewayAccessCode: initialization.accessCode,
+      gatewayAuthorizationUrl: initialization.authorizationUrl,
+      gatewayInitializedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }
+    if (!existingSnapshot.exists) {
+      paymentPayload.createdAt = admin.firestore.FieldValue.serverTimestamp()
+      paymentPayload.gatewayVerifiedAt = null
+    }
+
+    await paymentRef.set(paymentPayload, { merge: true })
+    const initializedSnapshot = await paymentRef.get()
+    return {
+      payment: mapPaymentSnapshot(initializedSnapshot),
+      authorizationUrl: initialization.authorizationUrl,
+      accessCode: initialization.accessCode,
+    }
+  }
+)
 
 exports.verifyPaystackPayment = onCall(
   {
@@ -708,8 +1018,6 @@ exports.verifyPaystackPayment = onCall(
       }
     }
 
-    const { expectedAmount, bookingSnapshot } = await assertPaymentMatchesProperty(payment)
-
     const secret = paystackSecretKey.value()
 
     if (!secret) {
@@ -731,88 +1039,72 @@ exports.verifyPaystackPayment = onCall(
     )
 
     if (!verifyResponse.ok) {
-      const body = await verifyResponse.text()
-      throw new HttpsError('internal', `Paystack verification failed: ${body}`)
+      const body = await verifyResponse.json().catch(() => null)
+      console.error('Paystack verification request failed', {
+        status: verifyResponse.status,
+        message: body?.message || 'Unknown Paystack error',
+      })
+      throw new HttpsError('unavailable', 'Paystack could not verify this payment right now.')
     }
 
     const verifyPayload = await verifyResponse.json()
-    const gatewayData = verifyPayload?.data
-    const gatewayStatus = String(gatewayData?.status || '').toLowerCase()
-    const gatewayAmount = Number(gatewayData?.amount || 0)
-    const gatewayCurrency = String(gatewayData?.currency || '').toUpperCase()
-    const gatewayReference = String(gatewayData?.reference || '').trim()
-    const gatewayCustomerEmail = String(gatewayData?.customer?.email || '')
-      .trim()
-      .toLowerCase()
+    return finalizePaymentFromGateway(paymentRef, paymentSnapshot, verifyPayload?.data)
+  }
+)
+
+exports.paystackWebhook = onRequest(
+  {
+    secrets: [paystackSecretKey],
+  },
+  async (request, response) => {
+    if (request.method !== 'POST') {
+      response.status(405).send('Method not allowed')
+      return
+    }
+
+    const secret = paystackSecretKey.value()
+    const rawBody = request.rawBody
+    const signature = request.get('x-paystack-signature') || ''
+    if (!secret || !rawBody || !hasValidPaystackSignature(rawBody, signature, secret)) {
+      response.status(401).send('Invalid signature')
+      return
+    }
+
+    const event = request.body
+    if (event?.event !== 'charge.success') {
+      response.status(200).send('Event ignored')
+      return
+    }
+
+    const gatewayData = event?.data
+    const reference = String(gatewayData?.reference || '').trim()
     const metadataPaymentId = String(gatewayData?.metadata?.paymentId || '').trim()
-    const expectedGatewayAmount = Math.round(expectedAmount * 100)
-    const expectedEmail = String(payment.payerEmail || '')
-      .trim()
-      .toLowerCase()
 
-    if (!gatewayData || gatewayReference !== reference) {
-      throw new HttpsError(
-        'failed-precondition',
-        'Paystack returned an unexpected verification response.'
-      )
-    }
+    try {
+      let paymentSnapshot = metadataPaymentId
+        ? await db.collection('payments').doc(metadataPaymentId).get()
+        : null
 
-    if (gatewayAmount !== expectedGatewayAmount) {
-      throw new HttpsError(
-        'failed-precondition',
-        `Amount mismatch. Expected ${expectedGatewayAmount} kobo but received ${gatewayAmount} kobo.`
-      )
-    }
+      if (!paymentSnapshot?.exists && reference) {
+        const matchingPayments = await db
+          .collection('payments')
+          .where('paystackReference', '==', reference)
+          .limit(1)
+          .get()
+        paymentSnapshot = matchingPayments.docs[0] || null
+      }
 
-    if (gatewayCurrency && gatewayCurrency !== 'NGN') {
-      throw new HttpsError(
-        'failed-precondition',
-        `Currency mismatch. Expected NGN but received ${gatewayCurrency}.`
-      )
-    }
+      if (!paymentSnapshot?.exists) {
+        response.status(404).send('Payment not found')
+        return
+      }
 
-    if (expectedEmail && gatewayCustomerEmail && gatewayCustomerEmail !== expectedEmail) {
-      throw new HttpsError(
-        'failed-precondition',
-        'Paystack customer email did not match the payment record email.'
-      )
-    }
-
-    if (metadataPaymentId && metadataPaymentId !== paymentId) {
-      throw new HttpsError(
-        'failed-precondition',
-        'Paystack metadata payment ID did not match the payment record.'
-      )
-    }
-
-    const nextStatus = gatewayStatus === 'success' ? 'success' : 'failed'
-    const verifiedAt =
-      gatewayStatus === 'success' ? admin.firestore.FieldValue.serverTimestamp() : null
-
-    await paymentRef.update({
-      status: nextStatus,
-      verificationMode: gatewayStatus === 'success' ? 'backend_verified' : 'backend_required',
-      verifiedAt,
-      gatewayStatus,
-      gatewayCurrency: gatewayCurrency || 'NGN',
-      gatewayAmount,
-      gatewayReference,
-      gatewayCustomerEmail: gatewayCustomerEmail || null,
-      gatewayVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
-
-    if (gatewayStatus === 'success' && bookingSnapshot?.exists) {
-      await bookingSnapshot.ref.update({
-        paymentStatus: 'success',
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-    }
-
-    const updatedSnapshot = await paymentRef.get()
-
-    return {
-      payment: mapPaymentSnapshot(updatedSnapshot),
-      gatewayStatus,
+      const paymentRef = paymentSnapshot.ref
+      await finalizePaymentFromGateway(paymentRef, paymentSnapshot, gatewayData)
+      response.status(200).send('Payment processed')
+    } catch (error) {
+      console.error('Paystack webhook processing failed', error)
+      response.status(500).send('Payment processing failed')
     }
   }
 )

@@ -1,9 +1,10 @@
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 
 import { auth, authMode, firebaseConfigError, isFirebaseConfigured, storage } from '../lib/firebase'
-import { isPropertyManagerRole, type PropertyImageInput } from '../types/property'
+import { isListingCapableRole, type PropertyImageInput } from '../types/property'
 import type { VerificationAsset } from '../types/verification'
 import type { UserProfile } from '../types/user'
+import type { ListingMediaInput } from '../types/listing'
 
 export interface StorageUploadResult {
   downloadURL: string
@@ -39,7 +40,8 @@ function sanitizeFileName(name: string) {
 }
 
 function buildFileName(file: File) {
-  return `${Date.now()}-${sanitizeFileName(file.name || 'upload.bin')}`
+  const sanitizedName = sanitizeFileName(file.name || 'upload.bin').slice(0, 180)
+  return `${Date.now()}-${sanitizedName || 'upload.bin'}`
 }
 
 async function uploadAtPath(path: string, file: File) {
@@ -72,8 +74,8 @@ export async function uploadAgentVerificationFile(profile: UserProfile, file: Fi
 export async function uploadPropertyFile(profile: UserProfile, propertyId: string, file: File) {
   ensureStorageReady(profile)
 
-  if (!isPropertyManagerRole(profile.role)) {
-    throw new Error('Only landlord, agent, and admin accounts can upload property images.')
+  if (!isListingCapableRole(profile.role)) {
+    throw new Error('Your account cannot upload property images.')
   }
 
   const trimmedPropertyId = propertyId.trim()
@@ -142,6 +144,61 @@ export async function uploadPropertyImages(
   }
 
   return uploadedUrls
+}
+
+export async function uploadListingFile(profile: UserProfile, listingId: string, file: File) {
+  ensureStorageReady(profile)
+  const trimmedListingId = listingId.trim()
+  if (!trimmedListingId) throw new Error('A listing ID is required before uploading media.')
+  return uploadAtPath(`listings/${profile.uid}/${trimmedListingId}/${buildFileName(file)}`, file)
+}
+
+export async function uploadListingImages(
+  profile: UserProfile,
+  listingId: string,
+  images: ListingMediaInput[],
+  onProgress?: (completed: number, total: number) => void
+) {
+  ensureStorageReady(profile)
+  const uploadedUrls: string[] = []
+
+  for (const [index, image] of images.entries()) {
+    if (image.source === 'remote' && image.remoteUrl) {
+      uploadedUrls.push(image.remoteUrl)
+    } else {
+      if (!image.file) {
+        throw new Error(`The file for ${image.fileName || 'one listing image'} is missing.`)
+      }
+      try {
+        const uploaded = await uploadListingFile(profile, listingId, image.file)
+        uploadedUrls.push(uploaded.downloadURL)
+      } catch (error) {
+        const fileLabel = image.fileName || `image ${index + 1}`
+        throw new Error(
+          `Firebase Storage could not upload image ${index + 1} (${fileLabel}). ${toStorageDisplayError(error)}`,
+          { cause: error }
+        )
+      }
+    }
+    onProgress?.(uploadedUrls.length, images.length)
+  }
+
+  return uploadedUrls
+}
+
+export async function uploadPrivateListingDocument(
+  profile: UserProfile,
+  listingId: string,
+  file: File
+) {
+  ensureStorageReady(profile)
+  if (file.type !== 'application/pdf') {
+    throw new Error('CV documents must be uploaded as PDF files.')
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error('The CV document must be smaller than 2 MB.')
+  }
+  return uploadAtPath(`listing-private/${profile.uid}/${listingId}/${buildFileName(file)}`, file)
 }
 
 export async function uploadVerificationAssets(profile: UserProfile, assets: VerificationAsset[]) {

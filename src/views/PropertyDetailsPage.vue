@@ -125,6 +125,7 @@
                   :images="property.images"
                   :title="property.title"
                   :is-available="property.isAvailable"
+                  :availability-label="propertyAvailabilityLabel"
                 />
 
                 <section class="property-summary-card" aria-labelledby="property-title">
@@ -137,7 +138,7 @@
                         }}</span>
                         <span v-if="ownerProfile?.isVerifiedAgent" class="is-verified">
                           <IonIcon :icon="checkmarkCircle" aria-hidden="true" />
-                          Verified agent
+                          Verified professional
                         </span>
                       </div>
                       <h1 id="property-title">{{ property.title }}</h1>
@@ -462,7 +463,9 @@ import { useProperties } from '../composables/useProperties'
 import { usePropertyComparison } from '../composables/usePropertyComparison'
 import { useRecentlyViewedProperties } from '../composables/useRecentlyViewedProperties'
 import { useSavedProperties } from '../composables/useSavedProperties'
+import { designedMarketplacePropertyRecords } from '../data/designedMarketplaceProperties'
 import { getUserProfile } from '../services/auth'
+import { isInspectionMode, resolveBookingMode } from '../services/bookingModes'
 import type { PropertyRecord } from '../types/property'
 import type { UserProfile } from '../types/user'
 
@@ -530,7 +533,7 @@ watch(
 watch(
   () => state.profile?.uid,
   (userId) => {
-    refreshSaved(userId)
+    void refreshSaved(userId).catch(() => undefined)
   },
   { immediate: true }
 )
@@ -540,7 +543,13 @@ watch(
   ([loaded, currentProperty]) => {
     if (!loaded || !currentProperty) return
 
-    pruneComparison(new Set([...properties.value.map((item) => item.id), currentProperty.id]))
+    pruneComparison(
+      new Set([
+        ...designedMarketplacePropertyRecords.map((item) => item.id),
+        ...properties.value.map((item) => item.id),
+        currentProperty.id,
+      ])
+    )
   },
   { immediate: true }
 )
@@ -599,6 +608,11 @@ const listedDate = computed(() => formatDate(property.value?.createdAt ?? ''))
 const updatedDate = computed(() => {
   if (!property.value?.updatedAt || property.value.updatedAt === property.value.createdAt) return ''
   return formatDate(property.value.updatedAt)
+})
+
+const propertyAvailabilityLabel = computed<'Available' | 'Booking'>(() => {
+  if (!property.value || isInspectionMode(resolveBookingMode(property.value))) return 'Available'
+  return 'Booking'
 })
 
 const listingPulse = computed(() => {
@@ -694,7 +708,9 @@ const similarProperties = computed(() => {
 })
 
 const comparisonProperties = computed(() => {
-  const recordMap = new Map(properties.value.map((item) => [item.id, item]))
+  const recordMap = new Map(
+    [...designedMarketplacePropertyRecords, ...properties.value].map((item) => [item.id, item])
+  )
   if (property.value) recordMap.set(property.value.id, property.value)
 
   return selectedPropertyIds.value

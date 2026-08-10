@@ -33,7 +33,11 @@ async function ensureMessagingSupport() {
 }
 
 async function registerMessagingServiceWorker() {
-  return navigator.serviceWorker.register('/firebase-messaging-sw.js')
+  const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+    scope: '/',
+  })
+  await navigator.serviceWorker.ready
+  return registration
 }
 
 export async function requestFirebaseMessagingToken() {

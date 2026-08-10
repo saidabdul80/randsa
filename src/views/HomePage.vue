@@ -43,8 +43,8 @@
               type="button"
               class="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               :class="headerSearchButtonClass"
-              title="Explore properties"
-              aria-label="Explore properties"
+              title="Search marketplace listings"
+              aria-label="Search marketplace listings"
               @click="openHeaderSearch"
             >
               <IonIcon :icon="searchOutline" class="text-lg" aria-hidden="true" />
@@ -121,13 +121,17 @@
                     aria-hidden="true"
                   />
                   <select
-                    v-model="search.type"
+                    v-model="search.categoryId"
                     class="min-w-0 flex-1 bg-transparent text-xs font-semibold outline-none lg:text-sm"
-                    aria-label="Type of rent"
+                    aria-label="Marketplace category"
                   >
-                    <option value="">Type of rent</option>
-                    <option v-for="type in propertyTypes" :key="`header-${type}`" :value="type">
-                      {{ type }}
+                    <option value="">Category</option>
+                    <option
+                      v-for="category in marketplaceCategories"
+                      :key="`header-${category.id}`"
+                      :value="category.id"
+                    >
+                      {{ category.label }}
                     </option>
                   </select>
                 </label>
@@ -175,15 +179,15 @@
         </nav>
         <div class="flex items-center gap-2">
           <RouterLink
-            to="/add-property"
+            to="/post-listing"
             class="inline-flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 md:hidden"
             :class="
               isHeaderSolid || heroUsesDarkNavigation
                 ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200'
                 : 'bg-white text-brand-700'
             "
-            title="Add property"
-            aria-label="Add property"
+            title="Post Listing"
+            aria-label="Post Listing"
           >
             <IonIcon :icon="addCircleOutline" class="text-2xl" aria-hidden="true" />
           </RouterLink>
@@ -225,10 +229,10 @@
       />
 
       <div
-        class="relative mx-auto flex min-h-[640px] w-full max-w-7xl flex-col px-5 pb-7 pt-24 sm:min-h-[700px] sm:px-8 lg:px-12"
+        class="relative mx-auto flex min-h-[640px] w-full min-w-0 max-w-7xl flex-col px-5 pb-7 pt-24 sm:min-h-[700px] sm:px-8 lg:px-12"
       >
-        <div class="flex flex-1 flex-col justify-center pb-10 pt-8 sm:pt-14">
-          <div class="max-w-3xl">
+        <div class="flex min-w-0 flex-1 flex-col justify-center pb-10 pt-8 sm:pt-14">
+          <div class="min-w-0 max-w-3xl">
             <p
               class="mb-4 inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] ring-1 backdrop-blur-md"
               :class="
@@ -290,11 +294,11 @@
 
           <form
             ref="searchFormRef"
-            class="mx-auto mt-5 grid w-full max-w-4xl gap-1 overflow-hidden rounded-[22px] bg-white p-2 shadow-xl shadow-slate-950/20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto] sm:items-center sm:rounded-full"
+            class="mx-auto mt-5 grid w-full min-w-0 max-w-4xl grid-cols-[minmax(0,1fr)] gap-1 overflow-hidden rounded-[22px] bg-white p-2 shadow-xl shadow-slate-950/20 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_auto] sm:items-center sm:rounded-full"
             @submit.prevent="submitSearch"
           >
             <label
-              class="flex min-h-11 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full"
+              class="flex min-h-11 min-w-0 items-center gap-3 rounded-2xl px-4 text-slate-700 sm:rounded-full"
             >
               <ion-icon :icon="locationOutline" class="text-xl text-slate-400" />
               <input
@@ -305,19 +309,25 @@
               />
             </label>
             <label
-              class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
+              class="flex min-h-11 min-w-0 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
             >
               <ion-icon :icon="homeOutline" class="text-xl text-slate-400" />
               <select
-                v-model="search.type"
+                v-model="search.categoryId"
                 class="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none sm:text-base"
               >
-                <option value="">Type of rent</option>
-                <option v-for="type in propertyTypes" :key="type" :value="type">{{ type }}</option>
+                <option value="">Category</option>
+                <option
+                  v-for="category in marketplaceCategories"
+                  :key="category.id"
+                  :value="category.id"
+                >
+                  {{ category.label }}
+                </option>
               </select>
             </label>
             <label
-              class="flex min-h-11 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
+              class="flex min-h-11 min-w-0 items-center gap-3 border-slate-200 px-4 text-slate-700 sm:border-l"
             >
               <ion-icon :icon="cashOutline" class="text-xl text-slate-400" />
               <select
@@ -354,13 +364,15 @@
           <h2
             class="mt-2 text-3xl font-extrabold tracking-normal text-ink dark:text-white sm:text-4xl"
           >
-            Property Listings
+            Marketplace Listings
           </h2>
         </div>
         <p class="hidden text-sm font-bold text-brand-700 sm:block">
-          {{ homepageProperties.length }} listings
+          {{ homepageListings.length }} listings
         </p>
       </div>
+
+      <MarketplaceDiscoveryFilters v-model="advancedFilters" @reset="clearListingSearch" />
 
       <p
         v-if="listingActionMessage"
@@ -371,9 +383,9 @@
       </p>
 
       <AdaptiveMarketplaceGrid
-        v-if="displayedHomepageProperties.length"
+        v-if="displayedHomepageListings.length"
         class="mt-6"
-        :listings="displayedHomepageProperties"
+        :listings="displayedHomepageListings"
         :saved-property-ids="savedPropertyIds"
         :compared-property-ids="comparedPropertyIds"
         :is-saving="isSavedActionLoading"
@@ -385,7 +397,7 @@
       <div v-else class="mt-8 border-y border-slate-200 py-12 text-center dark:border-slate-800">
         <h3 class="text-lg font-bold text-ink dark:text-white">No matching listings</h3>
         <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">
-          Clear the current filters to see all properties.
+          Clear the current filters to see all marketplace listings.
         </p>
         <button
           type="button"
@@ -404,12 +416,12 @@
     </section>
 
     <ListingQuickView
-      :is-open="Boolean(quickViewProperty)"
-      :property="quickViewProperty"
-      :is-saved="Boolean(quickViewProperty && savedPropertyIds.has(quickViewProperty.id))"
-      :is-compared="Boolean(quickViewProperty && comparedPropertyIds.has(quickViewProperty.id))"
+      :is-open="Boolean(quickViewItem)"
+      :item="quickViewItem"
+      :is-saved="Boolean(quickViewItem && savedPropertyIds.has(quickViewItem.id))"
+      :is-compared="Boolean(quickViewItem && comparedPropertyIds.has(quickViewItem.id))"
       :is-saving="isSavedActionLoading"
-      @close="quickViewProperty = null"
+      @close="quickViewItem = null"
       @toggle-saved="handleToggleSavedProperty"
       @toggle-compare="handleToggleCompare"
     />
@@ -421,7 +433,7 @@
       :saving-property-id="savingPropertyId"
       @remove="removeComparison"
       @clear="clearComparison"
-      @toggle-saved="handleToggleSavedProperty"
+      @toggle-saved="handleToggleSavedComparedProperty"
     />
   </AppShell>
 </template>
@@ -447,6 +459,7 @@ import {
 import AppShell from '../components/layout/AppShell.vue'
 import AdaptiveMarketplaceGrid from '../components/property/AdaptiveMarketplaceGrid.vue'
 import ListingQuickView from '../components/property/ListingQuickView.vue'
+import MarketplaceDiscoveryFilters from '../components/property/MarketplaceDiscoveryFilters.vue'
 import RecentlyViewedProperties from '../components/property/RecentlyViewedProperties.vue'
 import PropertyComparisonTray from '../components/property/details/PropertyComparisonTray.vue'
 import heroCarImage from '../assets/randsa-hero-car.png'
@@ -455,19 +468,33 @@ import homeHeroImage from '../assets/randsa-hero-home.png'
 import heroHorsesImage from '../assets/randsa-hero-horses.png'
 import { ensureAuthReady, useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
+import { useListings } from '../composables/useListings'
 import { usePropertyComparison } from '../composables/usePropertyComparison'
 import { useRecentlyViewedProperties } from '../composables/useRecentlyViewedProperties'
 import { useSavedProperties } from '../composables/useSavedProperties'
+import { designedMarketplaceCards } from '../data/designedMarketplaceProperties'
+import { marketplaceCategories } from '../config/marketplaceCategories'
+import {
+  filterMarketplaceItems,
+  listingToMarketplaceItem,
+  propertyToMarketplaceItem,
+} from '../services/marketplaceDiscovery'
+import {
+  createDefaultMarketplaceFilters,
+  type MarketplaceDiscoveryItem,
+} from '../types/marketplace'
+import type { MarketplaceCategoryId } from '../types/listing'
 import type { PropertyRecord } from '../types/property'
 
 const router = useRouter()
 const { isAuthenticated, state } = useAuth()
 const { properties, refresh: refreshProperties } = useProperties()
+const { publicListings, refreshPublic: refreshPublicListings } = useListings()
 const {
   isLoading: isSavedActionLoading,
   savedRecords,
   refresh: refreshSavedProperties,
-  toggleSavedProperty,
+  toggleSavedItem,
 } = useSavedProperties()
 const {
   selectedPropertyIds,
@@ -494,7 +521,7 @@ const isHeaderSearchOpen = ref(false)
 const isHeaderSearchRequested = ref(false)
 const isHeaderMenuOpen = ref(false)
 const listingActionMessage = ref('')
-const quickViewProperty = ref<PropertyRecord | null>(null)
+const quickViewItem = ref<MarketplaceDiscoveryItem | null>(null)
 const savingPropertyId = ref('')
 
 const heroSlides = [
@@ -577,186 +604,56 @@ const headerSearchButtonClass = computed(() => {
 const desktopLinks = [
   { label: 'Home', to: '/home', icon: null },
   { label: 'Listings', to: '/home#listings', icon: null },
-  { label: 'Add', to: '/add-property', icon: addCircleOutline },
+  { label: 'Post Listing', to: '/post-listing', icon: addCircleOutline },
   { label: 'Bookings', to: '/my-bookings', icon: null },
   { label: 'Alerts', to: '/notifications', icon: null },
   { label: 'Account Center', to: '/profile', icon: null },
 ]
 
-const propertyTypes = [
-  'House rent',
-  'Shop rent',
-  'Office space',
-  'Apartment',
-  'Flat',
-  'Duplex',
-  'Cars',
-]
-
-const search = reactive({
+const search = reactive<{
+  city: string
+  categoryId: MarketplaceCategoryId | ''
+  price: string
+}>({
   city: '',
-  type: '',
+  categoryId: '',
   price: '',
 })
-
-const appliedSearch = reactive({
-  city: '',
-  type: '',
-  price: '',
-})
-
-const designedFeaturedProperties = [
-  {
-    key: 'designed-ocean-breeze-villa',
-    id: null,
-    title: 'Ocean Breeze Villa',
-    location: 'Lekki Phase 1, Lagos',
-    beds: 4,
-    parking: 2,
-    baths: 4,
-    price: 'NGN 4.5M',
-    numericPrice: 4_500_000,
-    paymentDuration: 'year',
-    propertyType: 'House rent',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-jakson-house',
-    id: null,
-    title: 'Jakson House',
-    location: 'Wuse 2, Abuja',
-    beds: 3,
-    parking: 2,
-    baths: 3,
-    price: 'NGN 3.2M',
-    numericPrice: 3_200_000,
-    paymentDuration: 'year',
-    propertyType: 'House rent',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-lakeside-cottage',
-    id: null,
-    title: 'Lakeside Cottage',
-    location: 'GRA, Port Harcourt',
-    beds: 5,
-    parking: 2,
-    baths: 5,
-    price: 'NGN 5.7M',
-    numericPrice: 5_700_000,
-    paymentDuration: 'year',
-    propertyType: 'House rent',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-]
-
-const additionalDesignedProperties = [
-  {
-    key: 'designed-parkview-apartment',
-    id: null,
-    title: 'Parkview Apartment',
-    location: 'Ikoyi, Lagos',
-    beds: 3,
-    parking: 2,
-    baths: 3,
-    price: 'NGN 6.2M',
-    numericPrice: 6_200_000,
-    paymentDuration: 'year',
-    propertyType: 'Apartment',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-cedar-court',
-    id: null,
-    title: 'Cedar Court',
-    location: 'Maitama, Abuja',
-    beds: 4,
-    parking: 2,
-    baths: 4,
-    price: 'NGN 7.5M',
-    numericPrice: 7_500_000,
-    paymentDuration: 'year',
-    propertyType: 'Duplex',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-garden-city-flat',
-    id: null,
-    title: 'Garden City Flat',
-    location: 'Independence Layout, Enugu',
-    beds: 3,
-    parking: 1,
-    baths: 3,
-    price: 'NGN 2.8M',
-    numericPrice: 2_800_000,
-    paymentDuration: 'year',
-    propertyType: 'Flat',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-palm-residence',
-    id: null,
-    title: 'Palm Residence',
-    location: 'Bodija, Ibadan',
-    beds: 4,
-    parking: 2,
-    baths: 4,
-    price: 'NGN 3.9M',
-    numericPrice: 3_900_000,
-    paymentDuration: 'year',
-    propertyType: 'House rent',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-  {
-    key: 'designed-marina-view-home',
-    id: null,
-    title: 'Marina View Home',
-    location: 'Victoria Island, Lagos',
-    beds: 2,
-    parking: 1,
-    baths: 2,
-    price: 'NGN 5.1M',
-    numericPrice: 5_100_000,
-    paymentDuration: 'year',
-    propertyType: 'Apartment',
-    isAvailable: true,
-    image: homeHeroImage,
-    canSpanWide: true,
-    record: null,
-  },
-]
+const advancedFilters = ref(createDefaultMarketplaceFilters())
+const designedMarketplaceItems = designedMarketplaceCards.map((card) =>
+  propertyToMarketplaceItem(card.record, {
+    key: card.key,
+    image: card.image,
+    price: card.price,
+    canSpanWide: card.canSpanWide,
+    source: 'fallback',
+  })
+)
+const designedFeaturedListings = designedMarketplaceItems.slice(0, 3)
+const additionalDesignedListings = designedMarketplaceItems.slice(3)
 
 const savedPropertyIds = computed(
   () => new Set(savedRecords.value.map((record) => record.propertyId))
 )
 const comparedPropertyIds = computed(() => new Set(selectedPropertyIds.value))
 const marketplacePropertyRecords = computed(() => {
-  const currentUserId = state.user?.uid
-
-  return properties.value.filter(
-    (property) => property.status === 'approved' || property.ownerId === currentUserId
-  )
+  const records = [
+    ...designedMarketplaceItems,
+    ...properties.value.map((property) => propertyToMarketplaceItem(property)),
+  ]
+    .map((item) => item.propertyRecord)
+    .filter((property): property is PropertyRecord => Boolean(property))
+  return [...new Map(records.map((property) => [property.id, property])).values()]
+})
+const marketplaceDiscoveryItems = computed(() => {
+  const records = [
+    ...designedMarketplaceItems,
+    ...properties.value
+      .filter((property) => property.status === 'approved')
+      .map((property) => propertyToMarketplaceItem(property)),
+    ...publicListings.value.map(listingToMarketplaceItem),
+  ]
+  return [...new Map(records.map((item) => [item.id, item])).values()]
 })
 const comparedProperties = computed(() =>
   selectedPropertyIds.value
@@ -767,17 +664,15 @@ const comparedProperties = computed(() =>
 )
 const recentlyViewedProperties = computed(() =>
   recentlyViewedIds.value
-    .map((propertyId) =>
-      marketplacePropertyRecords.value.find((property) => property.id === propertyId)
-    )
-    .filter((property): property is PropertyRecord => Boolean(property))
+    .map((itemId) => marketplaceDiscoveryItems.value.find((item) => item.id === itemId))
+    .filter((item): item is MarketplaceDiscoveryItem => Boolean(item))
     .slice(0, 5)
 )
 
 watch(
   () => state.profile?.uid ?? state.user?.uid,
   (userId) => {
-    refreshSavedProperties(userId)
+    void refreshSavedProperties(userId).catch(() => undefined)
   },
   { immediate: true }
 )
@@ -787,40 +682,20 @@ watch(
   () => pruneComparison(marketplacePropertyRecords.value.map((property) => property.id))
 )
 
-const homepageProperties = computed(() => {
-  const currentUserId = state.user?.uid
-  const ownProperties = currentUserId
-    ? properties.value.filter((property) => property.ownerId === currentUserId)
-    : []
-  const approvedProperties = properties.value.filter(
-    (property) => property.status === 'approved' && property.ownerId !== currentUserId
-  )
-  const liveProperties = [...ownProperties, ...approvedProperties].slice(0, 2)
-  const baseProperties = [
-    ...designedFeaturedProperties,
-    ...liveProperties.map((property) => ({
-      key: `property-${property.id}`,
-      id: property.id,
-      title: property.title,
-      location: [property.area, property.city, property.state].filter(Boolean).join(', '),
-      beds: property.bedrooms ?? 0,
-      parking: property.parking ? 1 : 0,
-      baths: property.bathrooms ?? 0,
-      price: formatCurrency(property.rentPrice),
-      numericPrice: property.rentPrice,
-      paymentDuration: property.paymentDuration,
-      propertyType: property.propertyType,
-      isAvailable: property.isAvailable,
-      image: property.images[0] || homeHeroImage,
-      shopSize: property.shopSize,
-      canSpanWide: false,
-      record: property,
-    })),
-    ...additionalDesignedProperties,
+const homepageListings = computed(() => {
+  const liveListings = publicListings.value.map(listingToMarketplaceItem)
+  const liveProperties = properties.value
+    .filter((property) => property.status === 'approved')
+    .map((property) => propertyToMarketplaceItem(property))
+  const baseListings = [
+    ...designedFeaturedListings,
+    ...liveListings,
+    ...liveProperties,
+    ...additionalDesignedListings,
   ]
-  const designedSources = [...designedFeaturedProperties, ...additionalDesignedProperties]
-  const duplicateCount = Math.max(0, 20 - baseProperties.length)
-  const duplicatedProperties = Array.from({ length: duplicateCount }, (_, index) => {
+  const designedSources = [...designedFeaturedListings, ...additionalDesignedListings]
+  const duplicateCount = Math.max(0, 20 - baseListings.length)
+  const duplicatedListings = Array.from({ length: duplicateCount }, (_, index) => {
     const source = designedSources[index % designedSources.length]
 
     return {
@@ -829,35 +704,12 @@ const homepageProperties = computed(() => {
     }
   })
 
-  return [...baseProperties, ...duplicatedProperties]
+  return [...baseListings, ...duplicatedListings]
 })
 
-const displayedHomepageProperties = computed(() => {
-  const locationQuery = appliedSearch.city.trim().toLowerCase()
-
-  return homepageProperties.value.filter((property) => {
-    if (
-      locationQuery &&
-      !`${property.title} ${property.location}`.toLowerCase().includes(locationQuery)
-    ) {
-      return false
-    }
-
-    if (appliedSearch.type && property.propertyType !== appliedSearch.type) {
-      return false
-    }
-
-    if (appliedSearch.price === 'budget' && property.numericPrice > 250_000) return false
-    if (
-      appliedSearch.price === 'mid' &&
-      (property.numericPrice <= 250_000 || property.numericPrice > 1_000_000)
-    )
-      return false
-    if (appliedSearch.price === 'premium' && property.numericPrice <= 1_000_000) return false
-
-    return true
-  })
-})
+const displayedHomepageListings = computed(() =>
+  filterMarketplaceItems(homepageListings.value, advancedFilters.value)
+)
 
 let carouselTimer: number | null = null
 let headerMenuCloseTimer: number | null = null
@@ -886,7 +738,7 @@ onMounted(async () => {
 
   try {
     await ensureAuthReady()
-    await refreshProperties()
+    await Promise.all([refreshProperties(), refreshPublicListings()])
   } catch {
     // Keep the three designed cards available if live listings cannot be refreshed.
   }
@@ -910,7 +762,7 @@ function updateHeaderState() {
     searchRect && searchRect.bottom > 64 && searchRect.top < viewportHeight
   )
   const heroSearchJustLeft = wasHeroSearchVisible && !heroSearchIsVisible
-  const hasSearchValues = Boolean(search.city.trim() || search.type || search.price)
+  const hasSearchValues = Boolean(search.city.trim() || search.categoryId || search.price)
 
   showHeaderSearch.value = Boolean(searchRect && searchRect.bottom <= 64)
 
@@ -1059,32 +911,42 @@ function toggleCarousel() {
 }
 
 function submitSearch() {
-  appliedSearch.city = search.city.trim()
-  appliedSearch.type = search.type
-  appliedSearch.price = search.price
+  const priceRange =
+    search.price === 'budget'
+      ? { minPrice: 5_000, maxPrice: 250_000 }
+      : search.price === 'mid'
+        ? { minPrice: 250_001, maxPrice: 1_000_000 }
+        : search.price === 'premium'
+          ? { minPrice: 1_000_001, maxPrice: null }
+          : { minPrice: null, maxPrice: null }
+  advancedFilters.value = {
+    ...advancedFilters.value,
+    search: search.city.trim(),
+    categoryId: search.categoryId || 'all',
+    subcategoryId: '',
+    ...priceRange,
+  }
   scrollToListings()
 }
 
 function clearListingSearch() {
   search.city = ''
-  search.type = ''
+  search.categoryId = ''
   search.price = ''
-  appliedSearch.city = ''
-  appliedSearch.type = ''
-  appliedSearch.price = ''
+  advancedFilters.value = createDefaultMarketplaceFilters()
 }
 
-async function handleToggleSavedProperty(property: PropertyRecord) {
+async function handleToggleSavedProperty(item: MarketplaceDiscoveryItem) {
   const userId = state.profile?.uid ?? state.user?.uid
-  const wasSaved = savedPropertyIds.value.has(property.id)
+  const wasSaved = savedPropertyIds.value.has(item.id)
   listingActionMessage.value = ''
-  savingPropertyId.value = property.id
+  savingPropertyId.value = item.id
 
   try {
-    await toggleSavedProperty(userId, property)
+    await toggleSavedItem(userId, item)
     listingActionMessage.value = wasSaved
-      ? `${property.title} was removed from your saved properties.`
-      : `${property.title} was added to your saved properties.`
+      ? `${item.title} was removed from your saved listings.`
+      : `${item.title} was added to your saved listings.`
   } catch (error) {
     listingActionMessage.value =
       error instanceof Error ? error.message : 'Could not update your saved properties.'
@@ -1093,26 +955,23 @@ async function handleToggleSavedProperty(property: PropertyRecord) {
   }
 }
 
-function openQuickView(property: PropertyRecord) {
-  quickViewProperty.value = property
-  rememberRecentlyViewed(property.id)
+function handleToggleSavedComparedProperty(property: PropertyRecord) {
+  return handleToggleSavedProperty(propertyToMarketplaceItem(property))
 }
 
-function handleToggleCompare(property: PropertyRecord) {
-  const result = toggleComparison(property.id)
+function openQuickView(item: MarketplaceDiscoveryItem) {
+  quickViewItem.value = item
+  rememberRecentlyViewed(item.id)
+}
+
+function handleToggleCompare(item: MarketplaceDiscoveryItem) {
+  if (!item.propertyRecord) return
+  const result = toggleComparison(item.id)
   listingActionMessage.value =
     result === 'limit'
       ? 'You can compare up to three listings.'
       : result === 'added'
-        ? `${property.title} was added to comparison.`
-        : `${property.title} was removed from comparison.`
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(value)
+        ? `${item.title} was added to comparison.`
+        : `${item.title} was removed from comparison.`
 }
 </script>

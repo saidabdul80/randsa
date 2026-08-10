@@ -2,7 +2,7 @@
   <Teleport to="body">
     <Transition name="listing-quick-view">
       <div
-        v-if="isOpen && property"
+        v-if="isOpen && item"
         class="fixed inset-0 z-[120] grid place-items-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-5"
         role="presentation"
         @mousedown.self="close"
@@ -30,9 +30,9 @@
             class="relative min-h-56 overflow-hidden bg-slate-100 md:min-h-[520px] dark:bg-slate-800"
           >
             <img
-              v-if="property.images[0]"
-              :src="property.images[0]"
-              :alt="property.title"
+              v-if="item.image"
+              :src="item.image"
+              :alt="item.title"
               class="h-full w-full object-cover"
               decoding="async"
             />
@@ -46,13 +46,13 @@
               <span
                 class="rounded-full bg-white/92 px-3 py-1 text-[10px] font-bold text-slate-800 shadow-sm backdrop-blur"
               >
-                {{ property.propertyType }}
+                {{ item.subcategoryName || item.categoryName }}
               </span>
               <span
-                v-if="property.isAvailable"
+                v-if="item.availabilityLabel"
                 class="rounded-full bg-emerald-50/95 px-3 py-1 text-[10px] font-bold text-emerald-700 shadow-sm backdrop-blur"
               >
-                Available
+                {{ item.availabilityLabel }}
               </span>
             </div>
           </div>
@@ -65,19 +65,22 @@
               id="listing-quick-view-title"
               class="mt-2 text-2xl font-extrabold tracking-normal text-ink dark:text-white"
             >
-              {{ property.title }}
+              {{ item.title }}
             </h2>
             <p class="mt-2 flex items-start gap-2 text-sm text-slate-500 dark:text-slate-300">
               <IonIcon :icon="locationOutline" class="mt-0.5 shrink-0" aria-hidden="true" />
-              {{ formatLocation(property) }}
+              {{ item.location || 'Location not added' }}
             </p>
 
             <p class="mt-5">
               <strong class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                {{ formatCurrency(property.rentPrice) }}
+                {{ item.price }}
               </strong>
-              <span class="ml-1 text-xs font-medium text-slate-500 dark:text-slate-300">
-                / {{ formatPeriod(property.paymentDuration) }}
+              <span
+                v-if="item.paymentDuration"
+                class="ml-1 text-xs font-medium text-slate-500 dark:text-slate-300"
+              >
+                / {{ item.paymentDuration }}
               </span>
             </p>
 
@@ -86,25 +89,29 @@
               class="mt-5 grid grid-cols-2 gap-2 border-y border-slate-200 py-4 sm:grid-cols-4 dark:border-slate-700"
             >
               <span
-                v-for="item in metadata"
-                :key="item.label"
+                v-for="metadataItem in metadata"
+                :key="metadataItem.label"
                 class="flex min-w-0 items-center gap-2 text-slate-600 dark:text-slate-300"
               >
-                <IonIcon :icon="item.icon" class="shrink-0 text-brand-600" aria-hidden="true" />
+                <IonIcon
+                  :icon="metadataIcon(metadataItem.kind)"
+                  class="shrink-0 text-brand-600"
+                  aria-hidden="true"
+                />
                 <span class="min-w-0">
                   <strong class="block truncate text-xs text-ink dark:text-white">
-                    {{ item.value }}
+                    {{ metadataItem.value }}
                   </strong>
-                  <small class="block truncate text-[10px]">{{ item.label }}</small>
+                  <small class="block truncate text-[10px]">{{ metadataItem.label }}</small>
                 </span>
               </span>
             </div>
 
             <p
-              v-if="property.description"
+              v-if="item.description"
               class="mt-5 line-clamp-4 text-sm leading-6 text-slate-600 dark:text-slate-300"
             >
-              {{ property.description }}
+              {{ item.description }}
             </p>
 
             <dl
@@ -137,16 +144,17 @@
                 class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-wait disabled:opacity-60 dark:border-slate-700 dark:text-slate-200"
                 :disabled="isSaving"
                 :aria-pressed="isSaved"
-                @click="$emit('toggle-saved', property)"
+                @click="$emit('toggle-saved', item)"
               >
                 <IonIcon :icon="isSaved ? heart : heartOutline" aria-hidden="true" />
                 {{ isSaved ? 'Saved' : 'Save' }}
               </button>
               <button
+                v-if="item.propertyRecord"
                 type="button"
                 class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:text-slate-200"
                 :aria-pressed="isCompared"
-                @click="$emit('toggle-compare', property)"
+                @click="$emit('toggle-compare', item)"
               >
                 <IonIcon :icon="gitCompareOutline" aria-hidden="true" />
                 {{ isCompared ? 'Comparing' : 'Compare' }}
@@ -165,14 +173,15 @@
 
             <div class="mt-3 grid gap-2 sm:grid-cols-2">
               <RouterLink
-                :to="`/booking/${property.id}`"
+                v-if="item.propertyRecord"
+                :to="`/booking/${item.id}`"
                 class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-xs font-bold text-white transition hover:bg-slate-800"
               >
                 <IonIcon :icon="calendarOutline" aria-hidden="true" />
                 Book inspection
               </RouterLink>
               <RouterLink
-                :to="`/properties/${property.id}`"
+                :to="item.detailPath"
                 class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-xs font-bold text-white transition hover:bg-brand-700"
               >
                 View full details
@@ -191,27 +200,35 @@ import { IonIcon } from '@ionic/vue'
 import {
   arrowForwardOutline,
   bedOutline,
+  briefcaseOutline,
   calendarOutline,
   carOutline,
   closeOutline,
+  cubeOutline,
   gitCompareOutline,
   heart,
   heartOutline,
   imageOutline,
+  leafOutline,
   locationOutline,
   navigateOutline,
+  phonePortraitOutline,
   resizeOutline,
+  speedometerOutline,
+  storefrontOutline,
+  syncOutline,
+  timeOutline,
   waterOutline,
 } from 'ionicons/icons'
 import { computed, ref, toRef } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import { useModalDialog } from '../../composables/useModalDialog'
-import type { PropertyRecord } from '../../types/property'
+import type { MarketplaceDiscoveryItem, MarketplaceMetadataKind } from '../../types/marketplace'
 
 const props = defineProps<{
   isOpen: boolean
-  property: PropertyRecord | null
+  item: MarketplaceDiscoveryItem | null
   isSaved: boolean
   isCompared: boolean
   isSaving: boolean
@@ -219,34 +236,18 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  'toggle-saved': [property: PropertyRecord]
-  'toggle-compare': [property: PropertyRecord]
+  'toggle-saved': [item: MarketplaceDiscoveryItem]
+  'toggle-compare': [item: MarketplaceDiscoveryItem]
 }>()
 
 const dialogRef = ref<HTMLElement | null>(null)
 const openState = toRef(props, 'isOpen')
 const { handleKeydown } = useModalDialog(openState, dialogRef, close)
 
-const metadata = computed(() => {
-  const property = props.property
-  if (!property) return []
-
-  return [
-    property.bedrooms !== null
-      ? { label: 'Bedrooms', value: String(property.bedrooms), icon: bedOutline }
-      : null,
-    property.bathrooms !== null
-      ? { label: 'Bathrooms', value: String(property.bathrooms), icon: waterOutline }
-      : null,
-    property.parking ? { label: 'Parking', value: 'Yes', icon: carOutline } : null,
-    property.shopSize
-      ? { label: 'Floor area', value: property.shopSize, icon: resizeOutline }
-      : null,
-  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
-})
+const metadata = computed(() => props.item?.metadata ?? [])
 
 const knownCharges = computed(() => {
-  const property = props.property
+  const property = props.item?.propertyRecord
   if (!property) return []
 
   return [
@@ -262,7 +263,7 @@ const knownTotal = computed(() =>
 )
 
 const googleMapsUrl = computed(() => {
-  const property = props.property
+  const property = props.item?.propertyRecord
   if (!property || property.latitude === null || property.longitude === null) return ''
 
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -274,10 +275,6 @@ function close() {
   emit('close')
 }
 
-function formatLocation(property: PropertyRecord) {
-  return [property.area, property.city, property.state].filter(Boolean).join(', ')
-}
-
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
@@ -286,8 +283,26 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
-function formatPeriod(value: string) {
-  return value.replaceAll('_', ' ')
+function metadataIcon(kind: MarketplaceMetadataKind) {
+  const icons: Record<MarketplaceMetadataKind, string> = {
+    area: resizeOutline,
+    bathrooms: waterOutline,
+    bedrooms: bedOutline,
+    brand: storefrontOutline,
+    condition: syncOutline,
+    delivery: carOutline,
+    employment: briefcaseOutline,
+    mileage: speedometerOutline,
+    model: cubeOutline,
+    parking: carOutline,
+    quantity: leafOutline,
+    'service-area': locationOutline,
+    storage: phonePortraitOutline,
+    transmission: syncOutline,
+    workplace: storefrontOutline,
+    year: calendarOutline,
+  }
+  return icons[kind] ?? timeOutline
 }
 </script>
 

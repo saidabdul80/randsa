@@ -33,6 +33,7 @@ import type {
   UserRole,
 } from '../types/user'
 import type { VerificationStatus } from '../types/user'
+import { sanitizeInternalRedirect } from '../utils/navigation'
 
 interface LocalAuthRecord {
   uid: string
@@ -49,7 +50,7 @@ const GOOGLE_FLOW_STATE_KEY = 'randsa.google-auth.flow-state'
 
 interface GoogleRedirectContext {
   phone?: string
-  role?: Exclude<UserRole, 'admin'>
+  acceptedTerms?: boolean
   returnTo?: string
   source?: 'login' | 'register'
 }
@@ -173,11 +174,17 @@ function sanitizeProfile(data: Partial<UserProfile> & { uid: string }): UserProf
     fullName: data.fullName ?? '',
     email: data.email ?? '',
     phone: data.phone ?? '',
-    role: data.role ?? 'tenant',
+    location: data.location ?? '',
+    bio: data.bio ?? '',
+    role: data.role ?? 'user',
     photoURL: data.photoURL ?? '',
+    isVerified: data.isVerified ?? data.isVerifiedAgent ?? false,
     isVerifiedAgent: data.isVerifiedAgent ?? false,
     verificationStatus: data.verificationStatus ?? 'not_submitted',
+    accountStatus: data.accountStatus ?? 'active',
     createdAt: data.createdAt ?? null,
+    updatedAt: data.updatedAt ?? data.createdAt ?? null,
+    termsAcceptedAt: data.termsAcceptedAt ?? null,
   }
 }
 
@@ -286,7 +293,7 @@ function writeGoogleRedirectReturnTo(path: string) {
     return
   }
 
-  window.sessionStorage.setItem(GOOGLE_REDIRECT_RETURN_TO_KEY, path)
+  window.sessionStorage.setItem(GOOGLE_REDIRECT_RETURN_TO_KEY, sanitizeInternalRedirect(path))
 }
 
 export function consumeGoogleRedirectReturnTo() {
@@ -301,7 +308,7 @@ export function consumeGoogleRedirectReturnTo() {
   }
 
   window.sessionStorage.removeItem(GOOGLE_REDIRECT_RETURN_TO_KEY)
-  return target
+  return sanitizeInternalRedirect(target)
 }
 
 export function hasPendingGoogleAuthFlow() {
@@ -370,10 +377,15 @@ async function finalizeGoogleSignInCredential(
   credential: UserCredential,
   options?: {
     phone?: string
-    role?: Exclude<UserRole, 'admin'>
+    acceptedTerms?: boolean
   }
 ) {
   const isNewUser = Boolean(getAdditionalUserInfo(credential)?.isNewUser)
+
+  if (isNewUser && !options?.acceptedTerms) {
+    await deleteUser(credential.user).catch(() => undefined)
+    throw new Error('Create your account and accept the terms and privacy policy first.')
+  }
 
   try {
     return await ensureFirebaseUserProfile(credential.user, options)
@@ -390,7 +402,7 @@ async function ensureFirebaseUserProfile(
   user: User,
   options?: {
     phone?: string
-    role?: Exclude<UserRole, 'admin'>
+    acceptedTerms?: boolean
   }
 ) {
   const { db } = getFirebaseServices()
@@ -413,11 +425,17 @@ async function ensureFirebaseUserProfile(
     fullName: buildDisplayNameFromUser(user),
     email,
     phone: options?.phone?.trim() || user.phoneNumber || '',
-    role: options?.role ?? 'tenant',
+    location: '',
+    bio: '',
+    role: 'user' as const,
     photoURL: user.photoURL ?? '',
+    isVerified: false,
     isVerifiedAgent: false,
     verificationStatus: 'not_submitted' as const,
+    accountStatus: 'active' as const,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    termsAcceptedAt: options?.acceptedTerms ? serverTimestamp() : null,
   }
 
   await setDoc(doc(db, 'users', user.uid), profile)
@@ -470,6 +488,10 @@ export function toDisplayError(error: unknown, context: 'default' | 'google' = '
 }
 
 export async function registerUser(payload: RegisterPayload) {
+  if (!payload.acceptTerms) {
+    throw new Error('Accept the terms and privacy policy before creating your account.')
+  }
+
   if (authMode === 'local') {
     const normalizedEmail = payload.email.trim().toLowerCase()
     const trimmedName = payload.fullName.trim()
@@ -485,11 +507,17 @@ export async function registerUser(payload: RegisterPayload) {
       fullName: trimmedName,
       email: normalizedEmail,
       phone: trimmedPhone,
-      role: payload.role,
+      location: '',
+      bio: '',
+      role: 'user',
       photoURL: '',
+      isVerified: false,
       isVerifiedAgent: false,
       verificationStatus: 'not_submitted',
+      accountStatus: 'active',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      termsAcceptedAt: new Date().toISOString(),
     })
 
     users.push({
@@ -516,11 +544,17 @@ export async function registerUser(payload: RegisterPayload) {
     fullName: trimmedName,
     email: normalizedEmail,
     phone: trimmedPhone,
-    role: payload.role,
+    location: '',
+    bio: '',
+    role: 'user' as const,
     photoURL: '',
+    isVerified: false,
     isVerifiedAgent: false,
     verificationStatus: 'not_submitted' as const,
+    accountStatus: 'active' as const,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    termsAcceptedAt: serverTimestamp(),
   }
 
   try {
@@ -557,8 +591,8 @@ export async function loginUser(email: string, password: string) {
 }
 
 export async function signInWithGoogle(options?: {
-  role?: Exclude<UserRole, 'admin'>
   phone?: string
+  acceptedTerms?: boolean
   returnTo?: string
   source?: 'login' | 'register'
 }) {
@@ -584,7 +618,7 @@ export async function signInWithGoogle(options?: {
     if (shouldFallbackGooglePopupToRedirect(error)) {
       writeGoogleRedirectContext({
         phone: options?.phone,
-        role: options?.role,
+        acceptedTerms: options?.acceptedTerms,
         returnTo: options?.returnTo,
         source: options?.source,
       })
@@ -613,8 +647,8 @@ export async function signInWithGoogle(options?: {
 }
 
 export async function startGoogleRedirectSignIn(options?: {
-  role?: Exclude<UserRole, 'admin'>
   phone?: string
+  acceptedTerms?: boolean
   returnTo?: string
   source?: 'login' | 'register'
 }) {
@@ -632,7 +666,7 @@ export async function startGoogleRedirectSignIn(options?: {
 
   writeGoogleRedirectContext({
     phone: options?.phone,
-    role: options?.role,
+    acceptedTerms: options?.acceptedTerms,
     returnTo: options?.returnTo,
     source: options?.source,
   })
@@ -663,7 +697,7 @@ export async function completePendingGoogleRedirectSignIn() {
 
     const profile = await finalizeGoogleSignInCredential(credential, context ?? undefined)
 
-    if (context?.returnTo?.startsWith('/')) {
+    if (context?.returnTo) {
       writeGoogleRedirectReturnTo(context.returnTo)
     }
 
@@ -768,6 +802,7 @@ export async function updateUserProfileDetails(uid: string, payload: ProfileComp
   await updateDoc(doc(db, 'users', uid), {
     fullName,
     phone,
+    updatedAt: serverTimestamp(),
   })
 
   return getUserProfile(uid)

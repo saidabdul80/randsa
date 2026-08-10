@@ -1,21 +1,12 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-} from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 
 import { authMode, db, firebaseConfigError, functions, isFirebaseConfigured } from '../lib/firebase'
-import { isLocalPaymentBypassEnabled, paystackPublicKey } from '../lib/payments'
+import { isLocalPaymentBypassEnabled } from '../lib/payments'
 import type { PropertyRecord } from '../types/property'
 import type {
   VerifyPaymentResult,
+  PaymentInitializationResult,
   PaymentRecord,
   PaymentStatus,
   PaymentType,
@@ -97,11 +88,13 @@ function mapDocToPaymentRecord(
     createdAt?: unknown
     verifiedAt?: unknown
     gatewayVerifiedAt?: unknown
+    gatewayInitializedAt?: unknown
   }
 ) {
   const createdAt = normalizeTimestampLike(data.createdAt) ?? ''
   const verifiedAt = normalizeTimestampLike(data.verifiedAt)
   const gatewayVerifiedAt = normalizeTimestampLike(data.gatewayVerifiedAt)
+  const gatewayInitializedAt = normalizeTimestampLike(data.gatewayInitializedAt)
 
   return {
     id: paymentId,
@@ -122,7 +115,51 @@ function mapDocToPaymentRecord(
     verifiedAt,
     gatewayStatus: data.gatewayStatus ? String(data.gatewayStatus) : null,
     gatewayVerifiedAt,
+    gatewayAccessCode: data.gatewayAccessCode ? String(data.gatewayAccessCode) : null,
+    gatewayAuthorizationUrl: data.gatewayAuthorizationUrl
+      ? String(data.gatewayAuthorizationUrl)
+      : null,
+    gatewayInitializedAt,
   } satisfies PaymentRecord
+}
+
+function buildPaymentCallbackUrl(payment: Pick<PaymentRecord, 'id' | 'propertyId' | 'bookingId'>) {
+  if (typeof window === 'undefined') {
+    throw new Error('Paystack checkout can only be initialized in the browser.')
+  }
+
+  const callbackUrl = new URL(
+    `/payment/${encodeURIComponent(payment.propertyId)}`,
+    window.location.origin
+  )
+  callbackUrl.searchParams.set('paymentId', payment.id)
+  if (payment.bookingId) callbackUrl.searchParams.set('bookingId', payment.bookingId)
+  return callbackUrl.toString()
+}
+
+async function initializePaymentWithBackend(payment: PaymentRecord) {
+  const functionsInstance = ensureFunctionsReady()
+  const initializePaystackPayment = httpsCallable<
+    {
+      paymentId: string
+      propertyId: string
+      bookingId: string | null
+      paymentType: PaymentType
+      amount: number
+      callbackUrl: string
+    },
+    PaymentInitializationResult
+  >(functionsInstance, 'initializePaystackPayment')
+
+  const result = await initializePaystackPayment({
+    paymentId: payment.id,
+    propertyId: payment.propertyId,
+    bookingId: payment.bookingId,
+    paymentType: payment.paymentType,
+    amount: payment.amount,
+    callbackUrl: buildPaymentCallbackUrl(payment),
+  })
+  return result.data
 }
 
 async function getPaymentsByQuery(constraints: ReturnType<typeof where>[]) {
@@ -204,12 +241,6 @@ export async function createPaymentRecord(
     throw new Error('Your profile needs a valid email address before starting Paystack checkout.')
   }
 
-  if (!isLocalPaymentBypassEnabled && !paystackPublicKey) {
-    throw new Error(
-      'Paystack public key is missing. Add VITE_PAYSTACK_PUBLIC_KEY before creating a live payment reference.'
-    )
-  }
-
   const now = new Date().toISOString()
   const paymentId = `payment-${crypto.randomUUID()}`
   const record: PaymentRecord = {
@@ -230,6 +261,9 @@ export async function createPaymentRecord(
     verifiedAt: null,
     gatewayStatus: null,
     gatewayVerifiedAt: null,
+    gatewayAccessCode: null,
+    gatewayAuthorizationUrl: null,
+    gatewayInitializedAt: null,
   }
 
   if (authMode === 'local') {
@@ -238,27 +272,14 @@ export async function createPaymentRecord(
     return record
   }
 
-  const firestore = ensureFirestoreReady()
-  await setDoc(doc(firestore, 'payments', paymentId), {
-    userId: record.userId,
-    propertyId: record.propertyId,
-    bookingId: record.bookingId,
-    agentId: record.agentId,
-    propertyTitle: record.propertyTitle,
-    payerName: record.payerName,
-    payerEmail: record.payerEmail,
-    amount: record.amount,
-    paymentType: record.paymentType,
-    paystackReference: record.paystackReference,
-    status: record.status,
-    verificationMode: record.verificationMode,
-    createdAt: serverTimestamp(),
-    verifiedAt: null,
-    gatewayStatus: null,
-    gatewayVerifiedAt: null,
-  })
+  return (await initializePaymentWithBackend(record)).payment
+}
 
-  return getPaymentById(paymentId) ?? record
+export async function preparePaymentCheckout(payment: PaymentRecord) {
+  if (authMode === 'local') {
+    throw new Error('Paystack checkout is unavailable while local payment bypass is active.')
+  }
+  return initializePaymentWithBackend(payment)
 }
 
 export async function completeLocalPayment(

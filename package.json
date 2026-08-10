@@ -10,11 +10,18 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test": "npm run test:marketplace && npm run test:routes && npm run test:security && npm run test:functions",
+    "test:marketplace": "node test/marketplace.test.mjs",
+    "test:routes": "node test/route-security.test.mjs",
+    "test:security": "node test/firebase-security.test.mjs",
+    "test:functions": "npm --prefix functions test",
+    "verify": "npm run lint && npm run format:check && npm run test && npm run build",
     "preview": "vite preview",
     "firebase:login": "npx firebase-tools login",
     "firebase:login:list": "npx firebase-tools login:list",
     "firebase:use": "npx firebase-tools use --add",
-    "rules:deploy": "npx firebase-tools deploy --only firestore,storage"
+    "rules:deploy": "npx firebase-tools@13.35.1 deploy --only firestore,storage",
+    "hosting:deploy": "npm run build && npx firebase-tools@13.35.1 deploy --only hosting"
   },
   "dependencies": {
     "@ionic/vue": "^8.8.10",

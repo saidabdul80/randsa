@@ -185,7 +185,6 @@ import {
   uploadUserFile,
   type StorageUploadResult,
 } from '../../services/storageUploads'
-import { isPropertyManagerRole } from '../../types/property'
 import type { UserProfile } from '../../types/user'
 
 const props = defineProps<{
@@ -224,10 +223,6 @@ const setupMessage = computed(() => {
 
   if (!props.profile) {
     return 'Sign in with your Firebase account before testing Storage uploads.'
-  }
-
-  if (!isPropertyManagerRole(props.profile.role)) {
-    return 'Your current account can test the user path and verification path. The property path requires a landlord, agent, or admin role.'
   }
 
   return ''

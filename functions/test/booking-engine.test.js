@@ -7,6 +7,9 @@ const {
   calculateBookingPrice,
   getEligibleAgentSchedules,
   getBookingRange,
+  isMatchingBookingRequest,
+  normalizeBookingDateValue,
+  normalizeBookingTimeValue,
   rangesOverlap,
   resolveBookingMode,
   validateBookingSelection,
@@ -140,4 +143,48 @@ test('honours persisted agent schedules and unavailable dates', () => {
   const selection = validateBookingSelection(input, property, new Date('2030-01-01T00:00:00Z'))
   assert.equal(selection.durationMinutes, 45)
   assert.equal(getEligibleAgentSchedules(property, selection, input)[0].agentId, 'agent-1')
+})
+
+test('matches an idempotent booking request to both its user and listing', () => {
+  const booking = { userId: 'user-1', propertyId: 'property-1' }
+  assert.equal(isMatchingBookingRequest(booking, 'user-1', 'property-1'), true)
+  assert.equal(isMatchingBookingRequest(booking, 'user-1', 'property-2'), false)
+  assert.equal(isMatchingBookingRequest(booking, 'user-2', 'property-1'), false)
+})
+
+test('supports the legacy listing ID when matching an idempotent booking request', () => {
+  assert.equal(
+    isMatchingBookingRequest({ userId: 'user-1', listingId: 'property-1' }, 'user-1', 'property-1'),
+    true
+  )
+})
+
+test('normalizes localized booking dates and 12-hour times', () => {
+  assert.equal(normalizeBookingDateValue('08/30/2026'), '2026-08-30')
+  assert.equal(normalizeBookingTimeValue('04:22 PM'), '16:22')
+  assert.equal(normalizeBookingTimeValue('12:05 AM'), '00:05')
+})
+
+test('accepts the localized vehicle schedule shown by native controls', () => {
+  const selection = validateBookingSelection(
+    {
+      inspectionDate: '08/30/2026',
+      inspectionTime: '04:22 PM',
+      endDate: '09/30/2026',
+      endTime: '11:21 PM',
+      guestPhone: '08000000000',
+    },
+    {
+      propertyType: 'Car',
+      category: 'vehicle',
+      isAvailable: true,
+      rentPrice: 25000,
+      paymentDuration: 'daily',
+    },
+    new Date('2026-08-08T00:00:00Z')
+  )
+
+  assert.equal(selection.bookingMode, 'vehicle_rental')
+  assert.equal(selection.pricingUnit, 'per_day')
+  assert.ok(selection.endAt > selection.startAt)
 })

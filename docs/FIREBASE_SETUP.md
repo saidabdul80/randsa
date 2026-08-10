@@ -1,35 +1,39 @@
-# Firebase Setup Guide
+# RANDSA Firebase Setup
 
-## 1. Required Products
+## Required Firebase Products
 
-Enable these Firebase products for RANDSA:
+Enable the following in the Firebase project:
 
 - Authentication
 - Firestore Database
 - Storage
 - Cloud Functions
 - Cloud Messaging
+- Hosting
 
-## 2. Authentication
+The configured project in this repository is `randsa-67e93`.
 
-Recommended providers currently used:
+## Authentication
+
+Enable:
 
 - Email/Password
 - Google
 
-The app also supports a local bypass mode for development only:
+Add local and deployed Hosting domains to Firebase Authentication authorized domains.
 
-- `VITE_ENABLE_LOCAL_AUTH_BYPASS=true`
+Local bypass is development-only:
 
-For real Firebase mode:
+```env
+VITE_ENABLE_LOCAL_AUTH_BYPASS=false
+VITE_ENABLE_LOCAL_PAYMENT_BYPASS=false
+```
 
-- set `VITE_ENABLE_LOCAL_AUTH_BYPASS=false`
+Production and live Firebase testing must keep both values `false`.
 
-## 3. Environment Variables
+## Environment Variables
 
-Create `.env.local` from `.env.example`.
-
-Required app values:
+Create `.env.local` from `.env.example`:
 
 ```env
 VITE_ENABLE_LOCAL_AUTH_BYPASS=false
@@ -46,138 +50,145 @@ VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
-## 4. Firebase CLI
+Never commit `.env.local` or the Paystack secret key.
 
-Useful commands already reflected in `package.json`:
+## CLI and Dependencies
 
-```bash
-npm.cmd run firebase:login
-npm.cmd run firebase:login:list
-npm.cmd run firebase:use
-npm.cmd run rules:deploy
+```powershell
+npm install
+npm --prefix functions install
+npm run firebase:login
+npm run firebase:login:list
+npm run firebase:use
 ```
 
-If needed manually:
+Confirm the active Firebase project before every deployment.
 
-```bash
-firebase login
-firebase use --add
+## Local Verification
+
+```powershell
+npm run verify
 ```
 
-## 5. Firestore and Storage Deploy
+Individual suites:
 
-Project config is in:
+```powershell
+npm run lint
+npm run format:check
+npm run test:marketplace
+npm run test:routes
+npm run test:security
+npm run test:functions
+npm run build
+```
 
-- `firebase.json`
+## Rules and Indexes
+
+Configuration files:
+
 - `firestore.rules`
 - `firestore.indexes.json`
 - `storage.rules`
+- `firebase.json`
 
-Deploy them with:
+Deploy Phase 14 rules and indexes:
 
-```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage
+```powershell
+npm run rules:deploy
 ```
 
-## 6. Functions Setup
+This resolves to the pinned Firebase CLI and deploys the Firestore and Storage targets.
 
-Move into the functions directory:
+## Cloud Functions
 
-```bash
-cd functions
-npm.cmd install
+Set the backend Paystack secret:
+
+```powershell
+npx firebase-tools@13.35.1 functions:secrets:set PAYSTACK_SECRET_KEY
 ```
 
-Set the Paystack secret:
+Deploy Functions:
 
-```bash
-firebase functions:secrets:set PAYSTACK_SECRET_KEY
+```powershell
+npx firebase-tools@13.35.1 deploy --only functions
 ```
 
-Deploy functions:
+Implemented exports:
 
-```bash
-firebase deploy --only functions
-```
-
-Current live payment callable:
-
+- `getBookingAvailability`
+- `createUniversalBooking`
+- `initializePaystackPayment`
 - `verifyPaystackPayment`
+- `paystackWebhook`
 - `createNotificationRecord`
 - `runInspectionReminderScan`
-
-Current scheduled backend job:
-
 - `processInspectionReminders`
 
-What it now checks before marking a payment successful:
+Configure the deployed `paystackWebhook` HTTPS URL in the Paystack dashboard. Only signed
+`charge.success` events are accepted.
 
-- signed-in user must own the payment
-- Firestore payment reference must match the Paystack reference
-- Paystack amount must match the stored Firestore amount
-- Paystack currency must be `NGN`
-- Paystack customer email must match the stored payer email when present
-- Paystack metadata `paymentId` must match when metadata is supplied
+## Paystack Acceptance Test
 
-Recommended payment test flow:
-
-1. Set `VITE_ENABLE_LOCAL_PAYMENT_BYPASS=false`
-2. Set `VITE_PAYSTACK_PUBLIC_KEY` in `.env.local`
-3. Restart the dev server
-4. Create a pending payment from `/payment/:propertyId`
-5. Open Paystack checkout
-6. Complete the payment in Paystack test mode
-7. Let the callable function verify the reference
-8. Confirm the Firestore `payments/{paymentId}` document becomes:
+1. Keep payment bypass disabled.
+2. Create a payment from RANDSA.
+3. Open the backend-provided Paystack checkout URL.
+4. Complete a Paystack test-mode payment.
+5. Return to RANDSA and allow backend verification.
+6. Confirm `payments/{paymentId}` has:
    - `status: "success"`
    - `verificationMode: "backend_verified"`
    - `verifiedAt` populated
+7. Confirm the related booking payment state updates when applicable.
 
-If verification fails, inspect:
+If it fails, inspect `firebase functions:log`, the payment document, secret configuration,
+amount/currency, payer email, and Paystack metadata.
 
-- browser network call to the callable function
-- Firebase Functions logs: `firebase functions:log`
-- the `payments/{paymentId}` document in Firestore
-- whether the `PAYSTACK_SECRET_KEY` secret and `VITE_PAYSTACK_PUBLIC_KEY` are both set correctly
+## Cloud Messaging Acceptance Test
 
-## 7. Cloud Messaging Setup
+1. Create a Web Push certificate in Firebase Console.
+2. Set `VITE_FIREBASE_VAPID_KEY`.
+3. Deploy Functions and Hosting.
+4. Sign in and enable push notifications from `/notifications`.
+5. Confirm a token exists at `users/{userId}/tokens/{tokenId}`.
+6. Create a booking due within 24 hours.
+7. Run the manual backend reminder scan from `/notifications`.
+8. Confirm an in-app notification document is created.
+9. Confirm the booking has `reminderSent == true`.
+10. Confirm browser push when the browser/device supports it.
 
-Current notification pieces already in the repo:
+The hourly scheduled function uses the same reminder engine, claims reminders atomically,
+prevents duplicates, and removes invalid FCM tokens.
 
-- `src/lib/messaging.ts`
-- `public/firebase-messaging-sw.js`
-- callable notification creator in `functions/index.js`
-- scheduled inspection reminder job in `functions/index.js`
-
-You still need:
-
-1. Web Push certificate key in Firebase Console
-2. `VITE_FIREBASE_VAPID_KEY` in `.env.local`
-3. live browser permission test
-4. deploy functions after reminder-job changes: `firebase deploy --only functions`
-
-Inspection reminder backend behavior now implemented:
-
-- scheduled job runs every 60 minutes
-- manual callable trigger is available for signed-in testing from the Notifications page
-- reminders are generated for bookings within the next 24 hours
-- each booking flips `reminderSent` to `true` after a reminder is created
-- browser push is attempted when a saved FCM token exists; otherwise the reminder still lands in the in-app inbox
-
-## 8. Storage Paths
-
-Expected upload paths:
+## Storage Paths
 
 ```text
 users/{userId}/{fileName}
-agent-verifications/{agentId}/{fileName}
+agent-verifications/{userId}/{fileName}
 properties/{ownerId}/{propertyId}/{fileName}
+listings/{ownerId}/{listingId}/{fileName}
+listing-private/{ownerId}/{listingId}/{fileName}
 ```
 
-## 9. Important Production Notes
+Storage rules enforce ownership, safe filenames, supported content types, and a 2 MB limit.
+Public listing media is readable only after approval. Private listing documents remain owner/admin
+only.
 
-- Do not rely on frontend-only payment verification
-- Do not abuse free OpenStreetMap tile servers at scale
-- Re-test all rules after every auth or storage path change
-- Re-deploy rules when `firestore.rules` or `storage.rules` changes
-- Re-deploy indexes when `firestore.indexes.json` changes
+## Hosting
+
+Deploy the verified production build:
+
+```powershell
+npm run hosting:deploy
+```
+
+`firebase.json` configures SPA rewrites, no-cache handling for `index.html` and the messaging
+service worker, and immutable caching for hashed assets.
+
+## Production Notes
+
+- Never verify payments only in the browser.
+- Re-run security tests after every rules or Storage-path change.
+- Keep Firebase Functions and web regions aligned with `VITE_FIREBASE_FUNCTIONS_REGION`.
+- Monitor scheduler, webhook, and FCM failures in Functions logs.
+- Use a production-ready map tile provider or caching strategy at scale.
+- Rotate compromised Firebase/Paystack credentials immediately.

@@ -71,27 +71,38 @@
             <small v-if="titleSuggestion">Suggestion: {{ titleSuggestion }}</small>
           </label>
 
-          <label class="field">
-            <span>Category</span>
-            <select :value="form.category" @change="handleCategoryChange">
-              <option
-                v-for="option in listingCategoryOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
+          <div v-if="classificationLocked" class="classification-summary field--wide">
+            <span><IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" /></span>
+            <div>
+              <small>Selected property type</small>
+              <strong>{{ form.propertyType }}</strong>
+            </div>
+            <em>{{ config.shortLabel }}</em>
+          </div>
 
-          <label class="field">
-            <span>Listing type</span>
-            <select :value="form.propertyType" @change="handlePropertyTypeChange">
-              <option v-for="item in config.propertyTypes" :key="item" :value="item">
-                {{ item }}
-              </option>
-            </select>
-          </label>
+          <template v-else>
+            <label class="field">
+              <span>Category</span>
+              <select :value="form.category" @change="handleCategoryChange">
+                <option
+                  v-for="option in listingCategoryOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Listing type</span>
+              <select :value="form.propertyType" @change="handlePropertyTypeChange">
+                <option v-for="item in config.propertyTypes" :key="item" :value="item">
+                  {{ item }}
+                </option>
+              </select>
+            </label>
+          </template>
 
           <label class="field field--wide">
             <span>Description</span>
@@ -432,8 +443,8 @@
             <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
             <span>
               <strong>Existing approval rules apply</strong>
-              Landlord and agent listings remain pending until approved. No backend permissions are
-              changed here.
+              New listings remain pending until approved. Your account can continue managing the
+              listing while it is under review.
             </span>
           </div>
         </div>
@@ -543,11 +554,13 @@ const props = withDefaults(
     initialValue?: Partial<PropertyFormInput>
     initialStep?: number
     isSubmitting?: boolean
+    classificationLocked?: boolean
   }>(),
   {
     initialValue: undefined,
     initialStep: 1,
     isSubmitting: false,
+    classificationLocked: false,
   }
 )
 
@@ -1138,6 +1151,51 @@ async function copyCoordinates() {
 }
 .field--wide {
   grid-column: 1 / -1;
+}
+.classification-summary {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #d9e5f5;
+  border-radius: 10px;
+  background: #f5f9ff;
+  padding: 9px 12px;
+}
+.classification-summary > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e7f0ff;
+  color: #1769ef;
+  font-size: 18px;
+}
+.classification-summary small,
+.classification-summary strong {
+  display: block;
+  margin: 0;
+}
+.classification-summary small {
+  color: #6f8196;
+  font-size: 8px;
+  font-weight: 750;
+}
+.classification-summary strong {
+  margin-top: 2px;
+  color: #15283f;
+  font-size: 11px;
+}
+.classification-summary em {
+  border-radius: 999px;
+  background: #e7f0ff;
+  padding: 5px 8px;
+  color: #1769ef;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
 }
 .field input,
 .field select,

@@ -25,7 +25,7 @@
           :class="
             isActive(item.matchers)
               ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200'
-              : item.to === '/add-property'
+              : item.to === '/post-listing'
                 ? 'text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-500/10'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-ink dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
           "
@@ -56,7 +56,7 @@
         :class="
           isActive(item.matchers)
             ? 'bg-brand-600 text-white'
-            : item.to === '/add-property'
+            : item.to === '/post-listing'
               ? 'text-brand-700 dark:text-brand-300'
               : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
         "
@@ -72,15 +72,15 @@
 import { IonIcon } from '@ionic/vue'
 import {
   addCircleOutline,
+  albumsOutline,
   calendarOutline,
   homeOutline,
   notificationsOutline,
   personOutline,
 } from 'ionicons/icons'
-import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     canManageProperties: boolean
     ariaLabel?: string
@@ -95,40 +95,40 @@ const props = withDefaults(
 const route = useRoute()
 
 const navItems = [
-  { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'], requiresManager: false },
+  { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
   {
-    label: 'Add property',
-    to: '/add-property',
+    label: 'Post Listing',
+    to: '/post-listing',
     icon: addCircleOutline,
-    matchers: ['/add-property', '/edit-property'],
-    requiresManager: true,
+    matchers: ['/post-listing', '/add-property', '/edit-property', '/edit-listing'],
+  },
+  {
+    label: 'My Listings',
+    to: '/my-listings',
+    icon: albumsOutline,
+    matchers: ['/my-listings'],
   },
   {
     label: 'Bookings',
     to: '/my-bookings',
     icon: calendarOutline,
     matchers: ['/my-bookings', '/booking', '/payment'],
-    requiresManager: false,
   },
   {
     label: 'Notifications',
     to: '/notifications',
     icon: notificationsOutline,
     matchers: ['/notifications'],
-    requiresManager: false,
   },
   {
     label: 'Account Center',
     to: '/profile',
     icon: personOutline,
     matchers: ['/profile'],
-    requiresManager: false,
   },
 ] as const
 
-const visibleItems = computed(() =>
-  navItems.filter((item) => !item.requiresManager || props.canManageProperties)
-)
+const visibleItems = navItems
 
 function isActive(matchers: readonly string[]) {
   return matchers.some((matcher) => route.path === matcher || route.path.startsWith(`${matcher}/`))

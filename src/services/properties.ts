@@ -25,6 +25,7 @@ import {
   type PropertyRecord,
 } from '../types/property'
 import type { UserProfile } from '../types/user'
+import { getCoordinateValidationError, normalizeCoordinates } from '../utils/coordinates'
 
 const PUBLIC_CAROUSEL_QUERY_LIMIT = 18
 
@@ -112,6 +113,8 @@ function normalizeAvailabilityConfig(value: unknown): PropertyAvailabilityConfig
 }
 
 function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
+  const coordinates = normalizeCoordinates(data.latitude, data.longitude)
+
   return {
     id: propertyId,
     title: String(data.title ?? ''),
@@ -127,9 +130,8 @@ function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
     city: String(data.city ?? ''),
     area: String(data.area ?? ''),
     address: String(data.address ?? ''),
-    latitude: data.latitude === null || data.latitude === undefined ? null : Number(data.latitude),
-    longitude:
-      data.longitude === null || data.longitude === undefined ? null : Number(data.longitude),
+    latitude: coordinates.latitude,
+    longitude: coordinates.longitude,
     bedrooms: data.bedrooms === null || data.bedrooms === undefined ? null : Number(data.bedrooms),
     bathrooms:
       data.bathrooms === null || data.bathrooms === undefined ? null : Number(data.bathrooms),
@@ -147,7 +149,7 @@ function mapDocToPropertyRecord(propertyId: string, data: DocumentData) {
     amenities: Array.isArray(data.amenities) ? data.amenities.map(String) : [],
     images: Array.isArray(data.images) ? data.images.map(String) : [],
     ownerId: String(data.ownerId ?? ''),
-    ownerRole: data.ownerRole ?? 'tenant',
+    ownerRole: data.ownerRole ?? 'user',
     ownerPhone: String(data.ownerPhone ?? ''),
     status: data.status ?? 'pending',
     isAvailable: Boolean(data.isAvailable),
@@ -264,6 +266,7 @@ function sanitizeInput(input: PropertyFormInput): PropertyFormInput {
     ...createEmptyPropertyInput(),
     ...input,
   }
+  const coordinates = normalizeCoordinates(safeInput.latitude, safeInput.longitude)
 
   return {
     ...safeInput,
@@ -273,6 +276,8 @@ function sanitizeInput(input: PropertyFormInput): PropertyFormInput {
     city: safeInput.city.trim(),
     area: safeInput.area.trim(),
     address: safeInput.address.trim(),
+    latitude: coordinates.latitude,
+    longitude: coordinates.longitude,
     shopSize: safeInput.shopSize.trim(),
     ownerPhone: safeInput.ownerPhone.trim(),
     rentPrice: normalizeMoney(safeInput.rentPrice),
@@ -301,6 +306,11 @@ export function validatePropertyInput(input: PropertyFormInput) {
 
   if (!safeInput.state || !safeInput.city || !safeInput.area || !safeInput.address) {
     return 'Complete the full property location.'
+  }
+
+  const coordinateError = getCoordinateValidationError(input.latitude, input.longitude)
+  if (coordinateError) {
+    return coordinateError
   }
 
   if (!safeInput.ownerPhone) {
@@ -391,7 +401,7 @@ export async function createProperty(input: PropertyFormInput, owner: UserProfil
   const safeInput = sanitizeInput(input)
   const now = new Date().toISOString()
   const propertyId = crypto.randomUUID()
-  let uploadedImageUrls: string[] = []
+  let uploadedImageUrls: string[]
 
   try {
     uploadedImageUrls = await uploadPropertyImages(owner, propertyId, safeInput.images)
@@ -509,7 +519,7 @@ export async function updateProperty(
     throw new Error(validationError)
   }
 
-  const current = await getStoredPropertyById(propertyId)
+  const current = await getPropertyById(propertyId)
 
   if (!current) {
     throw new Error('The property you are trying to edit was not found.')
@@ -607,7 +617,7 @@ export async function reviewPropertyStatus(
     throw new Error('Only admin accounts can review property listings.')
   }
 
-  const current = await getStoredPropertyById(propertyId)
+  const current = await getPropertyById(propertyId)
 
   if (!current) {
     throw new Error('The selected property listing was not found.')

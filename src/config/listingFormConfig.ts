@@ -87,7 +87,7 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
     title: 'Add a commercial space',
     shortLabel: 'Commercial',
     detailMode: 'commercial',
-    propertyTypes: ['Shop rent', 'Office space'],
+    propertyTypes: ['Shop rent', 'Office space', 'Warehouse'],
     paymentDurations: ['monthly', 'quarterly', 'biannually', 'yearly', 'custom'],
     moneyFields: propertyMoneyFields,
     suggestedAmenities: [
@@ -243,7 +243,7 @@ const configurations: Record<PropertyCategory, ListingFormConfig> = {
     title: 'Add another rental',
     shortLabel: 'Other rental',
     detailMode: 'generic',
-    propertyTypes: ['Other rental'],
+    propertyTypes: ['Hotel or guest house', 'Other property', 'Other rental'],
     paymentDurations: ['hourly', 'daily', 'per_session', 'fixed', 'monthly', 'custom'],
     moneyFields: [
       { key: 'rentPrice', label: 'Rental rate', help: 'The amount for the selected pricing unit.' },

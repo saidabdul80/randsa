@@ -1,78 +1,53 @@
-# Rent App Checklist
+# RANDSA Release Checklist
 
-## Phase 1
+## Code Complete
 
-- [x] Folder structure
-- [x] Base pages
-- [x] Routes
-- [x] Bottom navigation
-- [x] Responsive layout
+- [x] Unified authentication and user profiles
+- [x] Universal listing categories and dynamic form
+- [x] Draft, publish, edit, moderation, and My Listings flows
+- [x] Marketplace discovery, details, save, compare, quick view, and recently viewed
+- [x] Adaptive booking and backend availability checks
+- [x] Backend-authoritative Paystack flow
+- [x] Notification inbox, FCM integration, and reminder engine
+- [x] Leaflet/OpenStreetMap integration
+- [x] Admin moderation and user management
+- [x] Firestore/Storage rules and indexes
+- [x] Responsive UI consolidation
+- [x] Route, redirect, account-status, and upload hardening
+- [x] Final documentation set
 
-## Phase 2
+## Automated Verification
 
-- [x] Firebase Auth
-- [x] Login
-- [x] Register
-- [x] Logout
-- [x] User roles
-- [x] Firestore user profile
+- [x] Marketplace tests
+- [x] Route-security tests
+- [x] Firebase configuration/security tests
+- [x] Functions tests rerun in the final Phase 15 verification
+- [x] Repository lint rerun in the final Phase 15 verification
+- [x] Production build rerun in the final Phase 15 verification
 
-## Phase 3
+## Deployment
 
-- [x] Property upload
-- [x] House rent fields
-- [x] Shop rent fields
-- [x] Image upload
-- [x] Property approval status
+- [ ] Commit the final verified Phase 15 changes
+- [ ] Push the final commit to GitHub
+- [ ] Deploy Phase 14 Firestore/Storage rules and indexes
+- [ ] Deploy Cloud Functions
+- [ ] Deploy Firebase Hosting
 
-## Phase 4
+## Live Acceptance
 
-- [x] Search
-- [x] Filter
-- [x] Sorting
+- [ ] Publish a universal listing with images after a hard refresh
+- [ ] Confirm it is created with pending-review moderation state
+- [ ] Approve it as admin and confirm public visibility
+- [ ] Complete and verify one Paystack test payment
+- [ ] Register a real browser FCM token
+- [ ] Run the reminder scan for a booking within 24 hours
+- [ ] Confirm notification document and `reminderSent == true`
+- [ ] Confirm saved listings persist in another browser session
+- [ ] Complete signed-in phone and desktop smoke tests
 
-## Phase 5
+## Deferred
 
-- [x] Property details
-- [x] Save property
-- [x] WhatsApp/call button
-
-## Phase 6
-
-- [x] Agent verification
-
-## Phase 7
-
-- [x] Paystack
-
-## Phase 8
-
-- [x] Inspection booking
-
-## Phase 9
-
-- [x] Firebase push reminders
-
-## Phase 10
-
-- [x] Leaflet OpenStreetMap
-
-## Phase 11
-
-- [x] Admin dashboard
-
-## Phase 12
-
-- [x] Firebase security rules
-
-## Phase 13
-
-- [x] Premium UI/UX pass confirmed visually
-
-## Phase 14
-
-- [x] Security hardening pass confirmed after Firebase redeploy/testing
-
-## Phase 15
-
-- [x] Final documentation deliverables
+- [ ] Dedicated provider/agent assigned-bookings view
+- [ ] Main bundle and hero-image optimization
+- [ ] Production map tile-provider review
+- [ ] Full browser end-to-end automation

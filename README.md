@@ -1,68 +1,102 @@
 # RANDSA
 
-RANDSA is a modern Ionic Vue property app for house rent and property listing workflows. It currently covers the core renter, landlord, agent, and admin flows across authentication, property listing, search, details, saved properties, bookings, payments, verification, security rules, and a premium mobile-first UI pass.
+RANDSA is an Ionic Vue rental and marketplace application. A registered user can browse,
+save, book, pay for, and publish listings across properties, vehicles, event spaces,
+services, fashion, electronics, land, horses, and other configured categories. Admin
+authorization remains separate for moderation and platform management.
 
 ## Stack
 
-- Ionic Vue
-- Vue 3 Composition API
+- Ionic Vue and Vue 3 Composition API
+- TypeScript and Vite
 - Tailwind CSS
-- Firebase Authentication
-- Firestore
-- Firebase Storage
-- Firebase Cloud Functions
-- Firebase Cloud Messaging
-- Paystack
-- Leaflet.js + OpenStreetMap
+- Firebase Authentication, Firestore, Storage, Functions, Hosting, and Cloud Messaging
+- Paystack backend-authoritative payments
+- Leaflet and OpenStreetMap
 
-## Current Status
+## Implemented
 
-- Phases 1 to 15 have been implemented in the repo at the documentation level.
-- A few backend cleanup items are intentionally deferred and documented before production rollout.
-- Local bypass helpers still exist for selected development workflows, but the project is now primarily wired for real Firebase mode.
+- Email/password and Google authentication with profile completion
+- Unified regular accounts; posting is not restricted by legacy landlord/agent roles
+- Universal multi-step listing creation with category-specific fields
+- Drafts, private listing documents, moderation, editing, and My Listings management
+- Responsive marketplace cards, search, filters, saved listings, and recently viewed items
+- Legacy property and universal listing details flows
+- Adaptive booking modes and backend conflict checks
+- Backend-created Paystack references, verification, and signed webhook processing
+- In-app notifications, FCM token registration, push delivery, and scheduled reminders
+- Admin moderation, user, booking, payment, and verification tools
+- Ownership-focused Firestore and Storage rules with regression tests
 
-## Project Docs
+## Local Setup
 
-- [FINAL_DELIVERABLES.md](./FINAL_DELIVERABLES.md)
-- [docs/FIREBASE_SETUP.md](./docs/FIREBASE_SETUP.md)
-- [docs/IMPLEMENTATION_GUIDE.md](./docs/IMPLEMENTATION_GUIDE.md)
-- [PROJECT_PLAN.md](./PROJECT_PLAN.md)
-- [TASK_CHECKLIST.md](./TASK_CHECKLIST.md)
+1. Install dependencies:
 
-## Scripts
+   ```powershell
+   npm install
+   npm --prefix functions install
+   ```
 
-```bash
-npm.cmd run dev
-npm.cmd run build
-npm.cmd run preview
-npm.cmd run firebase:login
-npm.cmd run firebase:login:list
-npm.cmd run firebase:use
-npm.cmd run rules:deploy
+2. Create `.env.local` from `.env.example` and provide the Firebase web configuration,
+   VAPID key, and Paystack public key.
+
+3. Start the app:
+
+   ```powershell
+   npm run dev
+   ```
+
+The current local development URL is normally `http://127.0.0.1:5174` when that port is
+selected explicitly. Vite may choose another available port when started without one.
+
+## Commands
+
+```powershell
+npm run dev
+npm run lint
+npm run format:check
+npm run test
+npm run build
+npm run verify
+npm run firebase:login
+npm run firebase:login:list
+npm run firebase:use
+npm run rules:deploy
+npm run hosting:deploy
 ```
 
-## Environment
+`npm run verify` runs lint, all frontend/security/Functions tests, and the production build.
 
-Copy `.env.example` into `.env.local` and fill in your real Firebase and Paystack values.
+## Firebase Release Order
 
-Important keys:
+1. Confirm the selected Firebase project with `npm run firebase:login:list` and
+   `npm run firebase:use` when needed.
+2. Run `npm run verify`.
+3. Deploy Firestore rules, indexes, and Storage rules with `npm run rules:deploy`.
+4. Set `PAYSTACK_SECRET_KEY` and deploy Functions.
+5. Deploy Hosting with `npm run hosting:deploy`.
+6. Complete the live acceptance checks in [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md).
 
-- `VITE_ENABLE_LOCAL_AUTH_BYPASS`
-- `VITE_ENABLE_LOCAL_PAYMENT_BYPASS`
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID`
-- `VITE_FIREBASE_FUNCTIONS_REGION`
-- `VITE_FIREBASE_VAPID_KEY`
-- `VITE_PAYSTACK_PUBLIC_KEY`
+## Documentation
 
-## Important Deferred Items
+- [Final deliverables](./FINAL_DELIVERABLES.md)
+- [Release checklist](./docs/RELEASE_CHECKLIST.md)
+- [Firebase setup](./docs/FIREBASE_SETUP.md)
+- [Implementation guide](./docs/IMPLEMENTATION_GUIDE.md)
+- [Booking schema](./docs/firebase-booking-schema.md)
+- [Current handoff](./HANDOFF.md)
+- [Phase checklist](./TASK_CHECKLIST.md)
 
-- Deploy and complete the real Paystack backend verification flow
-- Finish the remaining scheduled FCM reminder backend work
-- Reconfirm the latest UI pass visually across all major screens
-- Re-run production deploy checks after the latest Phase 13 and 14 updates
+## Current Release Status
+
+The application code, rules, tests, and production build are ready for final acceptance.
+The Phase 14 rule changes are staged locally and must be deployed. The following checks
+still require the real Firebase/Paystack/browser environment:
+
+- retry and confirm a universal listing publish after the latest Phase 12 rule deployment
+- complete one Paystack test-mode transaction and verify its Firestore updates
+- register an FCM browser token, run the reminder scan, and confirm `reminderSent == true`
+- re-test admin moderation with live Firebase data
+- complete a signed-in mobile and desktop visual smoke test
+
+Do not commit `.env.local`, Firebase secrets, Paystack secrets, or generated browser profiles.

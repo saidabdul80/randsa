@@ -127,12 +127,67 @@ function timeToMinutes(value) {
   return hours * 60 + minutes
 }
 
+function normalizeBookingDateValue(value) {
+  const rawValue = String(value || '').trim()
+  const isoMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const localizedMatch = rawValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  let year
+  let month
+  let day
+
+  if (isoMatch) {
+    ;[, year, month, day] = isoMatch.map(Number)
+  } else if (localizedMatch) {
+    const first = Number(localizedMatch[1])
+    const second = Number(localizedMatch[2])
+    year = Number(localizedMatch[3])
+    month = first > 12 ? second : first
+    day = first > 12 ? first : second
+  } else {
+    return null
+  }
+
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() + 1 !== month ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function normalizeBookingTimeValue(value) {
+  const rawValue = String(value || '').trim()
+  const twelveHourMatch = rawValue.match(/^(\d{1,2}):(\d{2})\s*([ap]m)$/i)
+  const twentyFourHourMatch = rawValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  let hours
+  let minutes
+
+  if (twelveHourMatch) {
+    hours = Number(twelveHourMatch[1])
+    minutes = Number(twelveHourMatch[2])
+    if (hours < 1 || hours > 12 || minutes > 59) return null
+    hours = (hours % 12) + (twelveHourMatch[3].toLowerCase() === 'pm' ? 12 : 0)
+  } else if (twentyFourHourMatch) {
+    hours = Number(twentyFourHourMatch[1])
+    minutes = Number(twentyFourHourMatch[2])
+    if (hours > 23 || minutes > 59) return null
+  } else {
+    return null
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
 function getEligibleAgentSchedules(property, selection, input) {
   const availability = getAvailabilityConfig(property, selection.bookingMode)
-  const date = String(input?.inspectionDate || '')
+  const date = normalizeBookingDateValue(input?.inspectionDate) || ''
   const localDate = new Date(`${date}T12:00:00+01:00`)
   const day = localDate.getDay()
-  const startMinute = timeToMinutes(input?.inspectionTime)
+  const startMinute = timeToMinutes(normalizeBookingTimeValue(input?.inspectionTime))
 
   return availability.agents.filter((agent) => {
     if (!agent.agentId || !agent.workingDays.includes(day) || agent.unavailableDates.includes(date))
@@ -168,9 +223,9 @@ function getBookingPricingUnit(paymentDuration, mode) {
 }
 
 function parseBookingDateTime(date, time) {
-  const dateValue = String(date || '').trim()
-  const timeValue = String(time || '').trim()
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue) || !/^\d{2}:\d{2}$/.test(timeValue)) return null
+  const dateValue = normalizeBookingDateValue(date)
+  const timeValue = normalizeBookingTimeValue(time)
+  if (!dateValue || !timeValue) return null
 
   const parsed = new Date(`${dateValue}T${timeValue}:00+01:00`)
   return Number.isNaN(parsed.getTime()) ? null : parsed
@@ -240,7 +295,6 @@ function validateBookingSelection(input, property, now = new Date()) {
     throw new Error('Add a customer phone number before saving the booking.')
 
   const selection = normalizeBookingSelection(input, property)
-  const config = getBookingModeConfig(selection.bookingMode)
   const availability = getAvailabilityConfig(property, selection.bookingMode)
   if (selection.startAt.getTime() <= now.getTime())
     throw new Error('Choose a booking time in the future.')
@@ -250,8 +304,9 @@ function validateBookingSelection(input, property, now = new Date()) {
     )
   }
 
-  const endDate = String(input?.endDate || input?.inspectionDate || '')
-  if (availability.blockedDates.some((date) => date >= input.inspectionDate && date <= endDate)) {
+  const startDate = normalizeBookingDateValue(input?.inspectionDate) || ''
+  const endDate = normalizeBookingDateValue(input?.endDate || input?.inspectionDate) || ''
+  if (availability.blockedDates.some((date) => date >= startDate && date <= endDate)) {
     throw new Error('The selected booking period includes an unavailable date.')
   }
 
@@ -269,6 +324,13 @@ function rangesOverlap(firstStart, firstEnd, secondStart, secondEnd, bufferMinut
   return (
     firstStart.getTime() - bufferMs < secondEnd.getTime() &&
     secondStart.getTime() < firstEnd.getTime() + bufferMs
+  )
+}
+
+function isMatchingBookingRequest(data, userId, propertyId) {
+  return (
+    String(data?.userId || '') === String(userId || '') &&
+    String(data?.propertyId || data?.listingId || '') === String(propertyId || '')
   )
 }
 
@@ -318,7 +380,10 @@ module.exports = {
   getEligibleAgentSchedules,
   getBookingRange,
   isInspectionMode,
+  isMatchingBookingRequest,
+  normalizeBookingDateValue,
   normalizeBookingSelection,
+  normalizeBookingTimeValue,
   rangesOverlap,
   resolveBookingMode,
   sanitizeCategoryDetails,

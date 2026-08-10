@@ -4,7 +4,7 @@
       <div class="add-listing-navigation">
         <NotificationSidebarNav
           :can-manage-properties="canManageProperties"
-          aria-label="Add property navigation"
+          aria-label="Post Listing navigation"
           :show-mobile="true"
         />
       </div>
@@ -22,6 +22,7 @@
               {{ draftSavedLabel }}
             </span>
             <button
+              v-if="isPropertyFlow"
               type="button"
               class="save-draft-button"
               :disabled="isSavingDraft || isSubmitting"
@@ -41,8 +42,8 @@
             <p>Smart adaptive listing assistant</p>
             <h1>{{ pageTitle }}</h1>
             <span>
-              Create a polished listing in focused steps while keeping every field compatible with
-              RANDSA’s existing property data.
+              Create a polished listing in focused steps with fields matched to your selected
+              category.
             </span>
           </div>
           <div class="add-listing-hero__image" aria-hidden="true">
@@ -66,42 +67,70 @@
           </button>
         </div>
 
-        <div class="add-listing-workspace">
-          <PropertyWizard
-            :initial-value="initialValue"
-            :initial-step="initialStep"
-            :is-submitting="isSubmitting"
-            @update:value="draftValue = $event"
-            @step-change="currentStep = $event"
-            @save-draft="handleSaveDraft"
-            @submit="handleCreate"
-            @cancel="handleCancel"
-          />
+        <div class="add-listing-workspace" :class="{ 'is-classifying': !isPropertyFlow }">
+          <ListingFormWizard v-model="classification" @complete="handleClassificationComplete">
+            <template #details="{ category, subcategory }">
+              <PropertyWizard
+                v-if="category.id === 'property'"
+                :initial-value="initialValue"
+                :initial-step="initialStep"
+                :is-submitting="isSubmitting"
+                :classification-locked="true"
+                @update:value="draftValue = $event"
+                @step-change="currentStep = $event"
+                @save-draft="handleSaveDraft"
+                @submit="handleCreate"
+                @cancel="handleCancel"
+              />
 
-          <aside class="add-listing-aside">
+              <MarketplaceListingWizard
+                v-else
+                :key="`${category.id}:${subcategory.id}:${marketplaceWizardVersion}`"
+                :category="category"
+                :subcategory="subcategory"
+                :profile="state.profile"
+                :initial-value="marketplaceInitialValue"
+                :initial-step="marketplaceInitialStep"
+                :is-submitting="isSubmitting"
+                :upload-progress="uploadProgress"
+                :submit-label="editingListingId ? 'Save changes' : 'Publish listing'"
+                :submit-error="statusTone === 'error' ? statusMessage : ''"
+                @update:value="marketplaceDraftValue = $event"
+                @step-change="marketplaceCurrentStep = $event"
+                @save-draft="handleMarketplaceSaveDraft"
+                @submit="handleMarketplaceSubmit"
+                @cancel="handleCancel"
+              />
+            </template>
+          </ListingFormWizard>
+
+          <aside v-if="isPropertyFlow" class="add-listing-aside">
             <PropertyListingPreview :value="draftValue" />
 
             <section class="permission-panel">
               <div class="permission-panel__title">
                 <span><IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" /></span>
                 <div>
-                  <p>Access &amp; permissions</p>
-                  <h2>Listing access is role based</h2>
+                  <p>Unified account</p>
+                  <h2>Every signed-in account can post</h2>
                 </div>
               </div>
-              <p>Only landlord, agent, and admin accounts can create listings.</p>
+              <p>Publish listings and manage the activity you create from the same account.</p>
               <ul>
                 <li>
                   <IonIcon :icon="personOutline" aria-hidden="true" />
-                  <span><strong>Landlord</strong>Create and manage owned properties</span>
+                  <span><strong>Post listings</strong>Create and manage your own listings</span>
                 </li>
                 <li>
                   <IonIcon :icon="peopleOutline" aria-hidden="true" />
-                  <span><strong>Agent</strong>Create and manage on behalf of owners</span>
+                  <span><strong>Book and save</strong>Manage bookings and saved properties</span>
                 </li>
                 <li>
                   <IonIcon :icon="shieldCheckmarkOutline" aria-hidden="true" />
-                  <span><strong>Admin</strong>Full listing management</span>
+                  <span
+                    ><strong>Optional verification</strong>Submit professional details for
+                    review</span
+                  >
                 </li>
               </ul>
             </section>
@@ -124,25 +153,52 @@ import {
   shieldCheckmarkOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import addPropertyHero from '../assets/randsa-hero-home.png'
 import AppShell from '../components/layout/AppShell.vue'
+import ListingFormWizard from '../components/listing-form/ListingFormWizard.vue'
+import MarketplaceListingWizard from '../components/listing-form/MarketplaceListingWizard.vue'
 import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
 import PropertyListingPreview from '../components/property/PropertyListingPreview.vue'
 import PropertyWizard from '../components/property/PropertyWizard.vue'
 import { useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
+import { useListings } from '../composables/useListings'
+import {
+  getMarketplaceCategory,
+  getMarketplaceSubcategory,
+  getPropertyClassificationDefaults,
+  getPropertySubcategoryId,
+} from '../config/marketplaceCategories'
+import {
+  deleteMarketplaceListingDraft,
+  loadMarketplaceListingDraft,
+  saveMarketplaceListingDraft,
+} from '../services/listingDrafts'
 import {
   deletePropertyWizardDraft,
   loadPropertyWizardDraft,
   savePropertyWizardDraft,
 } from '../services/propertyDrafts'
 import { createEmptyPropertyInput, type PropertyFormInput } from '../types/property'
+import {
+  createEmptyListingInput,
+  type ListingClassification,
+  type ListingFormInput,
+  type ListingRecord,
+  type ResolvedListingClassification,
+} from '../types/listing'
 
+const route = useRoute()
 const router = useRouter()
 const { state, canManageProperties } = useAuth()
 const { saveNewProperty } = useProperties()
+const {
+  findById: findListingById,
+  saveNew: saveNewListing,
+  saveUpdated: saveUpdatedListing,
+} = useListings()
 
 const initialValue = ref<PropertyFormInput>(createEmptyPropertyInput())
 const draftValue = ref<PropertyFormInput>(createEmptyPropertyInput())
@@ -153,21 +209,185 @@ const isSavingDraft = ref(false)
 const statusMessage = ref('')
 const statusTone = ref<'error' | 'success'>('success')
 const draftSavedAt = ref<Date | null>(null)
+const classification = ref<ListingClassification>(classificationFromRoute())
+const marketplaceInitialValue = ref<ListingFormInput | null>(null)
+const marketplaceDraftValue = ref<ListingFormInput | null>(null)
+const marketplaceInitialStep = ref(1)
+const marketplaceCurrentStep = ref(1)
+const marketplaceWizardVersion = ref(0)
+const uploadProgress = ref(0)
+let restoredMarketplaceKey = ''
+
+const editingListingId = computed(() =>
+  typeof route.params.listingId === 'string' ? route.params.listingId : ''
+)
 let restoredUserId = ''
 
+const selectedMarketplaceCategory = computed(() =>
+  getMarketplaceCategory(classification.value.categoryId)
+)
+const selectedMarketplaceSubcategory = computed(() =>
+  getMarketplaceSubcategory(classification.value.categoryId, classification.value.subcategoryId)
+)
+const isPropertyFlow = computed(
+  () =>
+    classification.value.categoryId === 'property' && Boolean(classification.value.subcategoryId)
+)
+
 const pageTitle = computed(() => {
+  if (editingListingId.value && selectedMarketplaceSubcategory.value) {
+    return `Edit ${selectedMarketplaceSubcategory.value.label.toLowerCase()}`
+  }
+  if (!selectedMarketplaceCategory.value) return 'Post a listing'
+  if (!selectedMarketplaceSubcategory.value) {
+    return `Choose a ${selectedMarketplaceCategory.value.label.toLowerCase()} type`
+  }
+
+  if (!isPropertyFlow.value) {
+    return `Post ${selectedMarketplaceSubcategory.value.label.toLowerCase()}`
+  }
+
   const category = draftValue.value.category
   const labels = {
-    residential: 'Add a residential property',
-    commercial: 'Add a commercial space',
-    land: 'Add land',
-    vehicle: 'Add a vehicle',
-    event: 'Add an event space',
-    horse: 'Add a horse rental',
-    other: 'Add another rental',
+    residential: 'Post a residential property',
+    commercial: 'Post a commercial space',
+    land: 'Post land',
+    vehicle: 'Post a vehicle',
+    event: 'Post an event space',
+    horse: 'Post a horse rental',
+    other: 'Post another rental',
   }
   return labels[category]
 })
+
+function classificationFromRoute(): ListingClassification {
+  const categoryId = typeof route.query.category === 'string' ? route.query.category : null
+  const category = getMarketplaceCategory(categoryId as ListingClassification['categoryId'])
+  const subcategoryId = typeof route.query.subcategory === 'string' ? route.query.subcategory : null
+  const subcategory = getMarketplaceSubcategory(category?.id, subcategoryId)
+
+  return {
+    categoryId: category?.id ?? null,
+    subcategoryId: subcategory?.id ?? null,
+  }
+}
+
+function applyPropertyClassification(subcategoryId: string | null) {
+  const defaults = getPropertyClassificationDefaults(subcategoryId)
+  if (!defaults) return
+
+  const current = draftValue.value
+  const nextValue: PropertyFormInput = {
+    ...current,
+    ...defaults,
+    bedrooms: defaults.category === 'residential' ? current.bedrooms : null,
+    bathrooms: defaults.category === 'residential' ? current.bathrooms : null,
+    toilets: defaults.category === 'residential' ? current.toilets : null,
+    shopSize: defaults.category === 'commercial' ? current.shopSize : '',
+  }
+
+  initialValue.value = nextValue
+  draftValue.value = nextValue
+}
+
+async function handleClassificationComplete(selection: ResolvedListingClassification) {
+  statusMessage.value = ''
+  if (selection.category.id === 'property') {
+    applyPropertyClassification(selection.subcategory.id)
+    return
+  }
+
+  await prepareMarketplaceWizard(selection)
+}
+
+function listingRecordToInput(record: ListingRecord): ListingFormInput {
+  return {
+    title: record.title,
+    description: record.description,
+    categoryId: record.categoryId,
+    categoryName: record.categoryName,
+    subcategoryId: record.subcategoryId,
+    subcategoryName: record.subcategoryName,
+    location: { ...record.location },
+    pricing: { ...record.pricing },
+    images: record.media.images.map((url, index) => ({
+      id: `remote-${index}-${url}`,
+      source: 'remote',
+      previewUrl: url,
+      remoteUrl: url,
+      file: null,
+      fileName: `listing-image-${index + 1}`,
+      mimeType: 'image/*',
+      size: 0,
+    })),
+    videoUrl: record.media.videoUrl,
+    contact: { ...record.contact },
+    delivery: { ...record.delivery },
+    attributes: { ...record.attributes },
+    privateCvFile: null,
+  }
+}
+
+async function prepareMarketplaceWizard(selection: ResolvedListingClassification) {
+  if (!state.profile || selection.category.id === 'property') return
+  const restoreKey = `${state.profile.uid}:${selection.category.id}:${selection.subcategory.id}:${editingListingId.value}`
+  if (restoredMarketplaceKey === restoreKey) return
+  restoredMarketplaceKey = restoreKey
+
+  try {
+    let restoredValue: ListingFormInput
+    let restoredStep = 1
+
+    if (editingListingId.value) {
+      const record = await findListingById(editingListingId.value)
+      if (!record || (record.ownerId !== state.profile.uid && state.profile.role !== 'admin')) {
+        throw new Error('The listing you are trying to edit was not found or is not yours.')
+      }
+      restoredValue = listingRecordToInput(record)
+    } else {
+      const draft = await loadMarketplaceListingDraft(
+        state.profile.uid,
+        selection.category.id,
+        selection.subcategory.id
+      )
+      restoredValue =
+        draft?.value ??
+        createEmptyListingInput(selection.category, selection.subcategory, state.profile)
+      restoredStep = draft?.step ?? 1
+      if (draft) {
+        draftSavedAt.value = new Date(draft.updatedAt)
+        statusTone.value = 'success'
+        statusMessage.value = 'Your saved marketplace draft has been restored on this device.'
+      }
+    }
+
+    marketplaceInitialValue.value = restoredValue
+    marketplaceDraftValue.value = restoredValue
+    marketplaceInitialStep.value = restoredStep
+    marketplaceCurrentStep.value = restoredStep
+    marketplaceWizardVersion.value += 1
+  } catch (error) {
+    statusTone.value = 'error'
+    statusMessage.value = error instanceof Error ? error.message : 'Could not prepare this listing.'
+  }
+}
+
+watch(
+  classification,
+  (value) => {
+    if (value.categoryId === 'property' && value.subcategoryId) {
+      applyPropertyClassification(value.subcategoryId)
+    }
+
+    const query = { ...route.query }
+    if (value.categoryId) query.category = value.categoryId
+    else delete query.category
+    if (value.subcategoryId) query.subcategory = value.subcategoryId
+    else delete query.subcategory
+    void router.replace({ query })
+  },
+  { deep: true, immediate: true }
+)
 
 const profileInitials = computed(() => {
   const name = state.profile?.fullName.trim() ?? ''
@@ -190,6 +410,28 @@ watch(
     if (!profile || restoredUserId === profile.uid) return
     restoredUserId = profile.uid
 
+    if (editingListingId.value) {
+      try {
+        const listing = await findListingById(editingListingId.value)
+        if (!listing || (listing.ownerId !== profile.uid && profile.role !== 'admin')) {
+          throw new Error('The listing you are trying to edit was not found or is not yours.')
+        }
+        classification.value = {
+          categoryId: listing.categoryId,
+          subcategoryId: listing.subcategoryId,
+        }
+        const category = getMarketplaceCategory(listing.categoryId)
+        const subcategory = getMarketplaceSubcategory(listing.categoryId, listing.subcategoryId)
+        if (category && subcategory) await prepareMarketplaceWizard({ category, subcategory })
+        return
+      } catch (error) {
+        statusTone.value = 'error'
+        statusMessage.value =
+          error instanceof Error ? error.message : 'Could not open this listing for editing.'
+        return
+      }
+    }
+
     const emptyValue = {
       ...createEmptyPropertyInput(),
       ownerPhone: profile.phone ?? '',
@@ -197,16 +439,30 @@ watch(
 
     try {
       const draft = await loadPropertyWizardDraft(profile.uid)
-      const restoredValue = draft?.value ?? emptyValue
+      const draftSubcategoryId = draft ? getPropertySubcategoryId(draft.value.propertyType) : null
+      const shouldRestoreDraft = Boolean(
+        draft &&
+        (!classification.value.categoryId ||
+          (classification.value.categoryId === 'property' &&
+            (!classification.value.subcategoryId ||
+              classification.value.subcategoryId === draftSubcategoryId)))
+      )
+      const restoredValue = shouldRestoreDraft && draft ? draft.value : emptyValue
       initialValue.value = restoredValue
       draftValue.value = restoredValue
-      initialStep.value = draft?.step ?? 1
-      currentStep.value = draft?.step ?? 1
+      initialStep.value = shouldRestoreDraft && draft ? draft.step : 1
+      currentStep.value = shouldRestoreDraft && draft ? draft.step : 1
 
-      if (draft) {
+      if (shouldRestoreDraft && draft) {
+        classification.value = {
+          categoryId: 'property',
+          subcategoryId: draftSubcategoryId,
+        }
         draftSavedAt.value = new Date(draft.updatedAt)
         statusTone.value = 'success'
         statusMessage.value = 'Your saved property draft has been restored on this device.'
+      } else if (classification.value.categoryId === 'property') {
+        applyPropertyClassification(classification.value.subcategoryId)
       }
     } catch (error) {
       initialValue.value = emptyValue
@@ -214,6 +470,13 @@ watch(
       statusTone.value = 'error'
       statusMessage.value =
         error instanceof Error ? error.message : 'The saved draft could not be restored.'
+    }
+
+    if (selectedMarketplaceCategory.value && selectedMarketplaceSubcategory.value) {
+      await prepareMarketplaceWizard({
+        category: selectedMarketplaceCategory.value,
+        subcategory: selectedMarketplaceSubcategory.value,
+      })
     }
   },
   { immediate: true }
@@ -248,7 +511,7 @@ async function handleCreate(value: PropertyFormInput) {
 
   if (!state.profile) {
     statusTone.value = 'error'
-    statusMessage.value = 'You need to be signed in before you can add a property.'
+    statusMessage.value = 'You need to be signed in before you can post a listing.'
     return
   }
 
@@ -262,13 +525,65 @@ async function handleCreate(value: PropertyFormInput) {
       // A local draft cleanup failure must not undo a successful Firebase property creation.
     }
     statusTone.value = 'success'
-    statusMessage.value = 'Property created successfully. Redirecting to the details page...'
+    statusMessage.value = 'Listing posted successfully. Redirecting to the details page...'
     await router.replace(`/properties/${property.id}`)
   } catch (error) {
     statusTone.value = 'error'
-    statusMessage.value = error instanceof Error ? error.message : 'Could not create property.'
+    statusMessage.value = error instanceof Error ? error.message : 'Could not post this listing.'
   } finally {
     isSubmitting.value = false
+  }
+}
+
+async function handleMarketplaceSaveDraft(value: ListingFormInput, step: number) {
+  if (!state.profile) {
+    statusTone.value = 'error'
+    statusMessage.value = 'You need to be signed in before saving a draft.'
+    return
+  }
+  isSavingDraft.value = true
+  try {
+    await saveMarketplaceListingDraft(state.profile.uid, value, step)
+    draftSavedAt.value = new Date()
+    statusTone.value = 'success'
+    statusMessage.value = 'Draft saved on this device.'
+  } catch (error) {
+    statusTone.value = 'error'
+    statusMessage.value = error instanceof Error ? error.message : 'Could not save this draft.'
+  } finally {
+    isSavingDraft.value = false
+  }
+}
+
+async function handleMarketplaceSubmit(value: ListingFormInput) {
+  if (!state.profile || isSubmitting.value) return
+  isSubmitting.value = true
+  uploadProgress.value = 0
+  statusMessage.value = ''
+  try {
+    const record = editingListingId.value
+      ? await saveUpdatedListing(editingListingId.value, value, state.profile, (progress) => {
+          uploadProgress.value = progress
+        })
+      : await saveNewListing(value, state.profile, (progress) => {
+          uploadProgress.value = progress
+        })
+    try {
+      await deleteMarketplaceListingDraft(state.profile.uid, value.categoryId, value.subcategoryId)
+    } catch {
+      // Draft cleanup never reverses a successful listing write.
+    }
+    statusTone.value = 'success'
+    statusMessage.value = editingListingId.value
+      ? 'Listing updated successfully.'
+      : 'Listing submitted for review.'
+    await router.replace({ path: '/my-listings', query: { selected: record.id } })
+  } catch (error) {
+    statusTone.value = 'error'
+    statusMessage.value = error instanceof Error ? error.message : 'Could not save this listing.'
+  } finally {
+    isSubmitting.value = false
+    uploadProgress.value = 0
   }
 }
 
@@ -463,6 +778,50 @@ function handleCancel() {
   gap: 16px;
   margin-top: 16px;
 }
+.add-listing-workspace.is-classifying {
+  grid-template-columns: minmax(0, 1fr);
+}
+.category-details-ready {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px dashed #cdd9e7;
+  border-radius: 8px;
+  background: #fff;
+  padding: 24px;
+  text-align: center;
+}
+.category-details-ready > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 8px;
+  background: #edf4ff;
+  color: #1769ef;
+  font-size: 22px;
+}
+.category-details-ready p,
+.category-details-ready h2,
+.category-details-ready small {
+  margin: 0;
+}
+.category-details-ready p {
+  color: #1769ef;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.category-details-ready h2 {
+  color: #102033;
+  font-size: 20px;
+}
+.category-details-ready small {
+  color: #667a91;
+  font-size: 11px;
+}
 .add-listing-aside {
   display: none;
 }
@@ -638,12 +997,16 @@ function handleCancel() {
   color: #f8fafc;
 }
 :global(.dark) .add-listing-brand,
+:global(.dark) .classification-summary strong,
+:global(.dark) .category-details-ready h2,
 :global(.dark) .permission-panel__title h2,
 :global(.dark) .permission-panel li strong {
   color: #f8fafc;
 }
 :global(.dark) .save-draft-button,
-:global(.dark) .permission-panel {
+:global(.dark) .permission-panel,
+:global(.dark) .classification-summary,
+:global(.dark) .category-details-ready {
   border-color: #29374a;
   background: #111c2a;
   color: #e8eef6;

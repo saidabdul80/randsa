@@ -143,36 +143,9 @@
               /></span>
               <div>
                 <h2 id="auth-card-title">Create your account</h2>
-                <p>Choose how you will use RANDSA, then add your account details.</p>
+                <p>Create one account to discover, post, book, and manage rentals.</p>
               </div>
             </header>
-
-            <div class="auth-role-section">
-              <p>How will you use RANDSA?</p>
-              <div class="auth-role-options" role="radiogroup" aria-label="Account role">
-                <button
-                  v-for="role in roles"
-                  :key="role.value"
-                  type="button"
-                  role="radio"
-                  class="auth-role-option"
-                  :aria-checked="registerForm.role === role.value"
-                  :class="{ 'auth-role-option--active': registerForm.role === role.value }"
-                  :disabled="isBusy"
-                  @click="registerForm.role = role.value"
-                >
-                  <IonIcon :icon="role.icon" aria-hidden="true" />
-                  <span>
-                    <strong>{{ role.title }}</strong>
-                    <small>{{ role.copy }}</small>
-                  </span>
-                  <IonIcon
-                    :icon="registerForm.role === role.value ? checkmarkCircle : ellipseOutline"
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-            </div>
 
             <form
               class="auth-form auth-register-form"
@@ -239,6 +212,11 @@
                 />
               </div>
 
+              <label class="auth-terms">
+                <input v-model="acceptTerms" type="checkbox" :disabled="isBusy" required />
+                <span>I agree to the RANDSA terms of use and privacy policy.</span>
+              </label>
+
               <AuthAlert
                 v-if="statusMessage"
                 id="auth-status-message"
@@ -269,11 +247,7 @@
                 @click="handleGoogleRegister"
               >
                 <span class="google-mark" aria-hidden="true">G</span>
-                {{
-                  isGoogleSubmitting
-                    ? 'Connecting to Google...'
-                    : `Continue with Google as ${selectedRoleTitle}`
-                }}
+                {{ isGoogleSubmitting ? 'Connecting to Google...' : 'Continue with Google' }}
               </button>
               <button
                 type="button"
@@ -358,11 +332,6 @@
                 />
               </div>
 
-              <div class="auth-current-role">
-                <span><IonIcon :icon="idCardOutline" aria-hidden="true" />Current role</span>
-                <strong>{{ currentRoleTitle }}</strong>
-              </div>
-
               <AuthAlert
                 v-if="statusMessage"
                 id="auth-status-message"
@@ -393,14 +362,8 @@
 import { IonIcon } from '@ionic/vue'
 import {
   arrowForwardOutline,
-  briefcaseOutline,
-  businessOutline,
   callOutline,
-  checkmarkCircle,
   checkmarkCircleOutline,
-  ellipseOutline,
-  homeOutline,
-  idCardOutline,
   lockClosedOutline,
   logInOutline,
   mailOutline,
@@ -425,14 +388,13 @@ import {
   toDisplayError,
   updateUserProfileDetails,
 } from '../../services/auth'
-import type { UserRole } from '../../types/user'
+import { sanitizeInternalRedirect } from '../../utils/navigation'
 import AuthAlert from './AuthAlert.vue'
 import AuthField from './AuthField.vue'
 import AuthHubLayout from './AuthHubLayout.vue'
 
 type GuestAuthMode = 'sign-in' | 'register'
 type AuthMode = GuestAuthMode | 'profile'
-type RegistrationRole = Exclude<UserRole, 'admin'>
 
 const props = withDefaults(
   defineProps<{
@@ -449,27 +411,6 @@ const route = useRoute()
 const router = useRouter()
 const { isAuthenticated, state } = useAuth()
 
-const roles = [
-  {
-    value: 'tenant' as const,
-    title: 'I want to rent',
-    copy: 'Explore and book rentals',
-    icon: homeOutline,
-  },
-  {
-    value: 'landlord' as const,
-    title: 'I am a landlord',
-    copy: 'List and manage rentals',
-    icon: businessOutline,
-  },
-  {
-    value: 'agent' as const,
-    title: 'I am an agent',
-    copy: 'Manage authorized listings',
-    icon: briefcaseOutline,
-  },
-] as const
-
 const activeMode = ref<AuthMode>(props.initialMode)
 const loginForm = reactive({ email: '', password: '' })
 const registerForm = reactive({
@@ -477,9 +418,9 @@ const registerForm = reactive({
   phone: '',
   email: '',
   password: '',
-  role: 'tenant' as RegistrationRole,
 })
 const confirmPassword = ref('')
+const acceptTerms = ref(false)
 const isSubmitting = ref(false)
 const isGoogleSubmitting = ref(false)
 const isProfileSubmitting = ref(false)
@@ -493,14 +434,6 @@ const isBusy = computed(() => isSubmitting.value || isGoogleSubmitting.value)
 const googleDisabled = computed(
   () => isBusy.value || isLocalAuthBypassEnabled || Boolean(firebaseConfigError)
 )
-const selectedRoleTitle = computed(
-  () => roles.find((role) => role.value === registerForm.role)?.title ?? 'I want to rent'
-)
-const currentRoleTitle = computed(() => {
-  const role = profile.value?.role ?? registerForm.role
-  if (role === 'admin') return 'Admin'
-  return roles.find((item) => item.value === role)?.title ?? 'I want to rent'
-})
 
 watch(
   () => props.initialMode,
@@ -528,7 +461,6 @@ watch(
     registerForm.fullName = value.fullName || state.user?.displayName || ''
     registerForm.phone = value.phone || ''
     registerForm.email = value.email || state.user?.email || ''
-    registerForm.role = value.role === 'admin' ? 'tenant' : value.role
   },
   { immediate: true }
 )
@@ -536,14 +468,14 @@ watch(
 watch(
   () => state.user?.uid,
   async (userId) => {
-    const redirect = consumeGoogleRedirectReturnTo()
+    const redirectTarget = consumeGoogleRedirectReturnTo()
 
-    if (!userId || !redirect || isRedirectingAfterGoogle.value) return
+    if (!userId || !redirectTarget || isRedirectingAfterGoogle.value) return
 
     isRedirectingAfterGoogle.value = true
     statusTone.value = 'success'
     statusMessage.value = 'Google sign-in completed. Redirecting...'
-    await router.replace(redirect)
+    await router.replace(sanitizeInternalRedirect(redirectTarget))
   },
   { immediate: true }
 )
@@ -568,9 +500,7 @@ function refreshGoogleHelperMessage() {
 }
 
 function loginRedirect() {
-  return typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
-    ? route.query.redirect
-    : '/home'
+  return sanitizeInternalRedirect(route.query.redirect)
 }
 
 async function handleLoginSubmit() {
@@ -626,10 +556,16 @@ async function handleRegisterSubmit() {
     return
   }
 
+  if (!acceptTerms.value) {
+    statusTone.value = 'error'
+    statusMessage.value = 'Accept the terms and privacy policy before creating your account.'
+    return
+  }
+
   isSubmitting.value = true
 
   try {
-    await registerUser(registerForm)
+    await registerUser({ ...registerForm, acceptTerms: acceptTerms.value })
     await rehydrateAuthState()
     statusTone.value = 'success'
     statusMessage.value = 'Account created successfully. Redirecting...'
@@ -693,13 +629,20 @@ async function handleGoogleRedirectLogin() {
 async function handleGoogleRegister() {
   if (isBusy.value) return
   statusMessage.value = ''
+
+  if (!acceptTerms.value) {
+    statusTone.value = 'error'
+    statusMessage.value = 'Accept the terms and privacy policy before creating your account.'
+    return
+  }
+
   isGoogleSubmitting.value = true
   refreshGoogleHelperMessage()
 
   try {
     const googleProfile = await signInWithGoogle({
-      role: registerForm.role,
       phone: registerForm.phone,
+      acceptedTerms: true,
       returnTo: '/home',
       source: 'register',
     })
@@ -728,6 +671,13 @@ async function handleGoogleRegister() {
 
 async function handleGoogleRedirectRegister() {
   if (isBusy.value) return
+
+  if (!acceptTerms.value) {
+    statusTone.value = 'error'
+    statusMessage.value = 'Accept the terms and privacy policy before creating your account.'
+    return
+  }
+
   statusTone.value = 'success'
   statusMessage.value = 'Switching to Google redirect sign-in...'
   isGoogleSubmitting.value = true
@@ -735,8 +685,8 @@ async function handleGoogleRedirectRegister() {
 
   try {
     await startGoogleRedirectSignIn({
-      role: registerForm.role,
       phone: registerForm.phone,
+      acceptedTerms: true,
       returnTo: '/home',
       source: 'register',
     })
@@ -1020,107 +970,22 @@ async function handleProfileCompletion() {
   transform: translateX(3px);
 }
 
-.auth-role-section {
-  margin-top: 20px;
-}
-
-.auth-role-section > p {
-  margin: 0 0 8px;
-  color: var(--auth-text);
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.auth-role-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.auth-role-option {
-  display: grid;
-  min-width: 0;
-  min-height: 70px;
-  grid-template-columns: 25px minmax(0, 1fr) 15px;
-  gap: 7px;
-  align-items: center;
-  border: 1px solid var(--auth-border);
-  border-radius: 11px;
-  background: var(--auth-surface);
-  padding: 8px;
-  color: var(--auth-text);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 190ms ease,
-    background-color 190ms ease,
-    transform 190ms ease;
-}
-
-.auth-role-option:hover {
-  transform: translateY(-2px);
-  border-color: var(--auth-focus-border);
-}
-
-.auth-role-option--active {
-  border-color: var(--auth-blue);
-  background: var(--auth-hover);
-}
-
-.auth-role-option > ion-icon:first-child {
-  color: var(--auth-blue);
-  font-size: 19px;
-}
-
-.auth-role-option > ion-icon:last-child {
-  color: var(--auth-blue);
-  font-size: 14px;
-}
-
-.auth-role-option span,
-.auth-role-option strong,
-.auth-role-option small {
-  display: block;
-  min-width: 0;
-}
-
-.auth-role-option strong {
-  overflow: hidden;
-  font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.auth-role-option small {
-  margin-top: 3px;
-  color: var(--auth-muted);
-  font-size: 7px;
-  line-height: 1.35;
-}
-
-.auth-current-role {
+.auth-terms {
   display: flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--auth-border);
-  border-radius: 11px;
-  background: var(--auth-hover);
-  padding: 0 13px;
-  color: var(--auth-text);
-  font-size: 10px;
-}
-
-.auth-current-role span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  align-items: flex-start;
+  gap: 10px;
   color: var(--auth-muted);
+  font-size: 10px;
+  line-height: 1.5;
+  cursor: pointer;
 }
 
-.auth-current-role strong {
-  font-weight: 800;
+.auth-terms input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--auth-blue);
 }
 
 .auth-spinner {
@@ -1155,7 +1020,7 @@ async function handleProfileCompletion() {
 .auth-google-button:focus-visible,
 .auth-redirect-button:focus-visible,
 .auth-switch-copy button:focus-visible,
-.auth-role-option:focus-visible {
+.auth-terms input:focus-visible {
   outline: 3px solid var(--auth-focus);
   outline-offset: 2px;
 }
@@ -1181,18 +1046,6 @@ async function handleProfileCompletion() {
   }
   .auth-provider-actions {
     grid-template-columns: 1fr;
-  }
-  .auth-role-options {
-    grid-template-columns: 1fr;
-  }
-  .auth-role-option {
-    min-height: 58px;
-  }
-  .auth-role-option strong {
-    font-size: 9px;
-  }
-  .auth-role-option small {
-    font-size: 8px;
   }
 }
 
@@ -1255,19 +1108,6 @@ async function handleProfileCompletion() {
   .auth-switch-copy {
     margin-top: 12px;
   }
-
-  .auth-role-section {
-    margin-top: 11px;
-  }
-
-  .auth-role-section > p {
-    margin-bottom: 6px;
-  }
-
-  .auth-role-option {
-    min-height: 54px;
-    padding: 6px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1276,8 +1116,7 @@ async function handleProfileCompletion() {
   .auth-primary-button,
   .auth-google-button,
   .auth-redirect-button,
-  .auth-switch-copy button ion-icon,
-  .auth-role-option {
+  .auth-switch-copy button ion-icon {
     transition: none;
   }
 

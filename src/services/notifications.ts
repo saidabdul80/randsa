@@ -135,6 +135,19 @@ function getDeviceLabel() {
   return navigator.userAgent
 }
 
+async function buildNotificationTokenId(token: string) {
+  if (globalThis.crypto?.subtle) {
+    const bytes = new TextEncoder().encode(token)
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+    const hash = [...new Uint8Array(digest)]
+      .map((value) => value.toString(16).padStart(2, '0'))
+      .join('')
+    return `token-${hash}`
+  }
+
+  return `token-${crypto.randomUUID()}`
+}
+
 function maybeShowBrowserNotification(title: string, body: string) {
   if (!supportsBrowserNotifications() || window.Notification.permission !== 'granted') {
     return
@@ -320,7 +333,7 @@ export async function registerNotificationToken(userId: string) {
       )
     }
 
-    const tokenId = `token-${crypto.randomUUID()}`
+    const tokenId = await buildNotificationTokenId(tokenValue)
     const tokenRef = doc(firestore, 'users', userId, 'tokens', tokenId)
     await setDoc(tokenRef, {
       userId,
@@ -403,28 +416,35 @@ export async function createNotificationRecord(
 
 export async function markNotificationAsRead(notificationId: string, userId: string) {
   if (authMode !== 'local') {
+    ensureSignedInUserMatchesTarget(userId)
     const firestore = ensureFirestoreReady()
     const notificationRef = doc(firestore, 'notifications', notificationId)
+    const currentSnapshot = await getDoc(notificationRef)
+
+    if (!currentSnapshot.exists()) {
+      throw new Error('The selected notification was not found.')
+    }
+
+    const currentNotification = mapFirestoreNotificationRecord(
+      currentSnapshot.id,
+      currentSnapshot.data() as Partial<NotificationRecord>
+    )
+
+    if (currentNotification.userId !== userId) {
+      throw new Error('You can only mark your own notifications as read.')
+    }
+
+    if (currentNotification.readAt) return currentNotification
+
     await updateDoc(notificationRef, {
       readAt: serverTimestamp(),
     })
 
-    const snapshot = await getDoc(notificationRef)
-
-    if (!snapshot.exists()) {
-      throw new Error('The selected notification was not found.')
-    }
-
-    const notification = mapFirestoreNotificationRecord(
-      snapshot.id,
-      snapshot.data() as Partial<NotificationRecord>
+    const updatedSnapshot = await getDoc(notificationRef)
+    return mapFirestoreNotificationRecord(
+      updatedSnapshot.id,
+      updatedSnapshot.data() as Partial<NotificationRecord>
     )
-
-    if (notification.userId !== userId) {
-      throw new Error('You can only mark your own notifications as read.')
-    }
-
-    return notification
   }
 
   const notifications = readNotifications()

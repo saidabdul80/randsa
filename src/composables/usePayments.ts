@@ -7,6 +7,7 @@ import {
   getPaymentById,
   listPaymentsForProperty,
   listPaymentsForUser,
+  preparePaymentCheckout,
   verifyPaymentWithBackend,
 } from '../services/payments'
 import type { PropertyRecord } from '../types/property'
@@ -88,6 +89,21 @@ export function usePayments() {
     }
   }
 
+  async function prepareCheckout(payment: PaymentRecord) {
+    isLoading.value = true
+    error.value = ''
+
+    try {
+      return await preparePaymentCheckout(payment)
+    } catch (caughtError) {
+      error.value =
+        caughtError instanceof Error ? caughtError.message : 'Could not prepare Paystack checkout.'
+      throw caughtError
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     payments: computed(() => payments.value),
     isLoading: computed(() => isLoading.value),
@@ -97,6 +113,7 @@ export function usePayments() {
     findLatestPaymentForUserProperty,
     getPaymentById,
     startPayment,
+    prepareCheckout,
     finishLocalPayment,
     verifyPayment,
   }

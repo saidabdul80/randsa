@@ -23,38 +23,319 @@ service cloud.firestore {
     }
 
     function currentUserRole() {
-      return currentUserExists() ? currentUserDoc().data.role : null;
+      return currentUserExists() ? currentUserDoc().data.get('role', 'user') : 'user';
+    }
+
+    function currentUserIsActive() {
+      return currentUserExists()
+        && currentUserDoc().data.get('accountStatus', 'active') == 'active';
     }
 
     function isAdmin() {
-      return currentUserRole() == 'admin';
+      return currentUserIsActive() && currentUserRole() == 'admin';
     }
 
-    function isPropertyManager() {
-      return ['landlord', 'agent', 'admin'].hasAny([currentUserRole()]);
+    function stringWithin(value, minimum, maximum) {
+      return value is string
+        && value.size() >= minimum
+        && value.size() <= maximum;
+    }
+
+    function nullableTimestamp(value) {
+      return value == null || value is timestamp;
+    }
+
+    function nullableNumberBetween(value, minimum, maximum) {
+      return value == null
+        || (value is number && value >= minimum && value <= maximum);
+    }
+
+    function validCoordinates(latitude, longitude) {
+      return (latitude == null && longitude == null)
+        || (
+          latitude is number
+          && longitude is number
+          && latitude >= -90
+          && latitude <= 90
+          && longitude >= -180
+          && longitude <= 180
+        );
+    }
+
+    function validUserRole(role) {
+      return role in ['user', 'tenant', 'landlord', 'agent', 'admin'];
+    }
+
+    function validUserProfileFields(data) {
+      return stringWithin(data.get('fullName', ''), 1, 120)
+        && stringWithin(data.get('email', ''), 3, 254)
+        && stringWithin(data.get('phone', ''), 0, 40)
+        && stringWithin(data.get('location', ''), 0, 200)
+        && stringWithin(data.get('bio', ''), 0, 1200)
+        && stringWithin(data.get('photoURL', ''), 0, 2048)
+        && validUserRole(data.get('role', 'user'))
+        && data.get('isVerified', false) is bool
+        && data.get('isVerifiedAgent', false) is bool
+        && data.get('verificationStatus', 'not_submitted') in [
+          'not_submitted',
+          'pending',
+          'approved',
+          'rejected'
+        ]
+        && data.get('accountStatus', 'active') in ['active', 'suspended', 'disabled']
+        && data.get('createdAt', null) is timestamp
+        && data.get('updatedAt', null) is timestamp
+        && nullableTimestamp(data.get('termsAcceptedAt', null));
+    }
+
+    function validNewUserDocument() {
+      return request.resource.data.keys().hasAll([
+          'fullName',
+          'email',
+          'phone',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fullName',
+          'email',
+          'phone',
+          'location',
+          'bio',
+          'role',
+          'photoURL',
+          'isVerified',
+          'isVerifiedAgent',
+          'verificationStatus',
+          'accountStatus',
+          'createdAt',
+          'updatedAt',
+          'termsAcceptedAt'
+        ])
+        && validUserProfileFields(request.resource.data);
     }
 
     function immutableUserFieldsUnchanged() {
       return request.resource.data.email == resource.data.email
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.get('role', 'user') == resource.data.get('role', 'user')
+        && request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null)
+        && request.resource.data.get('accountStatus', 'active')
+          == resource.data.get('accountStatus', 'active')
+        && request.resource.data.get('isVerified', false)
+          == resource.data.get('isVerified', false);
+    }
+
+    function selfUserUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName',
+          'phone',
+          'location',
+          'bio',
+          'photoURL',
+          'isVerifiedAgent',
+          'verificationStatus',
+          'updatedAt'
+        ])
+        && validUserProfileFields(request.resource.data);
+    }
+
+    function adminUserUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName',
+          'phone',
+          'location',
+          'bio',
+          'role',
+          'photoURL',
+          'isVerified',
+          'isVerifiedAgent',
+          'verificationStatus',
+          'accountStatus',
+          'updatedAt'
+        ])
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null)
+        && request.resource.data.get('termsAcceptedAt', null)
+          == resource.data.get('termsAcceptedAt', null)
+        && validUserProfileFields(request.resource.data);
     }
 
     function selfVerificationSubmissionTransitionAllowed() {
-      return request.resource.data.role == 'agent'
-        && request.resource.data.isVerifiedAgent == false
-        && request.resource.data.verificationStatus == 'pending'
-        && resource.data.isVerifiedAgent != true
-        && resource.data.verificationStatus != 'approved';
+      return request.resource.data.get('isVerifiedAgent', false) == false
+        && request.resource.data.get('verificationStatus', 'not_submitted') == 'pending'
+        && resource.data.get('isVerifiedAgent', false) != true
+        && resource.data.get('verificationStatus', 'not_submitted') != 'approved';
+    }
+
+    function validPropertyAvailability(data) {
+      return data is map
+        && data.keys().hasAll([
+          'agents',
+          'limitedRemainingCapacity',
+          'blockedDates',
+          'bufferMinutes',
+          'minimumDurationMinutes'
+        ])
+        && data.keys().hasOnly([
+          'agents',
+          'limitedRemainingCapacity',
+          'blockedDates',
+          'bufferMinutes',
+          'minimumDurationMinutes'
+        ])
+        && data.agents is list
+        && data.agents.size() <= 20
+        && data.blockedDates is list
+        && data.blockedDates.size() <= 366
+        && data.limitedRemainingCapacity is number
+        && data.limitedRemainingCapacity >= 0
+        && data.limitedRemainingCapacity <= 100
+        && nullableNumberBetween(data.bufferMinutes, 0, 1440)
+        && nullableNumberBetween(data.minimumDurationMinutes, 0, 10080);
+    }
+
+    function propertyDocumentFieldsValid() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'title',
+          'description',
+          'category',
+          'propertyType',
+          'rentPrice',
+          'address',
+          'images',
+          'ownerId',
+          'ownerRole',
+          'status',
+          'availabilityConfig',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title',
+          'description',
+          'category',
+          'propertyType',
+          'rentPrice',
+          'cautionFee',
+          'agencyFee',
+          'inspectionFee',
+          'paymentDuration',
+          'state',
+          'city',
+          'area',
+          'address',
+          'latitude',
+          'longitude',
+          'bedrooms',
+          'bathrooms',
+          'toilets',
+          'shopSize',
+          'roadAccess',
+          'marketArea',
+          'electricityAvailability',
+          'security',
+          'waterAccess',
+          'kitchen',
+          'parking',
+          'water',
+          'electricity',
+          'amenities',
+          'images',
+          'ownerId',
+          'ownerRole',
+          'ownerPhone',
+          'status',
+          'isAvailable',
+          'availabilityConfig',
+          'createdAt',
+          'updatedAt'
+        ])
+        && stringWithin(data.title, 1, 160)
+        && stringWithin(data.description, 0, 5000)
+        && data.category in [
+          'residential',
+          'commercial',
+          'land',
+          'vehicle',
+          'event',
+          'horse',
+          'other'
+        ]
+        && data.propertyType in [
+          'House rent',
+          'Shop rent',
+          'Office space',
+          'Warehouse',
+          'Apartment',
+          'Self-contained',
+          'Flat',
+          'Duplex',
+          'Land',
+          'Car',
+          'Vehicle',
+          'Event space',
+          'Event centre',
+          'Horse rental',
+          'Hotel or guest house',
+          'Other property',
+          'Other rental'
+        ]
+        && data.rentPrice is number
+        && data.rentPrice >= 0
+        && data.get('cautionFee', 0) is number
+        && data.get('cautionFee', 0) >= 0
+        && data.get('agencyFee', 0) is number
+        && data.get('agencyFee', 0) >= 0
+        && data.get('inspectionFee', 0) is number
+        && data.get('inspectionFee', 0) >= 0
+        && data.get('paymentDuration', 'yearly') in [
+          'hourly',
+          'daily',
+          'per_session',
+          'fixed',
+          'monthly',
+          'quarterly',
+          'biannually',
+          'yearly',
+          'custom'
+        ]
+        && stringWithin(data.get('state', ''), 0, 120)
+        && stringWithin(data.get('city', ''), 0, 120)
+        && stringWithin(data.get('area', ''), 0, 160)
+        && stringWithin(data.address, 1, 500)
+        && validCoordinates(data.get('latitude', null), data.get('longitude', null))
+        && nullableNumberBetween(data.get('bedrooms', null), 0, 1000)
+        && nullableNumberBetween(data.get('bathrooms', null), 0, 1000)
+        && nullableNumberBetween(data.get('toilets', null), 0, 1000)
+        && stringWithin(data.get('shopSize', ''), 0, 120)
+        && data.get('roadAccess', false) is bool
+        && data.get('marketArea', false) is bool
+        && data.get('electricityAvailability', false) is bool
+        && data.get('security', false) is bool
+        && data.get('waterAccess', false) is bool
+        && data.get('kitchen', false) is bool
+        && data.get('parking', false) is bool
+        && data.get('water', false) is bool
+        && data.get('electricity', false) is bool
+        && data.get('amenities', []) is list
+        && data.get('amenities', []).size() <= 60
+        && data.images is list
+        && data.images.size() <= 6
+        && stringWithin(data.ownerId, 1, 128)
+        && validUserRole(data.ownerRole)
+        && stringWithin(data.get('ownerPhone', ''), 0, 40)
+        && data.status in ['pending', 'approved', 'rejected']
+        && data.get('isAvailable', true) is bool
+        && validPropertyAvailability(data.availabilityConfig)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
     }
 
     function propertyBaseFieldsValid() {
       return request.resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerRole == currentUserRole()
-        && request.resource.data.title is string
-        && request.resource.data.title.size() > 0
-        && request.resource.data.address is string
-        && request.resource.data.address.size() > 0;
+        && propertyDocumentFieldsValid();
     }
 
     function propertyStatusUnchanged() {
@@ -62,13 +343,339 @@ service cloud.firestore {
     }
 
     function propertyImmutableOwnerFieldsUnchanged() {
-      return request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.ownerRole == resource.data.ownerRole
-        && request.resource.data.createdAt == resource.data.createdAt;
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'ownerId',
+        'ownerRole',
+        'createdAt'
+      ]);
+    }
+
+    function propertyAdminModerationTransitionAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'updatedAt'
+        ])
+        && request.resource.data.status in ['pending', 'approved', 'rejected']
+        && request.resource.data.updatedAt is timestamp;
     }
 
     function userOwnsProperty() {
       return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function userOwnsListing() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function listingCoreFieldsValid() {
+      let data = request.resource.data;
+      return stringWithin(data.title, 1, 160)
+        && stringWithin(data.description, 1, 10000)
+        && data.categoryId in [
+          'property',
+          'vehicles',
+          'phones-tablets',
+          'electronics',
+          'home-furniture-appliances',
+          'fashion',
+          'beauty-personal-care',
+          'babies-kids',
+          'food-agriculture-farming',
+          'commercial-equipment-tools',
+          'repair-construction',
+          'services',
+          'jobs',
+          'seeking-work-cvs',
+          'leisure-activities',
+          'pets'
+        ]
+        && stringWithin(data.categoryName, 1, 120)
+        && stringWithin(data.subcategoryId, 1, 120)
+        && stringWithin(data.subcategoryName, 1, 160)
+        && data.location is map
+        && stringWithin(data.location.get('country', 'Nigeria'), 1, 120)
+        && stringWithin(data.location.get('state', ''), 1, 120)
+        && stringWithin(data.location.get('city', ''), 1, 120)
+        && stringWithin(data.location.get('area', ''), 0, 160)
+        && stringWithin(data.location.get('address', ''), 0, 500)
+        && validCoordinates(
+          data.location.get('latitude', null),
+          data.location.get('longitude', null)
+        )
+        && data.pricing is map
+        && stringWithin(data.pricing.get('currency', ''), 3, 10)
+        && data.pricing.get('amount', -1) is number
+        && data.pricing.get('amount', -1) >= 0
+        && (
+          data.pricing.get('maximumAmount', null) == null
+          || (
+            data.pricing.get('maximumAmount', null) is number
+            && data.pricing.get('maximumAmount', null) >= data.pricing.get('amount', -1)
+          )
+        )
+        && data.pricing.get('priceType', '') in [
+          'fixed',
+          'negotiable',
+          'free',
+          'contact',
+          'range'
+        ]
+        && stringWithin(data.pricing.get('billingPeriod', ''), 0, 80)
+        && data.pricing.get('negotiable', 'no') in ['yes', 'no', 'not_sure']
+        && data.media is map
+        && stringWithin(data.media.get('coverImage', ''), 0, 4096)
+        && data.media.get('images', []) is list
+        && data.media.get('images', []).size() <= 12
+        && stringWithin(data.media.get('videoUrl', ''), 0, 4096)
+        && data.contact is map
+        && stringWithin(data.contact.get('name', ''), 1, 120)
+        && stringWithin(data.contact.get('phone', ''), 1, 40)
+        && data.contact.get('whatsappEnabled', false) is bool
+        && data.contact.get('preferredMethod', 'phone') in [
+          'phone',
+          'whatsapp',
+          'both',
+          'email'
+        ]
+        && data.delivery is map
+        && data.delivery.get('available', false) is bool
+        && data.delivery.get('pickupAvailable', false) is bool
+        && stringWithin(data.delivery.get('details', ''), 0, 1000)
+        && data.attributes is map;
+    }
+
+    function listingStatusPairValid(data) {
+      return (
+          data.status == 'pending_review'
+          && data.moderationStatus == 'pending'
+        )
+        || (
+          data.status in ['active', 'paused', 'sold', 'rented', 'completed', 'expired']
+          && data.moderationStatus == 'approved'
+        )
+        || (
+          data.status == 'rejected'
+          && data.moderationStatus == 'rejected'
+        );
+    }
+
+    function listingDocumentFieldsValid() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'ownerId',
+          'title',
+          'description',
+          'categoryId',
+          'categoryName',
+          'subcategoryId',
+          'subcategoryName',
+          'status',
+          'moderationStatus',
+          'location',
+          'pricing',
+          'media',
+          'contact',
+          'delivery',
+          'attributes',
+          'createdAt',
+          'updatedAt',
+          'publishedAt',
+          'viewCount',
+          'favouriteCount'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'title',
+          'description',
+          'categoryId',
+          'categoryName',
+          'subcategoryId',
+          'subcategoryName',
+          'status',
+          'moderationStatus',
+          'location',
+          'pricing',
+          'media',
+          'contact',
+          'delivery',
+          'attributes',
+          'createdAt',
+          'updatedAt',
+          'publishedAt',
+          'viewCount',
+          'favouriteCount'
+        ])
+        && stringWithin(data.ownerId, 1, 128)
+        && listingCoreFieldsValid()
+        && listingStatusPairValid(data)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && nullableTimestamp(data.publishedAt)
+        && data.viewCount is number
+        && data.viewCount >= 0
+        && data.favouriteCount is number
+        && data.favouriteCount >= 0;
+    }
+
+    function listingSubmissionFieldsValid() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'ownerId',
+          'title',
+          'description',
+          'categoryId',
+          'categoryName',
+          'subcategoryId',
+          'subcategoryName',
+          'status',
+          'moderationStatus',
+          'location',
+          'pricing',
+          'media',
+          'contact',
+          'delivery',
+          'attributes',
+          'createdAt',
+          'updatedAt',
+          'publishedAt',
+          'viewCount',
+          'favouriteCount'
+        ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'title',
+          'description',
+          'categoryId',
+          'categoryName',
+          'subcategoryId',
+          'subcategoryName',
+          'status',
+          'moderationStatus',
+          'location',
+          'pricing',
+          'media',
+          'contact',
+          'delivery',
+          'attributes',
+          'createdAt',
+          'updatedAt',
+          'publishedAt',
+          'viewCount',
+          'favouriteCount'
+        ])
+        && data.ownerId == request.auth.uid
+        && stringWithin(data.title, 1, 160)
+        && stringWithin(data.description, 1, 10000)
+        && data.categoryId is string
+        && stringWithin(data.categoryName, 1, 120)
+        && stringWithin(data.subcategoryId, 1, 120)
+        && stringWithin(data.subcategoryName, 1, 160)
+        && data.location is map
+        && data.pricing is map
+        && data.pricing.get('amount', -1) is number
+        && data.pricing.get('amount', -1) >= 0
+        && data.media is map
+        && data.media.get('images', []) is list
+        && data.media.get('images', []).size() <= 12
+        && data.contact is map
+        && stringWithin(data.contact.get('name', ''), 1, 120)
+        && stringWithin(data.contact.get('phone', ''), 1, 40)
+        && data.delivery is map
+        && data.attributes is map
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.publishedAt == null
+        && data.viewCount == 0
+        && data.favouriteCount == 0;
+    }
+
+    function listingContentFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'title',
+        'description',
+        'categoryId',
+        'categoryName',
+        'subcategoryId',
+        'subcategoryName',
+        'location',
+        'pricing',
+        'media',
+        'contact',
+        'delivery',
+        'attributes'
+      ]);
+    }
+
+    function listingOwnerFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'ownerId',
+        'createdAt',
+        'publishedAt',
+        'viewCount',
+        'favouriteCount'
+      ]);
+    }
+
+    function listingAdminModerationTransitionAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'moderationStatus',
+          'publishedAt',
+          'updatedAt'
+        ])
+        && (
+          (
+            request.resource.data.status == 'active'
+            && request.resource.data.moderationStatus == 'approved'
+          )
+          || (
+            request.resource.data.status == 'rejected'
+            && request.resource.data.moderationStatus == 'rejected'
+          )
+          || (
+            request.resource.data.status == 'pending_review'
+            && request.resource.data.moderationStatus == 'pending'
+          )
+        );
+    }
+
+    function listingOwnerStatusTransitionAllowed() {
+      return (
+          request.resource.data.status == resource.data.status
+          && request.resource.data.moderationStatus == resource.data.moderationStatus
+          && (
+            !listingContentFieldsChanged()
+            || (
+              resource.data.status == 'pending_review'
+              && resource.data.moderationStatus == 'pending'
+            )
+          )
+        )
+        || (
+          resource.data.status == 'active'
+          && request.resource.data.status == 'paused'
+          && request.resource.data.moderationStatus == resource.data.moderationStatus
+          && !listingContentFieldsChanged()
+        )
+        || (
+          resource.data.status in ['active', 'paused']
+          && request.resource.data.status in ['sold', 'rented', 'completed']
+          && request.resource.data.moderationStatus == resource.data.moderationStatus
+          && !listingContentFieldsChanged()
+        )
+        || (
+          resource.data.status in [
+            'active',
+            'paused',
+            'sold',
+            'rented',
+            'completed',
+            'rejected',
+            'expired'
+          ]
+          && request.resource.data.status == 'pending_review'
+          && request.resource.data.moderationStatus == 'pending'
+        );
     }
 
     function userOwnsPayment() {
@@ -91,23 +698,135 @@ service cloud.firestore {
       return signedIn() && resource.data.agentId == request.auth.uid;
     }
 
+    function privateListingDocumentValid() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['ownerId', 'cvUrl', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'cvUrl', 'updatedAt'])
+        && stringWithin(data.ownerId, 1, 128)
+        && stringWithin(data.cvUrl, 1, 2048)
+        && data.updatedAt is timestamp;
+    }
+
+    function privateListingOwnerMatches(listingId) {
+      return exists(/databases/$(database)/documents/listings/$(listingId))
+        && request.resource.data.ownerId
+          == get(/databases/$(database)/documents/listings/$(listingId)).data.ownerId;
+    }
+
+    function verificationAssetValid(asset) {
+      return asset is map
+        && stringWithin(asset.get('id', ''), 1, 200)
+        && stringWithin(asset.get('name', ''), 1, 300)
+        && stringWithin(asset.get('mimeType', ''), 1, 120)
+        && asset.get('size', -1) is number
+        && asset.get('size', -1) >= 0
+        && stringWithin(asset.get('previewUrl', ''), 1, 2048)
+        && stringWithin(asset.get('remoteUrl', ''), 1, 2048)
+        && asset.get('source', '') == 'remote';
+    }
+
+    function verificationDocumentFieldsValid() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'agentId',
+          'fullName',
+          'phone',
+          'whatsappNumber',
+          'officeAddress',
+          'profilePhoto',
+          'idDocument',
+          'cacDocument',
+          'authorizationDocument',
+          'status',
+          'adminNote',
+          'submittedAt',
+          'reviewedAt'
+        ])
+        && data.keys().hasOnly([
+          'agentId',
+          'fullName',
+          'phone',
+          'whatsappNumber',
+          'officeAddress',
+          'profilePhoto',
+          'idDocument',
+          'cacDocument',
+          'authorizationDocument',
+          'status',
+          'adminNote',
+          'submittedAt',
+          'reviewedAt'
+        ])
+        && stringWithin(data.agentId, 1, 128)
+        && stringWithin(data.fullName, 1, 120)
+        && stringWithin(data.phone, 1, 40)
+        && stringWithin(data.whatsappNumber, 0, 40)
+        && stringWithin(data.officeAddress, 1, 500)
+        && verificationAssetValid(data.profilePhoto)
+        && verificationAssetValid(data.idDocument)
+        && (data.cacDocument == null || verificationAssetValid(data.cacDocument))
+        && verificationAssetValid(data.authorizationDocument)
+        && data.status in ['pending', 'approved', 'rejected']
+        && stringWithin(data.adminNote, 0, 2000)
+        && data.submittedAt is timestamp
+        && nullableTimestamp(data.reviewedAt);
+    }
+
+    function verificationOwnerUpdateAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'fullName',
+          'phone',
+          'whatsappNumber',
+          'officeAddress',
+          'profilePhoto',
+          'idDocument',
+          'cacDocument',
+          'authorizationDocument',
+          'submittedAt'
+        ])
+        && request.resource.data.agentId == resource.data.agentId
+        && request.resource.data.status == 'pending'
+        && request.resource.data.adminNote == ''
+        && request.resource.data.reviewedAt == null;
+    }
+
+    function verificationAdminReviewAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'adminNote',
+          'reviewedAt'
+        ])
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.reviewedAt is timestamp;
+    }
+
+
     match /users/{userId} {
       allow create: if isSelf(userId)
+        && validNewUserDocument()
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.role in ['tenant', 'landlord', 'agent']
-        && request.resource.data.isVerifiedAgent == false
-        && request.resource.data.verificationStatus == 'not_submitted';
+        && (
+          !('role' in request.resource.data)
+          || request.resource.data.role == 'user'
+        )
+        && request.resource.data.get('isVerified', false) == false
+        && request.resource.data.get('isVerifiedAgent', false) == false
+        && request.resource.data.get('verificationStatus', 'not_submitted') == 'not_submitted'
+        && request.resource.data.get('accountStatus', 'active') == 'active';
 
       allow read: if isSelf(userId) || isAdmin();
 
-      allow update: if isAdmin()
+      allow update: if (isAdmin() && adminUserUpdateFieldsAllowed())
         || (
           isSelf(userId)
+          && selfUserUpdateFieldsAllowed()
           && immutableUserFieldsUnchanged()
           && (
             (
-              request.resource.data.isVerifiedAgent == resource.data.isVerifiedAgent
-              && request.resource.data.verificationStatus == resource.data.verificationStatus
+              request.resource.data.get('isVerifiedAgent', false)
+                == resource.data.get('isVerifiedAgent', false)
+              && request.resource.data.get('verificationStatus', 'not_submitted')
+                == resource.data.get('verificationStatus', 'not_submitted')
             )
             || selfVerificationSubmissionTransitionAllowed()
           )
@@ -118,10 +837,23 @@ service cloud.firestore {
       match /tokens/{tokenId} {
         allow read: if isSelf(userId) || isAdmin();
         allow create: if isSelf(userId)
+          && currentUserIsActive()
+          && request.resource.data.keys().hasAll([
+            'userId',
+            'token',
+            'device',
+            'createdAt'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'userId',
+            'token',
+            'device',
+            'createdAt'
+          ])
           && request.resource.data.userId == userId
-          && request.resource.data.token is string
-          && request.resource.data.token.size() > 0
-          && request.resource.data.device is string;
+          && stringWithin(request.resource.data.token, 1, 4096)
+          && stringWithin(request.resource.data.device, 1, 500)
+          && request.resource.data.createdAt is timestamp;
         allow update: if false;
         allow delete: if isSelf(userId) || isAdmin();
       }
@@ -133,40 +865,110 @@ service cloud.firestore {
         || isAdmin();
 
       allow create: if signedIn()
-        && currentUserExists()
-        && isPropertyManager()
+        && currentUserIsActive()
         && propertyBaseFieldsValid()
         && (
           (isAdmin() && request.resource.data.status in ['pending', 'approved', 'rejected'])
           || (!isAdmin() && request.resource.data.status == 'pending')
         );
 
-      allow update: if isAdmin()
+      allow update: if (
+          isAdmin()
+          && (
+            propertyAdminModerationTransitionAllowed()
+            || (
+              propertyDocumentFieldsValid()
+              && propertyImmutableOwnerFieldsUnchanged()
+              && propertyStatusUnchanged()
+            )
+          )
+        )
         || (
           userOwnsProperty()
+          && currentUserIsActive()
+          && propertyDocumentFieldsValid()
           && propertyImmutableOwnerFieldsUnchanged()
           && propertyStatusUnchanged()
         );
 
-      allow delete: if isAdmin();
+      allow delete: if (userOwnsProperty() && currentUserIsActive()) || isAdmin();
+    }
+
+    match /listings/{listingId} {
+      allow read: if (
+          resource.data.status == 'active'
+          && resource.data.moderationStatus == 'approved'
+        )
+        || userOwnsListing()
+        || isAdmin();
+
+      allow create: if signedIn()
+        && currentUserIsActive()
+        && listingSubmissionFieldsValid()
+        && request.resource.data.status == 'pending_review'
+        && request.resource.data.moderationStatus == 'pending';
+
+      allow update: if (
+          isAdmin()
+          && listingDocumentFieldsValid()
+          && (
+            listingAdminModerationTransitionAllowed()
+            || (
+              listingOwnerFieldsUnchanged()
+              && listingOwnerStatusTransitionAllowed()
+            )
+          )
+        )
+        || (
+          userOwnsListing()
+          && currentUserIsActive()
+          && listingDocumentFieldsValid()
+          && listingOwnerFieldsUnchanged()
+          && listingOwnerStatusTransitionAllowed()
+        );
+
+      allow delete: if (userOwnsListing() && currentUserIsActive()) || isAdmin();
+    }
+
+    match /listingPrivate/{listingId} {
+      allow read: if signedIn()
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if signedIn()
+        && currentUserIsActive()
+        && privateListingDocumentValid()
+        && privateListingOwnerMatches(listingId)
+        && (request.resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update: if signedIn()
+        && currentUserIsActive()
+        && privateListingDocumentValid()
+        && privateListingOwnerMatches(listingId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if signedIn()
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
     match /agentVerifications/{verificationId} {
       allow read: if userOwnsVerification() || isAdmin();
 
       allow create: if signedIn()
-        && currentUserRole() == 'agent'
+        && currentUserIsActive()
+        && verificationDocumentFieldsValid()
         && request.resource.data.agentId == request.auth.uid
         && request.resource.data.status == 'pending'
-        && request.resource.data.adminNote == '';
+        && request.resource.data.get('adminNote', '') == ''
+        && request.resource.data.get('reviewedAt', null) == null;
 
-      allow update: if isAdmin()
+      allow update: if (
+          isAdmin()
+          && verificationDocumentFieldsValid()
+          && verificationAdminReviewAllowed()
+        )
         || (
           userOwnsVerification()
-          && request.resource.data.agentId == resource.data.agentId
-          && request.resource.data.status == resource.data.status
-          && request.resource.data.adminNote == resource.data.adminNote
-          && request.resource.data.reviewedAt == resource.data.reviewedAt
+          && currentUserIsActive()
+          && verificationDocumentFieldsValid()
+          && verificationOwnerUpdateAllowed()
         );
 
       allow delete: if isAdmin();
@@ -175,35 +977,10 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if userOwnsPayment() || isAdmin();
 
-      // Clients can create only their own pending payment record.
-      // Verification and status changes should happen in backend code with the Admin SDK.
-      allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.propertyId is string
-        && request.resource.data.propertyId.size() > 0
-        && request.resource.data.agentId is string
-        && request.resource.data.agentId.size() > 0
-        && request.resource.data.payerEmail == request.auth.token.email
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.paystackReference is string
-        && request.resource.data.paystackReference.size() > 0
-        && request.resource.data.paymentType in ['inspection_fee', 'rent_deposit', 'full_rent_payment', 'service_fee', 'booking_payment']
-        && (
-          request.resource.data.paymentType != 'booking_payment'
-          || (
-            request.resource.data.bookingId is string
-            && request.resource.data.bookingId.size() > 0
-            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.userId == request.auth.uid
-            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.propertyId == request.resource.data.propertyId
-            && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.estimatedTotal == request.resource.data.amount
-          )
-        )
-        && request.resource.data.status == 'pending'
-        && request.resource.data.verificationMode == 'backend_required'
-        && request.resource.data.verifiedAt == null;
+      // Payment references and amounts are created by initializePaystackPayment.
+      allow create: if false;
 
-      allow update, delete: if isAdmin();
+      allow update, delete: if false;
     }
 
     match /bookings/{bookingId} {
@@ -227,8 +1004,23 @@ service cloud.firestore {
     match /savedProperties/{savedId} {
       allow read: if userOwnsSavedRecord() || isAdmin();
       allow create: if signedIn()
+        && currentUserIsActive()
+        && request.resource.data.keys().hasAll([
+          'userId',
+          'propertyId',
+          'source',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'propertyId',
+          'source',
+          'createdAt'
+        ])
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.propertyId is string;
+        && stringWithin(request.resource.data.propertyId, 1, 256)
+        && request.resource.data.source in ['property', 'listing']
+        && request.resource.data.createdAt is timestamp;
       allow update: if false;
       allow delete: if userOwnsSavedRecord() || isAdmin();
     }
@@ -240,24 +1032,10 @@ service cloud.firestore {
       // Clients may only mark their own record as read.
       allow create: if isAdmin();
 
-      allow update: if isAdmin()
-        || (
-          userOwnsNotification()
-          && request.resource.data.userId == resource.data.userId
-          && request.resource.data.type == resource.data.type
-          && request.resource.data.title == resource.data.title
-          && request.resource.data.body == resource.data.body
-          && request.resource.data.channel == resource.data.channel
-          && request.resource.data.relatedPropertyId == resource.data.relatedPropertyId
-          && request.resource.data.relatedBookingId == resource.data.relatedBookingId
-          && request.resource.data.relatedPaymentId == resource.data.relatedPaymentId
-          && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.deliveredAt == resource.data.deliveredAt
-          && (
-            request.resource.data.readAt == resource.data.readAt
-            || (resource.data.readAt == null && request.resource.data.readAt != null)
-          )
-        );
+      allow update: if (userOwnsNotification() || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+        && resource.data.get('readAt', null) == null
+        && request.resource.data.readAt is timestamp;
 
       allow delete: if isAdmin();
     }

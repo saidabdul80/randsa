@@ -27,18 +27,18 @@
 
     <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       <button
-        v-for="property in properties"
-        :key="property.id"
+        v-for="item in properties"
+        :key="item.id"
         type="button"
         class="group min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white text-left shadow-[0_12px_28px_-24px_rgba(16,32,51,0.5)] transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-[0_18px_34px_-24px_rgba(16,32,51,0.62)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-800 dark:bg-slate-900"
-        :aria-label="`Quick view ${property.title}`"
-        @click="$emit('quick-view', property)"
+        :aria-label="`Quick view ${item.title}`"
+        @click="$emit('quick-view', item)"
       >
         <span class="block aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
           <img
-            v-if="property.images[0]"
-            :src="property.images[0]"
-            :alt="property.title"
+            v-if="item.image"
+            :src="item.image"
+            :alt="item.title"
             class="h-full w-full object-cover transition duration-200 group-hover:scale-[1.025]"
             loading="lazy"
             decoding="async"
@@ -49,17 +49,20 @@
         </span>
         <span class="block min-w-0 p-3">
           <strong class="block truncate text-xs font-extrabold text-ink dark:text-white sm:text-sm">
-            {{ property.title }}
+            {{ item.title }}
           </strong>
           <small class="mt-1 block truncate text-[10px] text-slate-500 dark:text-slate-300">
-            {{ formatLocation(property) }}
+            {{ item.location || 'Location not added' }}
           </small>
           <span
             class="mt-3 block truncate text-xs font-extrabold text-emerald-600 dark:text-emerald-400"
           >
-            {{ formatCurrency(property.rentPrice) }}
-            <small class="font-medium text-slate-500 dark:text-slate-300">
-              / {{ formatPeriod(property.paymentDuration) }}
+            {{ item.price }}
+            <small
+              v-if="item.paymentDuration"
+              class="font-medium text-slate-500 dark:text-slate-300"
+            >
+              / {{ item.paymentDuration }}
             </small>
           </span>
         </span>
@@ -72,30 +75,14 @@
 import { IonIcon } from '@ionic/vue'
 import { imageOutline } from 'ionicons/icons'
 
-import type { PropertyRecord } from '../../types/property'
+import type { MarketplaceDiscoveryItem } from '../../types/marketplace'
 
 defineProps<{
-  properties: PropertyRecord[]
+  properties: MarketplaceDiscoveryItem[]
 }>()
 
 defineEmits<{
   clear: []
-  'quick-view': [property: PropertyRecord]
+  'quick-view': [item: MarketplaceDiscoveryItem]
 }>()
-
-function formatLocation(property: PropertyRecord) {
-  return [property.area, property.city, property.state].filter(Boolean).join(', ')
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
-function formatPeriod(value: string) {
-  return value.replaceAll('_', ' ')
-}
 </script>

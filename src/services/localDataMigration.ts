@@ -4,6 +4,8 @@ import { authMode, db, firebaseConfigError, isFirebaseConfigured } from '../lib/
 import { getAllStoredVerificationRecords } from './agentVerificationDb'
 import { cancelBooking, createBooking, listAllLocalBookings } from './bookings'
 import { getAllStoredProperties } from './propertyDb'
+import { getStoredListings } from './listingDb'
+import { migrateStoredMarketplaceListing } from './listings'
 import { normalizeVerificationRecord, type AgentVerificationRecord } from '../types/verification'
 import type { PropertyRecord } from '../types/property'
 import type { UserProfile } from '../types/user'
@@ -15,6 +17,7 @@ export interface LocalMigrationPreviewSection {
 }
 
 export interface LocalMigrationPreview {
+  listings: LocalMigrationPreviewSection
   properties: LocalMigrationPreviewSection
   bookings: LocalMigrationPreviewSection
   verifications: LocalMigrationPreviewSection
@@ -29,6 +32,7 @@ export interface LocalMigrationResultSection {
 }
 
 export interface LocalMigrationResult {
+  listings: LocalMigrationResultSection
   properties: LocalMigrationResultSection
   bookings: LocalMigrationResultSection
   verifications: LocalMigrationResultSection
@@ -54,11 +58,7 @@ function toTimestampOrServerValue(value: string | null | undefined) {
 }
 
 function isPropertyEligibleForCurrentProfile(property: PropertyRecord, profile: UserProfile) {
-  return (
-    property.ownerId === profile.uid &&
-    ['landlord', 'agent', 'admin'].includes(profile.role) &&
-    property.ownerRole === profile.role
-  )
+  return property.ownerId === profile.uid
 }
 
 function isBookingEligibleForCurrentProfile(
@@ -76,17 +76,19 @@ function isVerificationEligibleForCurrentProfile(
   verification: AgentVerificationRecord,
   profile: UserProfile
 ) {
-  return verification.agentId === profile.uid && profile.role === 'agent'
+  return verification.agentId === profile.uid && profile.role !== 'admin'
 }
 
 export async function getLocalDataMigrationPreview(
   profile: UserProfile
 ): Promise<LocalMigrationPreview> {
   const localProperties = await getAllStoredProperties()
+  const localListings = await getStoredListings()
   const localBookings = listAllLocalBookings()
   const localVerifications = await getAllStoredVerificationRecords()
 
   const profileProperties = localProperties.filter((property) => property.ownerId === profile.uid)
+  const profileListings = localListings.filter((listing) => listing.ownerId === profile.uid)
   const profileBookings = localBookings.filter((booking) => booking.userId === profile.uid)
   const profileVerifications = localVerifications.filter(
     (verification) => verification.agentId === profile.uid
@@ -103,11 +105,21 @@ export async function getLocalDataMigrationPreview(
   )
 
   let propertiesEligible = eligibleProperties.length
+  let listingsEligible = profileListings.length
   let bookingsEligible = eligibleBookings.length
   let verificationsEligible = eligibleVerifications.length
 
   if (authMode === 'firebase') {
     const firestore = ensureFirestoreReady()
+
+    listingsEligible = (
+      await Promise.all(
+        profileListings.map(async (listing) => {
+          const snapshot = await getDoc(doc(firestore, 'listings', listing.id))
+          return snapshot.exists()
+        })
+      )
+    ).filter((exists) => !exists).length
 
     propertiesEligible = (
       await Promise.all(
@@ -139,6 +151,12 @@ export async function getLocalDataMigrationPreview(
 
   const notes: string[] = []
 
+  if (profileListings.some((listing) => listing.status !== 'pending_review')) {
+    notes.push(
+      'Browser-only marketplace listings will be submitted as pending review so their live visibility is approved safely.'
+    )
+  }
+
   if (
     profileProperties.some((property) => property.status !== 'pending') &&
     profile.role !== 'admin'
@@ -165,6 +183,11 @@ export async function getLocalDataMigrationPreview(
   }
 
   return {
+    listings: {
+      detected: profileListings.length,
+      eligible: listingsEligible,
+      blocked: profileListings.length - listingsEligible,
+    },
     properties: {
       detected: profileProperties.length,
       eligible: propertiesEligible,
@@ -181,7 +204,10 @@ export async function getLocalDataMigrationPreview(
       blocked: profileVerifications.length - verificationsEligible,
     },
     hasAnythingToMigrate:
-      propertiesEligible > 0 || bookingsEligible > 0 || verificationsEligible > 0,
+      listingsEligible > 0 ||
+      propertiesEligible > 0 ||
+      bookingsEligible > 0 ||
+      verificationsEligible > 0,
     notes,
   }
 }
@@ -219,7 +245,7 @@ function buildFirestorePropertyPayload(property: PropertyRecord, profile: UserPr
     amenities: property.amenities,
     images: property.images,
     ownerId: property.ownerId,
-    ownerRole: property.ownerRole,
+    ownerRole: profile.role,
     ownerPhone: property.ownerPhone,
     status: profile.role === 'admin' ? property.status : 'pending',
     isAvailable: property.isAvailable,
@@ -238,14 +264,26 @@ export async function migrateLocalDataForCurrentProfile(
 
   const firestore = ensureFirestoreReady()
   const localProperties = await getAllStoredProperties()
+  const localListings = await getStoredListings()
   const localBookings = listAllLocalBookings()
   const localVerifications = await getAllStoredVerificationRecords()
 
   const result: LocalMigrationResult = {
+    listings: { migrated: 0, skipped: 0, failed: 0 },
     properties: { migrated: 0, skipped: 0, failed: 0 },
     bookings: { migrated: 0, skipped: 0, failed: 0 },
     verifications: { migrated: 0, skipped: 0, failed: 0 },
     notes: [],
+  }
+
+  for (const listing of localListings.filter((item) => item.ownerId === profile.uid)) {
+    try {
+      const migration = await migrateStoredMarketplaceListing(listing, profile)
+      if (migration.migrated) result.listings.migrated += 1
+      else result.listings.skipped += 1
+    } catch {
+      result.listings.failed += 1
+    }
   }
 
   for (const property of localProperties.filter((item) => item.ownerId === profile.uid)) {
