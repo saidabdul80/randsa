@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 .npm-cache
+.wrangler-npm-cache
+.firebase-npm-cache
+.firebase-cli
 dist
 dist-ssr
 *.local

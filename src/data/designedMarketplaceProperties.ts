@@ -1,4 +1,4 @@
-import homeHeroImage from '../assets/randsa-hero-home.png'
+import homeHeroImage from '../assets/randsa-hero-home.webp'
 import type { PropertyRecord, PropertyType } from '../types/property'
 
 interface DesignedPropertyDefinition {

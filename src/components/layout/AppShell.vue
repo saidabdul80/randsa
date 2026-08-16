@@ -37,7 +37,7 @@
       </div>
     </ion-content>
 
-    <AppBottomNav v-if="showBottomNav" />
+    <AppBottomNav v-if="showBottomNav" :class="{ 'lg:hidden': bottomNavMobileOnly }" />
   </ion-page>
 </template>
 
@@ -52,6 +52,7 @@ withDefaults(
     description?: string
     eyebrow?: string
     showBottomNav?: boolean
+    bottomNavMobileOnly?: boolean
     showHeader?: boolean
     contentClass?: string
   }>(),
@@ -59,6 +60,7 @@ withDefaults(
     description: '',
     eyebrow: '',
     showBottomNav: true,
+    bottomNavMobileOnly: false,
     showHeader: true,
     contentClass:
       'mx-auto flex min-h-full w-full max-w-6xl flex-col px-4 pb-28 pt-4 sm:px-6 lg:px-8',

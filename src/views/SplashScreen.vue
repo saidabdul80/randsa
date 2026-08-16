@@ -87,10 +87,10 @@ import {
 } from 'ionicons/icons'
 import { RouterLink } from 'vue-router'
 
-import carImage from '../assets/randsa-hero-car.png'
-import eventImage from '../assets/randsa-hero-event.png'
-import homeImage from '../assets/randsa-hero-home.png'
-import horsesImage from '../assets/randsa-hero-horses.png'
+import carImage from '../assets/randsa-hero-car.webp'
+import eventImage from '../assets/randsa-hero-event.webp'
+import homeImage from '../assets/randsa-hero-home.webp'
+import horsesImage from '../assets/randsa-hero-horses.webp'
 
 const categories = [
   { label: 'Houses', icon: homeOutline },

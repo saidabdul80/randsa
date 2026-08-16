@@ -155,7 +155,7 @@ import {
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import addPropertyHero from '../assets/randsa-hero-home.png'
+import addPropertyHero from '../assets/randsa-hero-home.webp'
 import AppShell from '../components/layout/AppShell.vue'
 import ListingFormWizard from '../components/listing-form/ListingFormWizard.vue'
 import MarketplaceListingWizard from '../components/listing-form/MarketplaceListingWizard.vue'

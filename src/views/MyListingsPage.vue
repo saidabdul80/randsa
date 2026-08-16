@@ -1,5 +1,9 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
+  <AppShell
+    :show-header="false"
+    :bottom-nav-mobile-only="true"
+    content-class="min-h-full w-full pb-28 lg:pb-0"
+  >
     <div class="my-listings-page">
       <NotificationSidebarNav
         :can-manage-properties="canManageProperties"
@@ -7,192 +11,139 @@
         aria-label="My Listings navigation"
       />
 
-      <main>
+      <main class="my-listings-main">
         <header class="my-listings-hero">
-          <div>
+          <div class="my-listings-hero__copy">
             <p>RANDSA / MY LISTINGS</p>
             <h1>Manage your listings</h1>
             <span>Review, update, pause, complete, or repost the listings you own.</span>
           </div>
-          <RouterLink to="/post-listing">
-            <IonIcon :icon="addCircleOutline" aria-hidden="true" /> Post Listing
+          <RouterLink class="post-listing-button" to="/post-listing">
+            <IonIcon :icon="addOutline" aria-hidden="true" />
+            Post Listing
           </RouterLink>
         </header>
 
         <section class="listing-stats" aria-label="Listing summary">
-          <div>
-            <IonIcon :icon="albumsOutline" aria-hidden="true" /><span
-              ><strong>{{ items.length }}</strong
-              >Total</span
-            >
-          </div>
-          <div>
-            <IonIcon :icon="checkmarkCircleOutline" aria-hidden="true" /><span
-              ><strong>{{ activeCount }}</strong
-              >Active</span
-            >
-          </div>
-          <div>
-            <IonIcon :icon="timeOutline" aria-hidden="true" /><span
-              ><strong>{{ reviewCount }}</strong
-              >In review</span
-            >
-          </div>
-          <div>
-            <IonIcon :icon="eyeOutline" aria-hidden="true" /><span
-              ><strong>{{ totalViews }}</strong
-              >Views</span
-            >
-          </div>
+          <article
+            v-for="card in summaryCards"
+            :key="card.label"
+            class="listing-stat-card"
+            :class="`listing-stat-card--${card.tone}`"
+          >
+            <span class="listing-stat-card__icon">
+              <IonIcon :icon="card.icon" aria-hidden="true" />
+            </span>
+            <span class="listing-stat-card__copy">
+              <strong>{{ card.value }}</strong>
+              <span>{{ card.label }}</span>
+            </span>
+          </article>
         </section>
 
-        <div class="listing-toolbar">
-          <div role="tablist" aria-label="Filter your listings">
+        <section class="listing-controls" aria-label="Listing filters and search">
+          <div class="listing-status-tabs" role="tablist" aria-label="Filter your listings">
             <button
               v-for="filter in filters"
               :key="filter.value"
               type="button"
+              role="tab"
+              :aria-selected="statusFilter === filter.value"
               :class="{ active: statusFilter === filter.value }"
               @click="statusFilter = filter.value"
             >
               {{ filter.label }}
             </button>
           </div>
-          <span v-if="isLoading"
-            ><IonIcon :icon="syncOutline" class="spin" aria-hidden="true" /> Refreshing</span
-          >
-        </div>
+
+          <div class="listing-search-tools">
+            <label class="listing-search">
+              <IonIcon :icon="searchOutline" aria-hidden="true" />
+              <span class="sr-only">Search your listings</span>
+              <input
+                v-model.trim="searchQuery"
+                type="search"
+                placeholder="Search your listings..."
+              />
+              <button
+                v-if="searchQuery"
+                type="button"
+                aria-label="Clear listing search"
+                title="Clear search"
+                @click="searchQuery = ''"
+              >
+                <IonIcon :icon="closeOutline" aria-hidden="true" />
+              </button>
+            </label>
+
+            <details class="listings-sort">
+              <summary aria-label="Sort listings" title="Sort listings">
+                <IonIcon :icon="optionsOutline" aria-hidden="true" />
+              </summary>
+              <div role="menu" aria-label="Sort order">
+                <button
+                  v-for="option in sortOptions"
+                  :key="option.value"
+                  type="button"
+                  role="menuitemradio"
+                  :aria-checked="sortOrder === option.value"
+                  :class="{ active: sortOrder === option.value }"
+                  @click="setSortOrder(option.value, $event)"
+                >
+                  {{ option.label }}
+                  <IonIcon
+                    v-if="sortOrder === option.value"
+                    :icon="checkmarkOutline"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            </details>
+          </div>
+        </section>
 
         <p v-if="errorMessage || listingsError" class="listing-error" role="alert">
+          <IonIcon :icon="alertCircleOutline" aria-hidden="true" />
           {{ errorMessage || listingsError }}
         </p>
 
-        <section v-if="filteredItems.length" class="listing-grid" aria-label="Your listings">
-          <article
-            v-for="item in filteredItems"
+        <section v-if="isLoading" class="listing-grid" aria-label="Loading your listings">
+          <ListingCardSkeleton v-for="index in 3" :key="index" />
+        </section>
+
+        <section
+          v-else-if="visibleItems.length"
+          class="listing-grid"
+          aria-label="Your listings"
+          aria-live="polite"
+        >
+          <MyListingCard
+            v-for="item in visibleItems"
             :key="`${item.source}:${item.id}`"
-            class="listing-card"
-          >
-            <figure>
-              <img
-                v-if="item.image"
-                :src="item.image"
-                :alt="item.title"
-                loading="lazy"
-                decoding="async"
-              />
-              <span v-else><IonIcon :icon="imagesOutline" aria-hidden="true" /></span>
-              <b :class="`status-${item.status}`">{{ statusLabel(item.status) }}</b>
-            </figure>
-            <div class="listing-card__body">
-              <p>{{ item.category }}</p>
-              <h2>{{ item.title }}</h2>
-              <span
-                ><IonIcon :icon="locationOutline" aria-hidden="true" />
-                {{ item.location || 'Location not added' }}</span
-              >
-              <strong>{{ item.price }}</strong>
-              <div class="listing-card__performance">
-                <span
-                  ><IonIcon :icon="eyeOutline" aria-hidden="true" /> {{ item.views }} views</span
-                >
-                <span
-                  ><IonIcon :icon="heartOutline" aria-hidden="true" />
-                  {{ item.favourites }} saves</span
-                >
-              </div>
-            </div>
-            <footer>
-              <RouterLink v-if="item.source === 'property'" :to="`/properties/${item.id}`"
-                ><IonIcon :icon="eyeOutline" aria-hidden="true" /> View</RouterLink
-              >
-              <RouterLink v-else :to="`/listings/${item.id}`"
-                ><IonIcon :icon="eyeOutline" aria-hidden="true" /> View</RouterLink
-              >
-              <RouterLink
-                :to="
-                  item.source === 'property'
-                    ? `/edit-property/${item.id}`
-                    : `/edit-listing/${item.id}`
-                "
-                ><IonIcon :icon="createOutline" aria-hidden="true" /> Edit</RouterLink
-              >
-              <select
-                v-if="item.source === 'listing'"
-                :aria-label="`Manage ${item.title}`"
-                value=""
-                @change="handleAction(item, $event)"
-              >
-                <option value="" disabled>Manage</option>
-                <option v-if="item.status === 'active'" value="paused">Pause</option>
-                <option v-if="['active', 'paused'].includes(item.status)" value="sold">
-                  Mark sold
-                </option>
-                <option v-if="['active', 'paused'].includes(item.status)" value="rented">
-                  Mark rented
-                </option>
-                <option v-if="['active', 'paused'].includes(item.status)" value="completed">
-                  Mark completed
-                </option>
-                <option
-                  v-if="
-                    ['paused', 'sold', 'rented', 'completed', 'rejected', 'expired'].includes(
-                      item.status
-                    )
-                  "
-                  value="pending_review"
-                >
-                  Repost for review
-                </option>
-                <option value="delete">Delete</option>
-              </select>
-            </footer>
-          </article>
+            :item="item"
+            :busy="busyItemId === `${item.source}:${item.id}`"
+            @action="handleAction(item, $event)"
+          />
         </section>
 
-        <section v-else-if="!isLoading" class="listing-empty">
-          <IonIcon :icon="albumsOutline" aria-hidden="true" />
-          <h2>{{ items.length ? 'No listings match this filter' : 'No listings yet' }}</h2>
-          <p>
-            {{
-              items.length
-                ? 'Choose another status to see more listings.'
-                : 'Your properties, items, services, and opportunities will appear here.'
-            }}
-          </p>
-          <RouterLink v-if="!items.length" to="/post-listing">Post your first listing</RouterLink>
+        <section v-else class="listing-empty">
+          <span class="listing-empty__icon">
+            <IonIcon :icon="albumsOutline" aria-hidden="true" />
+          </span>
+          <h2>{{ emptyStateTitle }}</h2>
+          <p>{{ emptyStateDescription }}</p>
+          <RouterLink v-if="!items.length" to="/post-listing">
+            <IonIcon :icon="addOutline" aria-hidden="true" />
+            Post your first listing
+          </RouterLink>
+          <button v-else type="button" @click="resetFilters">Show all listings</button>
         </section>
+
+        <footer v-if="!isLoading && visibleItems.length" class="listing-results">
+          Showing 1 to {{ visibleItems.length }} of {{ visibleItems.length }}
+          {{ visibleItems.length === 1 ? 'listing' : 'listings' }}
+        </footer>
       </main>
-    </div>
-
-    <div
-      v-if="selectedItem"
-      class="listing-modal"
-      role="presentation"
-      @click.self="selectedItem = null"
-    >
-      <section role="dialog" aria-modal="true" aria-labelledby="listing-modal-title">
-        <button
-          type="button"
-          aria-label="Close listing preview"
-          title="Close"
-          @click="selectedItem = null"
-        >
-          <IonIcon :icon="closeOutline" />
-        </button>
-        <img v-if="selectedItem.image" :src="selectedItem.image" :alt="selectedItem.title" />
-        <p>{{ selectedItem.category }} · {{ statusLabel(selectedItem.status) }}</p>
-        <h2 id="listing-modal-title">{{ selectedItem.title }}</h2>
-        <span
-          ><IonIcon :icon="locationOutline" aria-hidden="true" /> {{ selectedItem.location }}</span
-        >
-        <strong>{{ selectedItem.price }}</strong>
-        <div>
-          <span>{{ selectedItem.views }} views</span
-          ><span>{{ selectedItem.favourites }} saves</span>
-        </div>
-        <RouterLink :to="`/edit-listing/${selectedItem.id}`">Edit listing</RouterLink>
-      </section>
     </div>
   </AppShell>
 </template>
@@ -200,40 +151,35 @@
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
 import {
-  addCircleOutline,
+  addOutline,
   albumsOutline,
+  alertCircleOutline,
   checkmarkCircleOutline,
+  checkmarkOutline,
   closeOutline,
-  createOutline,
   eyeOutline,
-  heartOutline,
-  imagesOutline,
-  locationOutline,
-  syncOutline,
+  optionsOutline,
+  searchOutline,
   timeOutline,
 } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
+import ListingCardSkeleton from '../components/listings/ListingCardSkeleton.vue'
+import MyListingCard from '../components/listings/MyListingCard.vue'
+import {
+  listingStatusLabel,
+  type ManageListingAction,
+  type ManageListingItem,
+} from '../components/listings/manageListing'
 import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
 import { useAuth } from '../composables/useAuth'
 import { useListings } from '../composables/useListings'
 import { useProperties } from '../composables/useProperties'
 import type { ListingStatus } from '../types/listing'
 
-type ManageStatus = ListingStatus | 'approved' | 'pending'
-interface ManageItem {
-  id: string
-  source: 'listing' | 'property'
-  title: string
-  category: string
-  location: string
-  price: string
-  image: string
-  status: ManageStatus
-  views: number
-  favourites: number
-}
+type StatusFilter = 'all' | 'active' | 'review' | 'paused' | 'completed'
+type SortOrder = 'updated-desc' | 'updated-asc' | 'views-desc'
 
 const { state, canManageProperties } = useAuth()
 const {
@@ -245,10 +191,14 @@ const {
   remove,
 } = useListings()
 const { properties, isLoading: propertiesLoading, refresh: refreshProperties } = useProperties()
-const statusFilter = ref('all')
+
+const statusFilter = ref<StatusFilter>('all')
+const searchQuery = ref('')
+const sortOrder = ref<SortOrder>('updated-desc')
 const errorMessage = ref('')
-const selectedItem = ref<ManageItem | null>(null)
-const filters = [
+const busyItemId = ref('')
+
+const filters: ReadonlyArray<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'active', label: 'Active' },
   { value: 'review', label: 'In review' },
@@ -256,17 +206,48 @@ const filters = [
   { value: 'completed', label: 'Completed' },
 ]
 
+const sortOptions: ReadonlyArray<{ value: SortOrder; label: string }> = [
+  { value: 'updated-desc', label: 'Newest updated' },
+  { value: 'updated-asc', label: 'Oldest updated' },
+  { value: 'views-desc', label: 'Most viewed' },
+]
+
 const formatMoney = (amount: number, currency = 'NGN') =>
-  new Intl.NumberFormat('en-NG', { style: 'currency', currency, maximumFractionDigits: 0 }).format(
-    amount
-  )
+  new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount)
+
 const formatLocation = (parts: readonly string[]) =>
   parts
     .map((part) => part.trim())
     .filter(Boolean)
     .filter((part, index, values) => values.indexOf(part) === index)
     .join(', ')
-const listingItems = computed<ManageItem[]>(() =>
+
+function updatedLabel(value: string) {
+  const timestamp = new Date(value).getTime()
+  if (!Number.isFinite(timestamp)) return 'Updated recently'
+
+  const elapsed = Math.max(0, Date.now() - timestamp)
+  const minutes = Math.floor(elapsed / 60_000)
+  const hours = Math.floor(elapsed / 3_600_000)
+  const days = Math.floor(elapsed / 86_400_000)
+
+  if (minutes < 1) return 'Updated just now'
+  if (minutes < 60) return `Updated ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`
+  if (hours < 24) return `Updated ${hours} ${hours === 1 ? 'hour' : 'hours'} ago`
+  if (days < 7) return `Updated ${days} ${days === 1 ? 'day' : 'days'} ago`
+
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) return `Updated ${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`
+
+  const months = Math.floor(days / 30)
+  return `Updated ${months} ${months === 1 ? 'month' : 'months'} ago`
+}
+
+const listingItems = computed<ManageListingItem[]>(() =>
   ownedListings.value.map((item) => ({
     id: item.id,
     source: 'listing',
@@ -282,9 +263,13 @@ const listingItems = computed<ManageItem[]>(() =>
     status: item.status,
     views: item.viewCount,
     favourites: item.favouriteCount,
+    mediaCount: Math.max(item.media.images.length, item.media.coverImage ? 1 : 0),
+    updatedAt: item.updatedAt,
+    updatedLabel: updatedLabel(item.updatedAt),
   }))
 )
-const propertyItems = computed<ManageItem[]>(() =>
+
+const propertyItems = computed<ManageListingItem[]>(() =>
   properties.value
     .filter((property) => property.ownerId === state.profile?.uid)
     .map((property) => ({
@@ -298,8 +283,12 @@ const propertyItems = computed<ManageItem[]>(() =>
       status: property.status,
       views: 0,
       favourites: 0,
+      mediaCount: property.images.length,
+      updatedAt: property.updatedAt,
+      updatedLabel: updatedLabel(property.updatedAt),
     }))
 )
+
 const items = computed(() => [...listingItems.value, ...propertyItems.value])
 const isLoading = computed(() => listingsLoading.value || propertiesLoading.value)
 const activeCount = computed(
@@ -309,17 +298,57 @@ const reviewCount = computed(
   () => items.value.filter((item) => ['pending_review', 'pending'].includes(item.status)).length
 )
 const totalViews = computed(() => items.value.reduce((total, item) => total + item.views, 0))
-const filteredItems = computed(() =>
-  items.value.filter((item) => {
-    if (statusFilter.value === 'all') return true
-    if (statusFilter.value === 'active') return ['active', 'approved'].includes(item.status)
-    if (statusFilter.value === 'review')
-      return ['pending_review', 'pending', 'rejected'].includes(item.status)
-    if (statusFilter.value === 'completed')
-      return ['sold', 'rented', 'completed'].includes(item.status)
-    return item.status === statusFilter.value
+
+const summaryCards = computed(() => [
+  { label: 'Total Listings', value: items.value.length, icon: albumsOutline, tone: 'total' },
+  { label: 'Active', value: activeCount.value, icon: checkmarkCircleOutline, tone: 'active' },
+  { label: 'In Review', value: reviewCount.value, icon: timeOutline, tone: 'review' },
+  { label: 'Views', value: totalViews.value, icon: eyeOutline, tone: 'views' },
+])
+
+const visibleItems = computed(() => {
+  const query = searchQuery.value.toLocaleLowerCase()
+  const matching = items.value.filter((item) => {
+    const statusMatches =
+      statusFilter.value === 'all' ||
+      (statusFilter.value === 'active' && ['active', 'approved'].includes(item.status)) ||
+      (statusFilter.value === 'review' && ['pending_review', 'pending'].includes(item.status)) ||
+      (statusFilter.value === 'completed' &&
+        ['sold', 'rented', 'completed'].includes(item.status)) ||
+      item.status === statusFilter.value
+
+    if (!statusMatches) return false
+    if (!query) return true
+
+    return [item.title, item.category, item.location, item.price, listingStatusLabel(item.status)]
+      .join(' ')
+      .toLocaleLowerCase()
+      .includes(query)
   })
-)
+
+  return [...matching].sort((left, right) => {
+    if (sortOrder.value === 'views-desc') return right.views - left.views
+    const leftTime = new Date(left.updatedAt).getTime() || 0
+    const rightTime = new Date(right.updatedAt).getTime() || 0
+    return sortOrder.value === 'updated-asc' ? leftTime - rightTime : rightTime - leftTime
+  })
+})
+
+const emptyStateTitle = computed(() => {
+  if (!items.value.length) return 'No listings yet'
+  if (searchQuery.value) return 'No matching listings'
+  const selected = filters
+    .find((filter) => filter.value === statusFilter.value)
+    ?.label.toLowerCase()
+  return `No ${selected ?? 'matching'} listings`
+})
+
+const emptyStateDescription = computed(() => {
+  if (!items.value.length)
+    return 'Your properties, items, services, and opportunities will appear here.'
+  if (searchQuery.value) return 'Try another search term or clear the current filters.'
+  return `Listings with this status will appear here when they are available.`
+})
 
 watch(
   () => state.profile?.uid,
@@ -335,24 +364,32 @@ watch(
   { immediate: true }
 )
 
-function statusLabel(status: ManageStatus) {
-  return status.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+function setSortOrder(value: SortOrder, event: Event) {
+  sortOrder.value = value
+  ;(event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open')
 }
-async function handleAction(item: ManageItem, event: Event) {
-  const select = event.target as HTMLSelectElement
-  const action = select.value
-  select.value = ''
+
+function resetFilters() {
+  statusFilter.value = 'all'
+  searchQuery.value = ''
+}
+
+async function handleAction(item: ManageListingItem, action: ManageListingAction) {
   if (!state.profile || item.source !== 'listing' || !action) return
+  if (action === 'delete' && !window.confirm(`Delete "${item.title}" permanently?`)) return
+
   errorMessage.value = ''
+  busyItemId.value = `${item.source}:${item.id}`
   try {
     if (action === 'delete') {
-      if (!window.confirm(`Delete "${item.title}" permanently?`)) return
       await remove(item.id, state.profile)
     } else {
       await changeStatus(item.id, state.profile, action as ListingStatus)
     }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Could not update this listing.'
+  } finally {
+    busyItemId.value = ''
   }
 }
 </script>
@@ -362,413 +399,554 @@ async function handleAction(item: ManageItem, event: Event) {
   min-height: 100%;
   background: #f5f6f8;
   color: #102033;
-  padding: 12px;
+  padding: clamp(12px, 1.5vw, 24px);
 }
-.my-listings-page > main {
+
+.my-listings-main {
   min-width: 0;
+  max-width: 1500px;
 }
+
 .my-listings-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  border: 1px solid #e0e7ef;
-  border-radius: 16px;
-  background: #fff;
-  padding: 22px;
+  gap: 24px;
+  padding: 6px 2px 20px;
 }
-.my-listings-hero p,
-.my-listings-hero h1 {
+
+.my-listings-hero__copy p,
+.my-listings-hero__copy h1 {
   margin: 0;
 }
-.my-listings-hero p {
-  color: #1769ef;
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: 0.12em;
-}
-.my-listings-hero h1 {
-  margin-top: 5px;
-  font-size: 28px;
-}
-.my-listings-hero span {
-  display: block;
-  margin-top: 7px;
-  color: #687b91;
+
+.my-listings-hero__copy p {
+  color: #3157d8;
   font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
 }
-.my-listings-hero > a,
-.listing-empty a {
+
+.my-listings-hero__copy h1 {
+  margin-top: 8px;
+  color: #102033;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 760;
+  line-height: 1.08;
+}
+
+.my-listings-hero__copy span {
+  display: block;
+  margin-top: 10px;
+  color: #65788f;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.post-listing-button,
+.listing-empty a,
+.listing-empty button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 46px;
   align-items: center;
-  gap: 7px;
-  border-radius: 10px;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #1769ef;
+  border-radius: 11px;
   background: #1769ef;
-  padding: 0 14px;
+  padding: 0 17px;
   color: #fff;
-  font-size: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
   font-weight: 850;
   text-decoration: none;
+  box-shadow: 0 12px 24px -15px rgba(23, 105, 239, 0.72);
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
+
+.post-listing-button:hover,
+.listing-empty a:hover,
+.listing-empty button:hover {
+  background: #0d5cdf;
+  box-shadow: 0 17px 30px -17px rgba(23, 105, 239, 0.8);
+  transform: translateY(-2px);
+}
+
+.post-listing-button:focus-visible,
+.listing-empty a:focus-visible,
+.listing-empty button:focus-visible {
+  outline: 3px solid rgba(23, 105, 239, 0.22);
+  outline-offset: 3px;
+}
+
 .listing-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
-.listing-stats > div {
+
+.listing-stat-card {
   display: flex;
+  min-width: 0;
+  min-height: 104px;
   align-items: center;
-  gap: 10px;
-  border: 1px solid #e1e7ee;
-  border-radius: 13px;
+  gap: 15px;
+  border: 1px solid #e0e6ee;
+  border-radius: 15px;
   background: #fff;
-  padding: 14px;
+  padding: 17px;
+  box-shadow: 0 15px 34px -31px rgba(16, 32, 51, 0.58);
 }
-.listing-stats ion-icon {
-  color: #1769ef;
-  font-size: 22px;
+
+.listing-stat-card__icon {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  background: #eef3ff;
+  color: #3157d8;
+  font-size: 24px;
 }
-.listing-stats span,
-.listing-stats strong {
+
+.listing-stat-card--active .listing-stat-card__icon {
+  background: #e9f9ef;
+  color: #0b9554;
+}
+
+.listing-stat-card--review .listing-stat-card__icon {
+  background: #fff6e5;
+  color: #e0790c;
+}
+
+.listing-stat-card--views .listing-stat-card__icon {
+  background: #edf2ff;
+  color: #5264e7;
+}
+
+.listing-stat-card__copy,
+.listing-stat-card__copy strong,
+.listing-stat-card__copy > span {
   display: block;
+  min-width: 0;
 }
-.listing-stats span {
-  color: #718399;
-  font-size: 8px;
-}
-.listing-stats strong {
-  margin-bottom: 2px;
+
+.listing-stat-card__copy strong {
   color: #102033;
-  font-size: 17px;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1;
 }
-.listing-toolbar {
+
+.listing-stat-card__copy > span {
+  margin-top: 7px;
+  color: #718399;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.listing-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 16px 0 12px;
+  gap: 18px;
+  margin: 26px 0 20px;
 }
-.listing-toolbar > div {
+
+.listing-status-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
 }
-.listing-toolbar button {
-  min-height: 34px;
+
+.listing-status-tabs button {
+  min-height: 42px;
   border: 1px solid #dce4ed;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
-  padding: 0 11px;
+  padding: 0 15px;
   color: #536980;
-  font-size: 9px;
-  font-weight: 800;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
-.listing-toolbar button.active {
+
+.listing-status-tabs button:hover {
+  border-color: #b8c7da;
+  color: #1769ef;
+  transform: translateY(-1px);
+}
+
+.listing-status-tabs button.active {
   border-color: #1769ef;
   background: #1769ef;
   color: #fff;
+  box-shadow: 0 9px 20px -14px rgba(23, 105, 239, 0.8);
 }
-.listing-toolbar > span {
+
+.listing-status-tabs button:focus-visible,
+.listing-search:focus-within,
+.listings-sort summary:focus-visible {
+  outline: 3px solid rgba(23, 105, 239, 0.2);
+  outline-offset: 2px;
+}
+
+.listing-search-tools {
   display: flex;
+  flex: 0 1 390px;
   align-items: center;
-  gap: 5px;
-  color: #6c8096;
-  font-size: 9px;
+  justify-content: flex-end;
+  gap: 10px;
 }
-.listing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.listing-card {
-  overflow: hidden;
-  border: 1px solid #e0e7ef;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 20px 42px -38px rgba(16, 32, 51, 0.6);
-}
-.listing-card figure {
-  position: relative;
-  display: grid;
-  height: 170px;
-  margin: 0;
-  place-items: center;
-  background: #eaf0f6;
-  color: #7c8da1;
-}
-.listing-card figure img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.listing-card figure > span ion-icon {
-  font-size: 30px;
-}
-.listing-card figure b {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 5px 8px;
-  color: #b45309;
-  font-size: 7px;
-  backdrop-filter: blur(8px);
-}
-.listing-card figure b.status-active,
-.listing-card figure b.status-approved {
-  color: #07834d;
-}
-.listing-card figure b.status-rejected {
-  color: #dc2626;
-}
-.listing-card__body {
-  display: grid;
-  gap: 5px;
-  padding: 14px;
-}
-.listing-card__body p,
-.listing-card__body h2 {
-  margin: 0;
-}
-.listing-card__body p {
-  color: #1769ef;
-  font-size: 8px;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-.listing-card__body h2 {
-  overflow: hidden;
-  font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.listing-card__body > span {
+
+.listing-search {
   display: flex;
+  min-width: 0;
+  height: 46px;
+  flex: 1;
   align-items: center;
-  gap: 4px;
-  overflow: hidden;
-  color: #6d8096;
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.listing-card__body > strong {
-  margin-top: 4px;
-  color: #079455;
-  font-size: 14px;
-}
-.listing-card__performance {
-  display: flex;
-  gap: 13px;
-  margin-top: 7px;
-  color: #718399;
-  font-size: 8px;
-}
-.listing-card__performance span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.listing-card footer {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border-top: 1px solid #edf1f5;
-  padding: 10px;
-}
-.listing-card footer a,
-.listing-card footer button,
-.listing-card footer select {
-  display: inline-flex;
-  min-height: 32px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
+  gap: 10px;
   border: 1px solid #dce4ed;
-  border-radius: 8px;
+  border-radius: 11px;
   background: #fff;
-  padding: 0 9px;
-  color: #40576f;
+  padding: 0 13px;
+  color: #667b92;
+  transition: border-color 180ms ease;
+}
+
+.listing-search:focus-within {
+  border-color: #1769ef;
+}
+
+.listing-search > ion-icon {
+  flex: 0 0 auto;
+  font-size: 19px;
+}
+
+.listing-search input {
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #102033;
   font: inherit;
-  font-size: 8px;
-  font-weight: 800;
-  text-decoration: none;
+  font-size: 12px;
 }
-.listing-card footer select {
-  margin-left: auto;
+
+.listing-search input::placeholder {
+  color: #8798ab;
 }
-.listing-empty {
+
+.listing-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.listing-search button {
   display: grid;
-  min-height: 300px;
-  place-content: center;
-  justify-items: center;
-  border: 1px dashed #cad7e5;
-  border-radius: 15px;
-  background: #fff;
-  padding: 24px;
-  text-align: center;
-}
-.listing-empty > ion-icon {
-  color: #1769ef;
-  font-size: 36px;
-}
-.listing-empty h2 {
-  margin: 10px 0 0;
-  font-size: 18px;
-}
-.listing-empty p {
-  max-width: 360px;
-  margin: 7px 0 15px;
-  color: #718399;
-  font-size: 10px;
-  line-height: 1.6;
-}
-.listing-error {
-  border: 1px solid #fecdd3;
-  border-radius: 9px;
-  background: #fff1f2;
-  padding: 10px 12px;
-  color: #be123c;
-  font-size: 9px;
-}
-.listing-modal {
-  position: fixed;
-  z-index: 80;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(15, 23, 42, 0.48);
-  padding: 18px;
-  backdrop-filter: blur(5px);
-}
-.listing-modal > section {
-  position: relative;
-  width: min(100%, 460px);
-  border-radius: 15px;
-  background: #fff;
-  padding: 18px;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
-}
-.listing-modal > section > button {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
   place-items: center;
   border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 7px;
+  background: #f0f4f8;
+  color: #58708a;
+  cursor: pointer;
 }
-.listing-modal img {
-  width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: 10px;
-  object-fit: cover;
+
+.listings-sort {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
 }
-.listing-modal p {
-  margin: 13px 0 0;
+
+.listings-sort summary {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid #dce4ed;
+  border-radius: 11px;
+  background: #fff;
+  color: #526b86;
+  cursor: pointer;
+  font-size: 20px;
+  list-style: none;
+}
+
+.listings-sort summary::-webkit-details-marker {
+  display: none;
+}
+
+.listings-sort[open] summary,
+.listings-sort summary:hover {
+  border-color: #aac0de;
   color: #1769ef;
-  font-size: 8px;
-  font-weight: 850;
-  text-transform: uppercase;
 }
-.listing-modal h2 {
-  margin: 5px 0;
+
+.listings-sort > div {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: 170px;
+  border: 1px solid #dce4ed;
+  border-radius: 11px;
+  background: #fff;
+  padding: 6px;
+  box-shadow: 0 18px 45px -20px rgba(15, 23, 42, 0.38);
 }
-.listing-modal section > span {
+
+.listings-sort > div button {
   display: flex;
-  gap: 5px;
-  color: #6d8096;
-  font-size: 10px;
-}
-.listing-modal section > strong {
-  display: block;
-  margin-top: 10px;
-  color: #079455;
-}
-.listing-modal section > div {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-  color: #718399;
-  font-size: 9px;
-}
-.listing-modal section > a {
-  display: inline-flex;
-  margin-top: 14px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
   border-radius: 8px;
-  background: #1769ef;
-  padding: 9px 12px;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 800;
-  text-decoration: none;
+  background: transparent;
+  padding: 0 10px;
+  color: #40566f;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
 }
-.spin {
-  animation: spin 1s linear infinite;
+
+.listings-sort > div button:hover,
+.listings-sort > div button.active {
+  background: #f1f5fb;
+  color: #1769ef;
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+
+.listing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.listing-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #fecdd3;
+  border-radius: 11px;
+  background: #fff1f2;
+  padding: 12px 14px;
+  color: #be123c;
+  font-size: 11px;
+}
+
+.listing-error ion-icon {
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.listing-empty {
+  display: grid;
+  min-height: 330px;
+  place-content: center;
+  justify-items: center;
+  border: 1px dashed #c8d5e3;
+  border-radius: 16px;
+  background: #fff;
+  padding: 28px;
+  text-align: center;
+}
+
+.listing-empty__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 15px;
+  background: #eef3ff;
+  color: #1769ef;
+  font-size: 29px;
+}
+
+.listing-empty h2 {
+  margin: 17px 0 0;
+  color: #102033;
+  font-size: 20px;
+}
+
+.listing-empty p {
+  max-width: 390px;
+  margin: 8px 0 18px;
+  color: #718399;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.listing-empty button {
+  border-color: #d7e1ec;
+  background: #fff;
+  color: #1769ef;
+  box-shadow: none;
+}
+
+.listing-results {
+  margin-top: 26px;
+  border-top: 1px solid #e1e7ee;
+  padding: 20px 2px 4px;
+  color: #687c92;
+  font-size: 11px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (min-width: 700px) {
+  .listing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (min-width: 760px) {
+  .listing-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 1024px) {
   .my-listings-page {
     display: grid;
-    grid-template-columns: 205px minmax(0, 1fr);
-    gap: 18px;
-    padding: 14px 18px 26px;
+    grid-template-columns: 218px minmax(0, 1fr);
+    gap: clamp(20px, 2vw, 30px);
   }
 }
-@media (max-width: 900px) {
+
+@media (min-width: 1180px) {
   .listing-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-@media (max-width: 640px) {
+
+@media (max-width: 920px) {
+  .listing-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .listing-search-tools {
+    flex-basis: auto;
+    justify-content: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .my-listings-page {
+    padding: 12px;
+  }
+
   .my-listings-hero {
     align-items: flex-start;
-    padding: 17px;
+    flex-direction: column;
+    padding: 5px 2px 18px;
   }
-  .my-listings-hero h1 {
-    font-size: 23px;
+
+  .my-listings-hero__copy h1 {
+    font-size: 28px;
   }
-  .my-listings-hero > a {
-    min-height: 36px;
-    padding-inline: 10px;
+
+  .post-listing-button {
+    width: 100%;
   }
+
   .listing-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
   }
-  .listing-grid {
-    grid-template-columns: 1fr;
+
+  .listing-stat-card {
+    min-height: 92px;
+    gap: 10px;
+    padding: 13px;
+  }
+
+  .listing-stat-card__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    font-size: 20px;
+  }
+
+  .listing-stat-card__copy strong {
+    font-size: 21px;
+  }
+
+  .listing-status-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .listing-status-tabs button {
+    min-height: 40px;
+    padding: 0 8px;
+  }
+
+  .listing-search-tools {
+    width: 100%;
   }
 }
+
 :global(.dark) .my-listings-page {
   background: #0b1420;
   color: #f8fafc;
 }
-:global(.dark) .my-listings-hero,
-:global(.dark) .listing-stats > div,
-:global(.dark) .listing-card,
-:global(.dark) .listing-empty,
-:global(.dark) .listing-toolbar button,
-:global(.dark) .listing-card footer a,
-:global(.dark) .listing-card footer button,
-:global(.dark) .listing-card footer select {
-  border-color: #2a394b;
-  background: #111c2a;
-  color: #e8eef6;
-}
-:global(.dark) .my-listings-hero h1,
-:global(.dark) .listing-stats strong,
-:global(.dark) .listing-card__body h2 {
+
+:global(.dark) .my-listings-hero__copy h1,
+:global(.dark) .listing-stat-card__copy strong,
+:global(.dark) .listing-empty h2 {
   color: #f8fafc;
+}
+
+:global(.dark) .listing-stat-card,
+:global(.dark) .listing-search,
+:global(.dark) .listing-status-tabs button,
+:global(.dark) .listings-sort summary,
+:global(.dark) .listings-sort > div,
+:global(.dark) .listing-empty {
+  border-color: #2c3b4d;
+  background: #111c2a;
+}
+
+:global(.dark) .listing-search input {
+  color: #f8fafc;
+}
+
+:global(.dark) .listings-sort > div button {
+  color: #d8e2ee;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-listing-button,
+  .listing-empty a,
+  .listing-empty button,
+  .listing-status-tabs button {
+    transition: none;
+  }
 }
 </style>

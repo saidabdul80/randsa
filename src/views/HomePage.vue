@@ -211,8 +211,12 @@
       <img
         v-for="(slide, index) in heroSlides"
         :key="slide.title"
+        v-if="loadedHeroSlideIndices.has(index)"
         :src="slide.image"
         :alt="slide.alt"
+        :loading="index === 0 ? 'eager' : 'lazy'"
+        :fetchpriority="index === 0 ? 'high' : 'low'"
+        decoding="async"
         class="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
         :class="activeSlideIndex === index ? 'opacity-100' : 'opacity-0'"
       />
@@ -462,10 +466,10 @@ import ListingQuickView from '../components/property/ListingQuickView.vue'
 import MarketplaceDiscoveryFilters from '../components/property/MarketplaceDiscoveryFilters.vue'
 import RecentlyViewedProperties from '../components/property/RecentlyViewedProperties.vue'
 import PropertyComparisonTray from '../components/property/details/PropertyComparisonTray.vue'
-import heroCarImage from '../assets/randsa-hero-car.png'
-import heroEventImage from '../assets/randsa-hero-event.png'
-import homeHeroImage from '../assets/randsa-hero-home.png'
-import heroHorsesImage from '../assets/randsa-hero-horses.png'
+import heroCarImage from '../assets/randsa-hero-car.webp'
+import heroEventImage from '../assets/randsa-hero-event.webp'
+import homeHeroImage from '../assets/randsa-hero-home.webp'
+import heroHorsesImage from '../assets/randsa-hero-horses.webp'
 import { ensureAuthReady, useAuth } from '../composables/useAuth'
 import { useProperties } from '../composables/useProperties'
 import { useListings } from '../composables/useListings'
@@ -513,6 +517,7 @@ const searchFormRef = ref<HTMLFormElement | null>(null)
 const listingsRef = ref<HTMLElement | null>(null)
 const headerSearchInputRef = ref<HTMLInputElement | null>(null)
 const activeSlideIndex = ref(0)
+const loadedHeroSlideIndices = ref(new Set([0]))
 const isCarouselPaused = ref(false)
 const isHeaderSolid = ref(false)
 const isScrollingWithinHero = ref(false)
@@ -889,6 +894,7 @@ function stopCarousel() {
 }
 
 function showSlide(index: number) {
+  loadedHeroSlideIndices.value.add(index)
   activeSlideIndex.value = index
   if (!isCarouselPaused.value) startCarousel()
 }

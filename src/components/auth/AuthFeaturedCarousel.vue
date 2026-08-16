@@ -94,10 +94,10 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import carImage from '../../assets/randsa-hero-car.png'
-import eventImage from '../../assets/randsa-hero-event.png'
-import homeImage from '../../assets/randsa-hero-home.png'
-import horseImage from '../../assets/randsa-hero-horses.png'
+import carImage from '../../assets/randsa-hero-car.webp'
+import eventImage from '../../assets/randsa-hero-event.webp'
+import homeImage from '../../assets/randsa-hero-home.webp'
+import horseImage from '../../assets/randsa-hero-horses.webp'
 import {
   listPublicCarouselProperties,
   type PublicCarouselProperty,
