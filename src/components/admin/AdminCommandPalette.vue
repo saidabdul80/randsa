@@ -320,10 +320,10 @@ function persistPreferences() {
 .command-dialog {
   width: min(680px, 100%);
   overflow: hidden;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 16px;
-  background: #fff;
-  color: #102033;
+  background: var(--rd-surface);
+  color: var(--rd-ink);
   box-shadow: 0 34px 90px -34px rgba(15, 34, 58, 0.65);
 }
 .command-search {
@@ -335,7 +335,7 @@ function persistPreferences() {
   padding: 14px 16px;
 }
 .command-search > ion-icon {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 22px;
 }
 .command-search input {
@@ -356,7 +356,7 @@ kbd {
   height: 23px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 6px;
   background: #f6f8fb;
   padding: 0 6px;
@@ -400,7 +400,7 @@ kbd {
     color 150ms ease;
 }
 .command-result.active {
-  background: #edf4ff;
+  background: var(--rd-brass-soft);
   color: #0b57cf;
 }
 .command-result__icon {
@@ -410,10 +410,10 @@ kbd {
   place-items: center;
   border-radius: 9px;
   background: #f1f5fa;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 .command-result.active .command-result__icon {
-  background: #fff;
+  background: var(--rd-surface);
 }
 .command-result__copy {
   min-width: 0;
@@ -445,8 +445,8 @@ kbd {
 }
 .command-pin:hover,
 .command-pin.pinned {
-  background: #fff;
-  color: #1769ef;
+  background: var(--rd-surface);
+  color: var(--rd-brass);
 }
 .command-result__arrow {
   color: #a5b0bd;

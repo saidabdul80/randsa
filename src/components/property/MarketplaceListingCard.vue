@@ -1,108 +1,67 @@
 <template>
   <article
     role="listitem"
-    :data-desktop-span="layout.desktopSpan"
-    :data-desktop-position="layout.desktopPosition ?? ''"
-    :data-large-desktop-span="layout.largeDesktopSpan"
-    :data-large-desktop-position="layout.largeDesktopPosition ?? ''"
-    :data-tablet-span="layout.tabletSpan"
-    :data-mobile-span="layout.mobileSpan"
-    :data-low-resolution="isLowResolution ? 'true' : 'false'"
+    class="listing-card"
+    :class="[
+      `listing-card--${emphasis}`,
+      {
+        'listing-card--highlighted': isHighlighted,
+        'listing-card--row': displayMode === 'list',
+      },
+    ]"
     :data-property-id="listing.id"
-    class="marketplace-card group relative isolate min-w-0 overflow-hidden rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_36px_-28px_rgba(16,32,51,0.45)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_24px_48px_-28px_rgba(16,32,51,0.58)] focus-within:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
-    :class="{
-      'marketplace-card--desktop-wide-left': layout.desktopPosition === 'left',
-      'marketplace-card--desktop-wide-right': layout.desktopPosition === 'right',
-      'marketplace-card--large-desktop-wide-left': layout.largeDesktopPosition === 'left',
-      'marketplace-card--large-desktop-wide-right': layout.largeDesktopPosition === 'right',
-      'marketplace-card--tablet-wide': layout.tabletSpan === 2,
-      'marketplace-card--mobile-wide': layout.mobileSpan === 2,
-      'marketplace-card--emphasized': layout.emphasis === 'featured' && !isLowResolution,
-      'marketplace-card--low-resolution': isLowResolution,
-      'marketplace-card--highlighted': isHighlighted,
-      'marketplace-card--row': displayMode === 'list',
-    }"
     @mouseenter="emitHighlight"
     @mouseleave="$emit('highlight', '')"
     @focusin="emitHighlight"
   >
+    <!-- Stretched link: the whole tile is the target, inner buttons sit above it. -->
     <RouterLink
       :to="listing.detailPath"
-      class="marketplace-card__card-link absolute inset-0 z-[3] rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+      class="listing-card__link"
       :aria-label="`View details for ${listing.title}`"
     >
-      <span class="sr-only">View details for {{ listing.title }}</span>
+      <span class="rd-sr-only">View details for {{ listing.title }}</span>
     </RouterLink>
 
-    <div
-      class="marketplace-card__media bg-slate-100 dark:bg-slate-800"
-      :style="{ aspectRatio: effectiveImageRatio }"
-    >
+    <div class="listing-card__media">
       <img
         v-if="listing.image"
         :src="listing.image"
         :alt="`${listing.title} in ${listing.location}`"
-        class="marketplace-card__image absolute inset-0 z-0 h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.035]"
-        loading="lazy"
+        class="listing-card__image"
+        :loading="emphasis === 'feature' ? 'eager' : 'lazy'"
         decoding="async"
-        @load="handleImageLoad"
       />
-      <div v-else class="marketplace-card__image-empty" aria-hidden="true">
+      <div v-else class="listing-card__placeholder" aria-hidden="true">
         <ion-icon :icon="emptyStateIcon" />
       </div>
 
-      <div
-        class="pointer-events-none absolute inset-x-2.5 top-2.5 z-[4] flex items-start justify-between gap-2"
+      <!-- Overlay tiles print their copy on the photo, so they need their own scrim. -->
+      <span v-if="isOverlay" class="listing-card__veil" aria-hidden="true"></span>
+
+      <span v-if="statusBadgeLabel" class="listing-card__status" :class="statusToneClass">
+        {{ statusBadgeLabel }}
+      </span>
+
+      <button
+        v-if="listing.id"
+        type="button"
+        class="listing-card__save"
+        :class="{ 'listing-card__save--on': isSaved }"
+        :aria-label="isSaved ? `Remove ${listing.title} from saved` : `Save ${listing.title}`"
+        :aria-pressed="isSaved"
+        :disabled="isSaving"
+        @click.stop.prevent="$emit('toggle-saved', listing)"
       >
-        <div class="flex min-w-0 flex-1 items-center gap-1.5 pr-1">
-          <span
-            class="marketplace-card__title-badge min-w-0 truncate rounded-full bg-brand-700 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm sm:text-[11px]"
-            :title="listing.title"
-          >
-            {{ listing.title }}
-          </span>
-          <span
-            v-if="statusBadgeLabel"
-            class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-md"
-            :class="
-              statusBadgeTone === 'booking'
-                ? 'bg-red-600 text-white'
-                : statusBadgeTone === 'available'
-                  ? 'bg-emerald-50/95 text-emerald-700 dark:bg-emerald-950/85 dark:text-emerald-200'
-                  : 'bg-white/90 text-slate-700 dark:bg-slate-950/80 dark:text-slate-100'
-            "
-            :title="listing.availabilityLabel"
-            :aria-label="listing.availabilityLabel"
-          >
-            {{ statusBadgeLabel }}
-          </span>
-        </div>
+        <ion-icon :icon="isSaved ? heart : heartOutline" aria-hidden="true" />
+      </button>
 
-        <button
-          v-if="listing.id"
-          type="button"
-          class="marketplace-card__favorite pointer-events-auto inline-flex h-9 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-2 text-xl shadow-none transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-wait disabled:opacity-60"
-          :class="{
-            'is-saved text-red-600': isSaved,
-            'text-white': !isSaved,
-          }"
-          :aria-label="
-            isSaved ? `Remove ${listing.title} from saved listings` : `Save ${listing.title}`
-          "
-          :aria-pressed="isSaved"
-          :disabled="isSaving"
-          @click.stop="$emit('toggle-saved', listing)"
-        >
-          <ion-icon :icon="heart" aria-hidden="true" />
-        </button>
-      </div>
-
-      <div v-if="showListingActions" class="marketplace-card__quick-actions">
+      <div v-if="showListingActions" class="listing-card__actions">
         <button
           type="button"
           :aria-label="`Quick view ${listing.title}`"
           title="Quick view"
-          @click.stop="$emit('quick-view', listing)"
+          @click.stop.prevent="$emit('quick-view', listing)"
         >
           <ion-icon :icon="eyeOutline" aria-hidden="true" />
         </button>
@@ -115,60 +74,46 @@
           } comparison`"
           :aria-pressed="isCompared"
           title="Compare"
-          @click.stop="$emit('toggle-compare', listing)"
+          @click.stop.prevent="$emit('toggle-compare', listing)"
         >
           <ion-icon :icon="gitCompareOutline" aria-hidden="true" />
         </button>
       </div>
     </div>
 
-    <div class="marketplace-card__body p-3.5 sm:p-4">
-      <div
-        class="marketplace-card__location flex min-w-0 items-center gap-1.5 text-slate-500 dark:text-slate-300"
-      >
-        <ion-icon :icon="locationOutline" class="shrink-0" aria-hidden="true" />
-        <p class="min-w-0 truncate text-[11px] font-semibold sm:text-xs">
-          {{ listing.location }}
-        </p>
-      </div>
+    <div class="listing-card__body">
+      <p v-if="emphasis === 'feature'" class="listing-card__eyebrow">
+        <span class="listing-card__eyebrow-rule" aria-hidden="true"></span>Featured
+      </p>
 
-      <div
-        v-if="metadata.length"
-        class="marketplace-card__metadata flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-700 dark:text-slate-200 sm:text-xs"
-      >
-        <span
-          v-for="item in metadata"
-          :key="item.label"
-          class="inline-flex min-w-0 items-center gap-1.5"
-          :title="item.label"
-        >
+      <p class="listing-card__location">
+        <ion-icon :icon="locationOutline" aria-hidden="true" />
+        <span>{{ listing.location }}</span>
+      </p>
+
+      <h3 class="listing-card__title">{{ listing.title }}</h3>
+
+      <ul v-if="visibleMetadata.length" class="listing-card__meta">
+        <li v-for="item in visibleMetadata" :key="item.label" :title="item.label">
           <ion-icon :icon="metadataIcon(item.kind)" aria-hidden="true" />
-          <span class="truncate">{{ item.value }}</span>
-          <span class="sr-only">{{ item.label }}</span>
+          <span>{{ item.value }}</span>
+          <span class="rd-sr-only">{{ item.label }}</span>
+        </li>
+      </ul>
+
+      <!-- margin-top:auto pins the price to the bottom so prices align across a row. -->
+      <p class="listing-card__price">
+        <span class="listing-card__amount">{{ listing.price }}</span>
+        <span v-if="listing.paymentDuration" class="listing-card__period">
+          / {{ listing.paymentDuration }}
         </span>
-      </div>
-
-      <div class="marketplace-card__footer flex min-w-0 items-end justify-between gap-2">
-        <p
-          class="marketplace-card__price min-w-0 truncate text-sm font-extrabold text-emerald-600 dark:text-emerald-400 sm:text-base"
-        >
-          {{ listing.price }}
-          <span
-            v-if="listing.paymentDuration"
-            class="marketplace-card__period text-[10px] font-medium text-slate-500 dark:text-slate-300 sm:text-[11px]"
-          >
-            / {{ listing.paymentDuration }}
-          </span>
-        </p>
-      </div>
-
-      <div class="marketplace-card__masonry-fill" aria-hidden="true"></div>
+      </p>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { IonIcon } from '@ionic/vue'
 import { RouterLink } from 'vue-router'
 import {
@@ -180,6 +125,7 @@ import {
   eyeOutline,
   gitCompareOutline,
   heart,
+  heartOutline,
   leafOutline,
   locationOutline,
   phonePortraitOutline,
@@ -194,25 +140,13 @@ import {
 import { isInspectionMode, resolveBookingMode } from '../../services/bookingModes'
 import { getMarketplaceCategory } from '../../config/marketplaceCategories'
 import type { MarketplaceDiscoveryItem, MarketplaceMetadataKind } from '../../types/marketplace'
-
-type MarketplaceVariant = 'property' | 'car' | 'event' | 'horse' | 'office'
-
-interface ListingLayout {
-  variant: MarketplaceVariant
-  desktopSpan: 1 | 2
-  desktopPosition: 'left' | 'right' | null
-  largeDesktopSpan: 1 | 2
-  largeDesktopPosition: 'left' | 'right' | null
-  tabletSpan: 1 | 2
-  mobileSpan: 1 | 2
-  imageRatio: '16 / 9' | '3 / 2' | '4 / 3' | '1 / 1' | '4 / 5'
-  emphasis: 'standard' | 'featured'
-}
+import type { CardEmphasis, MarketplaceVariant } from './AdaptiveMarketplaceGrid.vue'
 
 const props = withDefaults(
   defineProps<{
     listing: MarketplaceDiscoveryItem
-    layout: ListingLayout
+    variant?: MarketplaceVariant
+    emphasis?: CardEmphasis
     isSaved: boolean
     isCompared?: boolean
     isHighlighted?: boolean
@@ -221,6 +155,8 @@ const props = withDefaults(
     displayMode?: 'grid' | 'list' | 'split'
   }>(),
   {
+    variant: 'property',
+    emphasis: 'standard',
     isCompared: false,
     isHighlighted: false,
     showListingActions: false,
@@ -235,7 +171,8 @@ const emit = defineEmits<{
   highlight: [propertyId: string]
 }>()
 
-const isLowResolution = ref(false)
+/** Feature and wide tiles print copy over the photo instead of below it. */
+const isOverlay = computed(() => props.emphasis !== 'standard' && props.displayMode !== 'list')
 
 const usesDirectBooking = computed(() => {
   if (props.listing.propertyRecord) {
@@ -245,31 +182,30 @@ const usesDirectBooking = computed(() => {
   return props.listing.availabilityTone === 'booking'
 })
 
-const statusBadgeTone = computed(() => {
-  if (props.listing.propertyRecord) return usesDirectBooking.value ? 'booking' : 'available'
-  return props.listing.availabilityTone
+/* The old card showed a bare "A" or "B", which told a shopper nothing. */
+const statusBadgeLabel = computed(() => {
+  if (props.listing.propertyRecord) return usesDirectBooking.value ? 'Book now' : 'Inspect'
+  return props.listing.availabilityLabel
 })
 
-const statusBadgeLabel = computed(() => {
-  if (props.listing.propertyRecord) return usesDirectBooking.value ? 'B' : 'A'
-  return props.listing.availabilityLabel
+const statusToneClass = computed(() => {
+  const tone = props.listing.propertyRecord
+    ? usesDirectBooking.value
+      ? 'booking'
+      : 'available'
+    : props.listing.availabilityTone
+
+  return `listing-card__status--${tone ?? 'neutral'}`
 })
 
 const emptyStateIcon = computed(
   () => getMarketplaceCategory(props.listing.categoryId)?.icon ?? storefrontOutline
 )
 
-const effectiveImageRatio = computed(() =>
-  isLowResolution.value &&
-  (props.layout.desktopSpan === 2 ||
-    props.layout.largeDesktopSpan === 2 ||
-    props.layout.tabletSpan === 2 ||
-    props.layout.mobileSpan === 2)
-    ? '4 / 3'
-    : props.layout.imageRatio
+// The larger tiles have room for more detail; standard tiles stay terse.
+const visibleMetadata = computed(() =>
+  props.listing.metadata.slice(0, props.emphasis === 'feature' ? 4 : 3)
 )
-
-const metadata = computed(() => props.listing.metadata)
 
 function metadataIcon(kind: MarketplaceMetadataKind) {
   const icons: Record<MarketplaceMetadataKind, string> = {
@@ -293,309 +229,453 @@ function metadataIcon(kind: MarketplaceMetadataKind) {
   return icons[kind] ?? timeOutline
 }
 
-function handleImageLoad(event: Event) {
-  const image = event.currentTarget as HTMLImageElement
-  isLowResolution.value = image.naturalWidth < 720 || image.naturalHeight < 480
-}
-
 function emitHighlight() {
   emit('highlight', props.listing.id)
 }
 </script>
 
 <style scoped>
-.marketplace-card {
-  grid-column: span 1;
-  align-self: start;
+.listing-card {
+  position: relative;
+  display: flex;
+  /* Fills whatever grid area the mosaic assigns, so tile edges stay aligned. */
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--rd-hairline);
+  border-radius: var(--rd-radius);
+  background: var(--rd-surface);
+  isolation: isolate;
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease,
+    transform 240ms cubic-bezier(0.33, 0, 0.2, 1);
 }
 
-.marketplace-card--rendered-wide::after {
+.listing-card:hover {
+  border-color: var(--rd-border-strong);
+  box-shadow: var(--rd-shadow);
+  transform: translateY(-3px);
+}
+
+.listing-card--highlighted,
+.listing-card:focus-within {
+  border-color: var(--rd-brass);
+}
+
+.listing-card__link {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.listing-card__link:focus-visible {
+  outline: 2px solid var(--rd-brass);
+  outline-offset: -3px;
+}
+
+/* ---------- media ---------- */
+
+.listing-card__media {
+  position: relative;
+  /* Grows into the leftover height, which is what makes 1-row and 2-row tiles agree. */
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--rd-surface-sunken);
+}
+
+.listing-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.listing-card:hover .listing-card__image {
+  transform: scale(1.05);
+}
+
+.listing-card__placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--rd-subtle);
+  font-size: 34px;
+}
+
+.listing-card__veil {
   position: absolute;
   z-index: 1;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 35%;
+  inset: 0;
   background: linear-gradient(
     to top,
-    rgb(0 0 0 / 0.55) 0%,
-    rgb(0 0 0 / 0.28) 45%,
-    rgb(0 0 0 / 0) 100%
+    rgba(7, 10, 15, 0.92) 0%,
+    rgba(7, 10, 15, 0.5) 38%,
+    rgba(7, 10, 15, 0.06) 70%
   );
-  content: '';
-  pointer-events: none;
 }
 
-.marketplace-card__image {
-  pointer-events: none;
-}
+/* ---------- overlays ---------- */
 
-.marketplace-card__image-empty {
+.listing-card__status {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(145deg, rgb(239 246 255), rgb(248 250 252));
-  color: rgb(37 99 235);
-  font-size: 3rem;
-}
-
-:global(.dark) .marketplace-card__image-empty {
-  background: linear-gradient(145deg, rgb(15 23 42), rgb(30 41 59));
-  color: rgb(147 197 253);
-}
-
-.marketplace-card__media {
-  position: relative;
-  overflow: hidden;
-}
-
-.marketplace-card__body {
-  --marketplace-card-body-gap: 5px;
-
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: var(--marketplace-card-body-gap);
-  background: white;
-}
-
-.marketplace-card__masonry-fill {
-  display: none;
-}
-
-.marketplace-card--masonry-filled .marketplace-card__masonry-fill {
-  display: block;
-  flex: 0 0 var(--marketplace-card-masonry-fill, 0px);
-  height: var(--marketplace-card-masonry-fill, 0px);
-  margin-top: calc(var(--marketplace-card-body-gap) * -1);
-  pointer-events: none;
-}
-
-.marketplace-card__location,
-.marketplace-card__metadata,
-.marketplace-card__price,
-.marketplace-card__period {
-  line-height: 1.15;
-}
-
-.marketplace-card--low-resolution {
-  grid-column: span 1 !important;
-}
-
-.marketplace-card--highlighted {
-  border-color: rgb(59 130 246);
-  box-shadow: 0 0 0 3px rgb(59 130 246 / 0.14);
-}
-
-.marketplace-card__favorite.is-saved,
-.marketplace-card__favorite.is-saved:hover {
-  border-color: transparent;
-  background: transparent;
-  color: rgb(220 38 38);
-}
-
-.marketplace-card__favorite {
-  transform: translateY(-7px);
-}
-
-.marketplace-card__favorite:hover {
-  transform: translateY(-7px) scale(1.1);
-}
-
-.marketplace-card__favorite ion-icon {
-  filter: none;
-}
-
-.marketplace-card__quick-actions ion-icon {
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.72));
-}
-
-.marketplace-card.marketplace-card--rendered-wide {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  overflow: hidden;
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-.marketplace-card.marketplace-card--rendered-wide:hover {
-  border-color: transparent;
-  box-shadow: none;
-}
-
-.marketplace-card--rendered-wide .marketplace-card__media {
-  grid-area: 1 / 1;
-  border-radius: 18px;
-  box-shadow: 0 14px 36px -28px rgb(16 32 51 / 0.45);
-}
-
-.marketplace-card--rendered-wide:hover .marketplace-card__media {
-  box-shadow: 0 24px 48px -28px rgb(16 32 51 / 0.58);
-}
-
-.marketplace-card--rendered-wide.marketplace-card--highlighted .marketplace-card__media,
-.marketplace-card--rendered-wide:focus-within .marketplace-card__media {
-  box-shadow:
-    0 0 0 3px rgb(59 130 246 / 0.14),
-    0 24px 48px -28px rgb(16 32 51 / 0.58);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__body {
-  grid-area: 1 / 1;
-  align-self: end;
-  position: relative;
-  z-index: 2;
-  isolation: isolate;
-  width: 100%;
-  background: transparent;
-  color: white;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.62);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__location,
-.marketplace-card--rendered-wide .marketplace-card__metadata,
-.marketplace-card--rendered-wide .marketplace-card__price,
-.marketplace-card--rendered-wide .marketplace-card__period {
-  color: white;
-}
-
-.marketplace-card--rendered-wide .marketplace-card__period {
-  color: rgb(255 255 255 / 0.78);
-}
-
-.marketplace-card--rendered-wide:has(.marketplace-card__quick-actions) .marketplace-card__price {
-  max-width: calc(100% - 108px);
-}
-
-.marketplace-card--rendered-wide .marketplace-card__quick-actions {
   z-index: 4;
-  right: 14px;
-  bottom: 14px;
+  top: 10px;
+  left: 10px;
+  border-radius: var(--rd-radius-pill);
+  backdrop-filter: blur(8px);
+  background: rgba(11, 14, 19, 0.72);
+  padding: 5px 10px;
+  color: var(--rd-plate-ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.marketplace-card--rendered-wide .marketplace-card__quick-actions button {
-  border-color: transparent;
-  background: transparent;
-  color: white;
+.listing-card__status--booking {
+  background: rgba(150, 34, 60, 0.88);
 }
 
-.marketplace-card--rendered-wide .marketplace-card__quick-actions button:hover,
-.marketplace-card--rendered-wide .marketplace-card__quick-actions button.is-active {
-  background: transparent;
-  color: white;
+.listing-card__status--available {
+  background: rgba(29, 99, 73, 0.88);
 }
 
-.marketplace-card__quick-actions {
+.listing-card__save,
+.listing-card__actions button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  background: rgba(11, 14, 19, 0.55);
+  color: var(--rd-plate-ink);
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+/* Extends the tap target to 44px without changing the visual size. */
+.listing-card__save::after,
+.listing-card__actions button::after {
+  position: absolute;
+  inset: -4px;
+  content: '';
+}
+
+.listing-card__save {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 10px;
+}
+
+.listing-card__save:hover,
+.listing-card__actions button:hover {
+  background: rgba(11, 14, 19, 0.8);
+  transform: scale(1.08);
+}
+
+.listing-card__save--on {
+  background: rgba(150, 34, 60, 0.9);
+  color: #fff;
+}
+
+.listing-card__save:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.listing-card__actions {
   position: absolute;
   z-index: 4;
   right: 10px;
   bottom: 10px;
   display: flex;
   gap: 6px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
-.marketplace-card__quick-actions button {
-  display: inline-grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  color: white;
-  box-shadow: none;
-  transition: transform 160ms ease;
+.listing-card:hover .listing-card__actions,
+.listing-card:focus-within .listing-card__actions {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.marketplace-card__quick-actions button:hover,
-.marketplace-card__quick-actions button.is-active {
-  background: transparent;
-  color: white;
-  transform: scale(1.12);
+.listing-card__actions button.is-active {
+  background: var(--rd-brass);
+  color: #fff;
 }
 
-:global(.dark) .marketplace-card:not(.marketplace-card--rendered-wide) .marketplace-card__body {
-  background: rgb(15 23 42);
+/* ---------- body ---------- */
+
+.listing-card__body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
 }
 
-@media (min-width: 1024px) and (max-width: 1254px) {
-  .marketplace-card--desktop-wide-left {
-    grid-column: 1 / span 2;
+.listing-card__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 2px;
+  color: var(--rd-plate-accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.listing-card__eyebrow-rule {
+  display: inline-block;
+  width: 26px;
+  height: 1px;
+  background: currentColor;
+}
+
+.listing-card__location {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--rd-subtle);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.listing-card__location ion-icon {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.listing-card__location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listing-card__title {
+  /* Two-line clamp keeps every tile's price on the same baseline. */
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--rd-ink);
+  font-family: var(--rd-font-display);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.26;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.listing-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  margin: 1px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listing-card__meta li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  color: var(--rd-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.listing-card__meta ion-icon {
+  flex: 0 0 auto;
+  color: var(--rd-subtle);
+  font-size: 13px;
+}
+
+.listing-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  border-top: 1px solid var(--rd-hairline);
+  margin: 8px 0 0;
+  padding-top: 9px;
+}
+
+.listing-card__amount {
+  overflow: hidden;
+  color: var(--rd-ink);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listing-card__period {
+  flex: 0 0 auto;
+  color: var(--rd-subtle);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+ * Overlay tiles - the mosaic's feature and wide boxes.
+ * The photo fills the whole tile and the copy sits on the scrim.
+ * ========================================================================== */
+
+.listing-card--feature,
+.listing-card--wide {
+  border-color: transparent;
+  background: var(--rd-plate);
+}
+
+.listing-card--feature .listing-card__media,
+.listing-card--wide .listing-card__media {
+  position: absolute;
+  inset: 0;
+}
+
+.listing-card--feature .listing-card__body,
+.listing-card--wide .listing-card__body {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  padding: 14px 16px 16px;
+}
+
+.listing-card--feature .listing-card__location,
+.listing-card--wide .listing-card__location {
+  color: rgba(248, 245, 240, 0.72);
+}
+
+.listing-card--feature .listing-card__title,
+.listing-card--wide .listing-card__title {
+  color: var(--rd-plate-ink);
+}
+
+.listing-card--feature .listing-card__meta li,
+.listing-card--wide .listing-card__meta li {
+  color: rgba(248, 245, 240, 0.82);
+}
+
+.listing-card--feature .listing-card__meta ion-icon,
+.listing-card--wide .listing-card__meta ion-icon {
+  color: rgba(248, 245, 240, 0.6);
+}
+
+.listing-card--feature .listing-card__price,
+.listing-card--wide .listing-card__price {
+  border-top-color: rgba(248, 245, 240, 0.22);
+}
+
+.listing-card--feature .listing-card__amount,
+.listing-card--wide .listing-card__amount {
+  color: var(--rd-plate-ink);
+}
+
+.listing-card--feature .listing-card__period,
+.listing-card--wide .listing-card__period {
+  color: rgba(248, 245, 240, 0.66);
+}
+
+/* The 2x2 hero tile earns a larger headline. */
+.listing-card--feature .listing-card__title {
+  font-size: clamp(18px, 1.45vw, 24px);
+  -webkit-line-clamp: 3;
+}
+
+.listing-card--feature .listing-card__amount {
+  font-size: 16px;
+}
+
+.listing-card--wide .listing-card__title {
+  font-size: 16px;
+}
+
+/* ---------- list mode: no mosaic, a plain horizontal row ---------- */
+
+@media (min-width: 640px) {
+  .listing-card--row {
+    flex-direction: row;
   }
 
-  .marketplace-card--desktop-wide-right {
-    grid-column: 3 / span 2;
+  .listing-card--row .listing-card__media {
+    position: relative;
+    width: 260px;
+    flex: 0 0 auto;
+    inset: auto;
+  }
+
+  .listing-card--row .listing-card__body {
+    flex: 1;
+    justify-content: center;
+    padding: 18px 20px;
+  }
+
+  .listing-card--row .listing-card__title {
+    font-size: 18px;
   }
 }
 
-@media (min-width: 1255px) {
-  .marketplace-card--large-desktop-wide-left {
-    grid-column: 1 / span 2;
+/* ---------- small screens ---------- */
+
+@media (max-width: 639px) {
+  .listing-card__body {
+    padding: 10px 12px 12px;
   }
 
-  .marketplace-card--large-desktop-wide-right {
-    grid-column: 4 / span 2;
-  }
-}
-
-@media (min-width: 768px) {
-  .marketplace-card--row {
-    display: grid;
-    grid-template-columns: minmax(210px, 0.42fr) minmax(0, 0.58fr);
+  .listing-card__title {
+    font-size: 13.5px;
   }
 
-  .marketplace-card--row .marketplace-card__media {
-    height: 100%;
-    min-height: 190px;
-    aspect-ratio: auto !important;
+  .listing-card--feature .listing-card__title {
+    font-size: 18px;
+    -webkit-line-clamp: 2;
   }
 
-  .marketplace-card--row .marketplace-card__body {
-    align-self: center;
-    padding: 22px;
-  }
-}
-
-@media (max-width: 575px) {
-  .marketplace-card--mobile-wide {
-    grid-column: span 2;
+  .listing-card--feature .listing-card__body,
+  .listing-card--wide .listing-card__body {
+    padding: 14px 16px 16px;
   }
 
-  .marketplace-card:not(.marketplace-card--mobile-wide) .marketplace-card__metadata {
-    display: none;
-  }
-
-  .marketplace-card:not(.marketplace-card--mobile-wide) .marketplace-card__body {
-    padding: 0.75rem;
-  }
-
-  .marketplace-card__quick-actions {
-    right: 8px;
-    bottom: 8px;
-    gap: 2px;
-  }
-}
-
-@media (min-width: 576px) and (max-width: 1023px) {
-  .marketplace-card--tablet-wide {
-    grid-column: span 2;
+  /* Touch devices have no hover, so quick actions stay visible. */
+  .listing-card__actions {
+    opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marketplace-card,
-  .marketplace-card img,
-  .marketplace-card__favorite {
-    transition: none !important;
+  .listing-card,
+  .listing-card__image,
+  .listing-card__actions,
+  .listing-card__save {
+    transition: none;
   }
 
-  .marketplace-card:hover {
-    transform: none;
-  }
-
-  .marketplace-card:hover img {
+  .listing-card:hover,
+  .listing-card:hover .listing-card__image {
     transform: none;
   }
 }

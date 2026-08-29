@@ -271,7 +271,7 @@ defineExpose({
 
 .listing-classification__topbar > strong {
   flex: 0 0 auto;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 12px;
 }
 
@@ -290,7 +290,7 @@ defineExpose({
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #1e6de0;
+  background: var(--rd-brass);
   transition: width 180ms ease;
 }
 
@@ -335,16 +335,16 @@ defineExpose({
 
 .listing-classification__step--active,
 .listing-classification__step--complete {
-  color: #1e6de0 !important;
+  color: var(--rd-brass) !important;
 }
 
 .listing-classification__step--active > span,
 .listing-classification__step--complete > span {
-  border-color: #1e6de0 !important;
+  border-color: var(--rd-brass) !important;
 }
 
 .listing-classification__step--complete > span {
-  background: #1e6de0;
+  background: var(--rd-brass);
   color: #fff;
 }
 
@@ -380,7 +380,7 @@ defineExpose({
   height: 44px;
   place-items: center;
   border-radius: 8px;
-  background: #1e6de0;
+  background: var(--rd-brass);
   color: #fff;
   font-size: 22px;
 }
@@ -392,7 +392,7 @@ defineExpose({
 
 .listing-classification__selection p {
   margin-bottom: 3px;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -423,7 +423,7 @@ defineExpose({
   gap: 6px;
   border: 1px solid #dbe3ed;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 10px;
   color: #40576f;
   cursor: pointer;
@@ -434,7 +434,7 @@ defineExpose({
 .listing-classification__selection-actions button:hover,
 .listing-classification__footer button:hover {
   border-color: #a9c9f5;
-  color: #1e6de0;
+  color: var(--rd-brass);
 }
 
 .listing-classification__selection-actions button:focus-visible,
@@ -497,7 +497,7 @@ defineExpose({
 :global(.dark) .listing-classification,
 :global(.dark) .listing-classification__topbar h2,
 :global(.dark) .listing-classification__selection h2 {
-  color: #edf4ff;
+  color: var(--rd-brass-soft);
 }
 
 :global(.dark) .listing-classification__stage,

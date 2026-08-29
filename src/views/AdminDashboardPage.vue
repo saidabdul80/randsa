@@ -1,9 +1,5 @@
 <template>
-  <AppShell
-    :show-header="false"
-    :show-bottom-nav="false"
-    content-class="min-h-full w-full bg-[#f4f7fb] dark:bg-[#09121e]"
-  >
+  <AppShell content-class="min-h-full w-full bg-[#f4f7fb] dark:bg-[#09121e]">
     <div class="admin-shell">
       <button
         v-if="mobileSidebarOpen"
@@ -1817,7 +1813,7 @@ const metrics = computed(() => [
     value: formatNumber(totalPendingListingCount.value),
     icon: homeOutline,
     tone: 'blue',
-    color: '#1769ef',
+    color: 'var(--rd-brass)',
     series: listingSeries.value,
     trend: null,
     trendTone: totalPendingListingCount.value ? 'negative' : 'positive',
@@ -1895,7 +1891,7 @@ const analyticsMetrics = computed(() => ({
     value: formatCurrency(currentRevenue.value),
     trend: percentChange(currentRevenue.value, previousRevenue.value),
     series: revenueSeries.value,
-    color: '#1769ef',
+    color: 'var(--rd-brass)',
   },
   bookings: {
     label: 'Bookings created',
@@ -3135,22 +3131,22 @@ function detectOperatingSystem() {
 
 <style scoped>
 .admin-shell {
-  --admin-bg: #f4f7fb;
-  --admin-surface: #fff;
-  --admin-border: #dfe6ef;
-  --admin-text: #102033;
-  --admin-muted: #66778e;
-  --admin-subtle: #8b99aa;
-  --admin-blue: #1769ef;
-  --admin-blue-soft: #edf4ff;
-  --admin-green: #0b9f5e;
-  --admin-green-soft: #eaf9f1;
-  --admin-red: #e13a55;
-  --admin-red-soft: #fff0f3;
-  --admin-amber: #e67d0c;
-  --admin-amber-soft: #fff5e7;
-  --admin-purple: #7b45df;
-  --admin-purple-soft: #f4edff;
+  --admin-bg: var(--rd-canvas);
+  --admin-surface: var(--rd-surface);
+  --admin-border: var(--rd-hairline);
+  --admin-text: var(--rd-ink);
+  --admin-muted: var(--rd-muted);
+  --admin-subtle: var(--rd-subtle);
+  --admin-blue: var(--rd-brass);
+  --admin-blue-soft: var(--rd-brass-soft);
+  --admin-green: var(--rd-success);
+  --admin-green-soft: var(--rd-success-bg);
+  --admin-red: var(--rd-danger);
+  --admin-red-soft: var(--rd-danger-bg);
+  --admin-amber: var(--rd-warning);
+  --admin-amber-soft: var(--rd-warning-bg);
+  --admin-purple: var(--rd-info);
+  --admin-purple-soft: var(--rd-info-bg);
   display: grid;
   min-height: 100vh;
   grid-template-columns: 226px minmax(0, 1fr);
@@ -3595,7 +3591,7 @@ kbd {
   padding: 5px;
 }
 .customizer-list > div:hover {
-  background: #f5f8fc;
+  background: var(--rd-surface-alt);
 }
 .customizer-list label {
   display: flex;
@@ -3624,7 +3620,7 @@ kbd {
   margin: 0 10px 10px;
   border: 1px solid var(--admin-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--rd-surface);
   color: var(--admin-blue);
   font-size: 8px;
   font-weight: 800;
@@ -3854,7 +3850,7 @@ kbd {
 }
 .admin-metric-card.skeleton {
   min-height: 105px;
-  background: linear-gradient(90deg, #edf1f6 25%, #f8fafc 50%, #edf1f6 75%);
+  background: linear-gradient(90deg, #edf1f6 25%, var(--rd-surface-alt) 50%, #edf1f6 75%);
   background-size: 200% 100%;
   animation: admin-shimmer 1.3s infinite;
 }
@@ -4021,7 +4017,7 @@ kbd {
   height: 31px;
   border: 1px solid var(--admin-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 8px;
   color: var(--admin-text);
   font-size: 8px;
@@ -4038,7 +4034,7 @@ kbd {
   min-height: 31px;
   border: 1px solid var(--admin-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 10px;
   color: var(--admin-blue);
   font-size: 8px;
@@ -4064,7 +4060,7 @@ kbd {
   gap: 4px;
   border: 1px solid #b5cff7;
   border-radius: 6px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 8px;
   color: var(--admin-blue);
   font-size: 8px;
@@ -4239,7 +4235,7 @@ kbd {
   place-items: center;
   border: 1px solid;
   border-radius: 6px;
-  background: #fff;
+  background: var(--rd-surface);
 }
 .moderation-actions button.approve {
   border-color: #bde7d1;
@@ -4378,7 +4374,7 @@ kbd {
   font-weight: 750;
 }
 .analytics-tabs button.active {
-  background: #fff;
+  background: var(--rd-surface);
   color: var(--admin-blue);
   box-shadow: 0 3px 10px -8px #102033;
 }
@@ -4421,13 +4417,13 @@ kbd {
   background-image: linear-gradient(
     to bottom,
     transparent calc(25% - 1px),
-    #edf1f5 25%,
+    var(--rd-hairline) 25%,
     transparent calc(25% + 1px),
     transparent calc(50% - 1px),
-    #edf1f5 50%,
+    var(--rd-hairline) 50%,
     transparent calc(50% + 1px),
     transparent calc(75% - 1px),
-    #edf1f5 75%,
+    var(--rd-hairline) 75%,
     transparent calc(75% + 1px)
   );
 }
@@ -4523,7 +4519,7 @@ kbd {
   gap: 3px 7px;
   border: 1px solid var(--admin-border);
   border-radius: 7px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 9px;
   color: var(--admin-text);
   text-align: left;
@@ -4707,7 +4703,7 @@ kbd {
 .verification-docs a {
   border: 1px solid var(--admin-border);
   border-radius: 5px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 5px 7px;
   color: var(--admin-blue);
   font-size: 7px;
@@ -5159,9 +5155,9 @@ kbd {
   width: min(390px, 100%);
   border: 1px solid var(--admin-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 20px;
-  color: #102033;
+  color: var(--rd-ink);
   text-align: center;
   box-shadow: 0 30px 80px -35px rgba(8, 18, 32, 0.75);
 }
@@ -5207,7 +5203,7 @@ kbd {
 }
 .confirmation-dialog button.secondary {
   border: 1px solid var(--admin-border);
-  background: #fff;
+  background: var(--rd-surface);
   color: var(--admin-text);
 }
 .confirmation-dialog button.primary {
@@ -5489,24 +5485,6 @@ kbd {
   }
 }
 
-:global(.dark) .admin-shell {
-  --admin-bg: #09121e;
-  --admin-surface: #101c2a;
-  --admin-border: #29394c;
-  --admin-text: #f5f8fc;
-  --admin-muted: #aebccd;
-  --admin-subtle: #7f91a7;
-  --admin-blue: #6aa7fa;
-  --admin-blue-soft: #162b46;
-  --admin-green: #53d29a;
-  --admin-green-soft: #143126;
-  --admin-red: #ff8da0;
-  --admin-red-soft: #351d26;
-  --admin-amber: #f4ba60;
-  --admin-amber-soft: #322717;
-  --admin-purple: #ba93ff;
-  --admin-purple-soft: #2a2140;
-}
 :global(.dark) .admin-topbar {
   background: rgba(9, 18, 30, 0.94);
 }
@@ -5521,7 +5499,7 @@ kbd {
 :global(.dark) .confirmation-dialog,
 :global(.dark) .confirmation-dialog button.secondary {
   background: #101c2a;
-  color: #f5f8fc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .smart-filter-panel,
 :global(.dark) .verification-review-form,
@@ -5538,7 +5516,7 @@ kbd {
   background: #24364b;
 }
 :global(.dark) .moderation-actions a {
-  color: #f5f8fc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .analytics-chart {
   background-image: linear-gradient(

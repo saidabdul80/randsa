@@ -1,34 +1,47 @@
+/*
+ * Ionic component variables, mapped onto the RANDSA design tokens from editorial.css.
+ * Ionic UI (alerts, toasts, modals, toolbars) therefore matches the rest of the app
+ * in both themes without a separate dark block.
+ */
+
 :root {
-  --ion-color-primary: #1e6de0;
-  --ion-color-primary-rgb: 30, 109, 224;
+  --ion-color-primary: #8a6a2f;
+  --ion-color-primary-rgb: 138, 106, 47;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #1a60c5;
-  --ion-color-primary-tint: #367ce5;
+  --ion-color-primary-shade: #6f5424;
+  --ion-color-primary-tint: #a07d46;
 
-  --ion-color-secondary: #f2a24a;
-  --ion-color-secondary-rgb: 242, 162, 74;
-  --ion-color-secondary-contrast: #102033;
-  --ion-color-secondary-contrast-rgb: 16, 32, 51;
-  --ion-color-secondary-shade: #d38e41;
-  --ion-color-secondary-tint: #f4ab5d;
+  --ion-color-secondary: #14181f;
+  --ion-color-secondary-rgb: 20, 24, 31;
+  --ion-color-secondary-contrast: #f6f3ee;
+  --ion-color-secondary-contrast-rgb: 246, 243, 238;
+  --ion-color-secondary-shade: #10141b;
+  --ion-color-secondary-tint: #262c36;
 
-  --ion-font-family: 'Manrope', 'Segoe UI', sans-serif;
-  --ion-background-color: #f5f6f8;
-  --ion-background-color-rgb: 245, 246, 248;
-  --ion-text-color: #142033;
-  --ion-text-color-rgb: 20, 32, 51;
-  --ion-toolbar-background: rgba(244, 241, 235, 0.8);
-  --ion-card-background: rgba(255, 255, 255, 0.92);
-  --ion-border-color: rgba(69, 93, 122, 0.16);
+  --ion-font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+
+  --ion-background-color: var(--rd-canvas);
+  --ion-text-color: var(--rd-ink);
+  --ion-toolbar-background: var(--rd-canvas);
+  --ion-toolbar-color: var(--rd-ink);
+  --ion-item-background: var(--rd-surface);
+  --ion-card-background: var(--rd-surface);
+  --ion-border-color: var(--rd-hairline);
+
+  --ion-overlay-background-color: var(--rd-surface);
 }
 
 html.dark {
-  --ion-background-color: #08101a;
-  --ion-background-color-rgb: 8, 16, 26;
-  --ion-text-color: #edf4ff;
-  --ion-text-color-rgb: 237, 244, 255;
-  --ion-toolbar-background: rgba(8, 16, 26, 0.86);
-  --ion-card-background: rgba(12, 24, 38, 0.84);
-  --ion-border-color: rgba(191, 225, 255, 0.11);
+  --ion-color-primary: #c9a96a;
+  --ion-color-primary-rgb: 201, 169, 106;
+  --ion-color-primary-contrast: #10141b;
+  --ion-color-primary-contrast-rgb: 16, 20, 27;
+  --ion-color-primary-shade: #b1955d;
+  --ion-color-primary-tint: #d0b279;
+
+  --ion-color-secondary: #f1ebe1;
+  --ion-color-secondary-rgb: 241, 235, 225;
+  --ion-color-secondary-contrast: #10141b;
+  --ion-color-secondary-contrast-rgb: 16, 20, 27;
 }

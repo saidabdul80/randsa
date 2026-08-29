@@ -1,10 +1,14 @@
 import {
   type Auth,
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   deleteUser,
   getAdditionalUserInfo,
   getRedirectResult,
   GoogleAuthProvider,
+  sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -446,14 +450,18 @@ async function ensureFirebaseUserProfile(
   })
 }
 
-export function toDisplayError(error: unknown, context: 'default' | 'google' = 'default') {
-  if (
-    typeof error === 'object' &&
+function getAuthErrorCode(error: unknown) {
+  return typeof error === 'object' &&
     error !== null &&
     'code' in error &&
     typeof error.code === 'string'
-  ) {
-    const code = error.code.replace('auth/', '')
+    ? error.code
+    : ''
+}
+
+export function toDisplayError(error: unknown, context: 'default' | 'google' = 'default') {
+  if (getAuthErrorCode(error)) {
+    const code = getAuthErrorCode(error).replace('auth/', '')
     const messages: Record<string, string> = {
       'email-already-in-use': 'This email is already registered.',
       'invalid-email': 'Enter a valid email address.',
@@ -466,6 +474,7 @@ export function toDisplayError(error: unknown, context: 'default' | 'google' = '
           ? 'Network error. Google sign-in could not reach Google services in time. Check your connection, allow Google scripts/popups, and try again.'
           : 'Network error. Firebase Authentication could not be reached. Check your connection and try again.',
       'too-many-requests': 'Too many attempts. Please wait a little and try again.',
+      'missing-email': 'Enter the email address for your account.',
       'popup-closed-by-user':
         'The Google sign-in popup was closed before sign-in finished. If your browser closed it automatically, use Google redirect sign-in instead.',
       'popup-blocked': 'The browser blocked the Google sign-in popup. Allow popups and try again.',
@@ -568,6 +577,45 @@ export async function registerUser(payload: RegisterPayload) {
     uid: credential.user.uid,
     ...profile,
   })
+}
+
+/**
+ * Chooses how long Firebase keeps the signed-in session. Call this before a sign-in
+ * so the credential is stored with the persistence the user actually asked for.
+ */
+export async function setAuthPersistence(remember: boolean) {
+  if (authMode === 'local') {
+    // The local bypass keeps its own session record and ignores Firebase persistence.
+    return
+  }
+
+  const { auth } = getFirebaseServices()
+  await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence)
+}
+
+export async function sendPasswordReset(email: string) {
+  const normalizedEmail = email.trim().toLowerCase()
+
+  if (!normalizedEmail) {
+    throw new Error('Enter the email address for your account.')
+  }
+
+  if (authMode === 'local') {
+    throw new Error(
+      'Password reset emails need Firebase Authentication. Turn off the local auth bypass to use this.'
+    )
+  }
+
+  const { auth } = getFirebaseServices()
+
+  try {
+    await sendPasswordResetEmail(auth, normalizedEmail)
+  } catch (error) {
+    // Never confirm whether an address is registered; the caller shows one neutral message.
+    if (getAuthErrorCode(error) !== 'auth/user-not-found') {
+      throw error
+    }
+  }
 }
 
 export async function loginUser(email: string, password: string) {

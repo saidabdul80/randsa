@@ -2,7 +2,7 @@
   <AuthHubLayout>
     <section class="auth-card" aria-labelledby="auth-card-title">
       <div
-        v-if="activeMode !== 'profile'"
+        v-if="activeMode === 'sign-in' || activeMode === 'register'"
         class="auth-mode-tabs"
         role="tablist"
         aria-label="Authentication mode"
@@ -42,7 +42,7 @@
                 ><IonIcon :icon="logInOutline" aria-hidden="true"
               /></span>
               <div>
-                <h2 id="auth-card-title">Welcome back <span aria-hidden="true">&#128075;</span></h2>
+                <h2 id="auth-card-title">Welcome back.</h2>
                 <p>Sign in to continue to your RANDSA account.</p>
               </div>
             </header>
@@ -71,6 +71,21 @@
                 required
                 :describedby="statusMessage ? 'auth-status-message' : undefined"
               />
+
+              <div class="auth-form-options">
+                <label class="auth-remember">
+                  <input v-model="rememberMe" type="checkbox" :disabled="isBusy" />
+                  <span>Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  class="auth-link-button"
+                  :disabled="isBusy"
+                  @click="setMode('reset')"
+                >
+                  Forgot password?
+                </button>
+              </div>
 
               <AuthAlert
                 v-if="statusMessage"
@@ -104,28 +119,7 @@
                 <span class="google-mark" aria-hidden="true">G</span>
                 {{ isGoogleSubmitting ? 'Connecting to Google...' : 'Continue with Google' }}
               </button>
-              <button
-                type="button"
-                class="auth-redirect-button"
-                :disabled="googleDisabled"
-                @click="handleGoogleRedirectLogin"
-              >
-                <IonIcon :icon="openOutline" aria-hidden="true" />
-                {{
-                  isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead'
-                }}
-              </button>
             </div>
-
-            <AuthAlert
-              v-if="googleHelperMessage"
-              class="auth-google-message"
-              tone="warning"
-              role="status"
-              aria-live="polite"
-            >
-              {{ googleHelperMessage }}
-            </AuthAlert>
 
             <p class="auth-switch-copy">
               Don&apos;t have an account?
@@ -249,33 +243,64 @@
                 <span class="google-mark" aria-hidden="true">G</span>
                 {{ isGoogleSubmitting ? 'Connecting to Google...' : 'Continue with Google' }}
               </button>
-              <button
-                type="button"
-                class="auth-redirect-button"
-                :disabled="googleDisabled"
-                @click="handleGoogleRedirectRegister"
-              >
-                <IonIcon :icon="openOutline" aria-hidden="true" />
-                {{
-                  isGoogleSubmitting ? 'Switching to redirect...' : 'Use Google redirect instead'
-                }}
-              </button>
             </div>
-
-            <AuthAlert
-              v-if="googleHelperMessage"
-              class="auth-google-message"
-              tone="warning"
-              role="status"
-              aria-live="polite"
-            >
-              {{ googleHelperMessage }}
-            </AuthAlert>
 
             <p class="auth-switch-copy">
               Already have an account?
               <button type="button" @click="setMode('sign-in')">
                 Sign in
+                <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
+              </button>
+            </p>
+          </template>
+
+          <template v-else-if="activeMode === 'reset'">
+            <header class="auth-card-header">
+              <span class="auth-card-icon"><IonIcon :icon="keyOutline" aria-hidden="true" /></span>
+              <div>
+                <h2 id="auth-card-title">Reset your password</h2>
+                <p>Enter your account email and RANDSA will send you a secure reset link.</p>
+              </div>
+            </header>
+
+            <form class="auth-form" novalidate @submit.prevent="handlePasswordResetSubmit">
+              <AuthField
+                v-model="resetEmail"
+                label="Email address"
+                name="reset-email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                :icon="mailOutline"
+                :disabled="isResetSubmitting"
+                required
+                :describedby="statusMessage ? 'auth-status-message' : undefined"
+              />
+
+              <AuthAlert
+                v-if="statusMessage"
+                id="auth-status-message"
+                :tone="statusTone"
+                :role="statusTone === 'error' ? 'alert' : 'status'"
+                aria-live="polite"
+              >
+                {{ statusMessage }}
+              </AuthAlert>
+
+              <button type="submit" class="auth-primary-button" :disabled="isResetSubmitting">
+                <IonIcon
+                  :icon="isResetSubmitting ? syncOutline : mailOutline"
+                  :class="{ 'auth-spinner': isResetSubmitting }"
+                  aria-hidden="true"
+                />
+                {{ isResetSubmitting ? 'Sending reset link...' : 'Send reset link' }}
+              </button>
+            </form>
+
+            <p class="auth-switch-copy">
+              Remembered it?
+              <button type="button" @click="setMode('sign-in')">
+                Back to sign in
                 <IonIcon :icon="arrowForwardOutline" aria-hidden="true" />
               </button>
             </p>
@@ -364,10 +389,10 @@ import {
   arrowForwardOutline,
   callOutline,
   checkmarkCircleOutline,
+  keyOutline,
   lockClosedOutline,
   logInOutline,
   mailOutline,
-  openOutline,
   personAddOutline,
   personCircleOutline,
   personOutline,
@@ -379,12 +404,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { rehydrateAuthState, useAuth } from '../../composables/useAuth'
 import { firebaseConfigError, isLocalAuthBypassEnabled } from '../../lib/firebase'
 import {
-  consumeGoogleRedirectReturnTo,
-  getPendingGoogleAuthMessage,
   loginUser,
   registerUser,
+  sendPasswordReset,
+  setAuthPersistence,
   signInWithGoogle,
-  startGoogleRedirectSignIn,
   toDisplayError,
   updateUserProfileDetails,
 } from '../../services/auth'
@@ -394,7 +418,7 @@ import AuthField from './AuthField.vue'
 import AuthHubLayout from './AuthHubLayout.vue'
 
 type GuestAuthMode = 'sign-in' | 'register'
-type AuthMode = GuestAuthMode | 'profile'
+type AuthMode = GuestAuthMode | 'reset' | 'profile'
 
 const props = withDefaults(
   defineProps<{
@@ -421,16 +445,19 @@ const registerForm = reactive({
 })
 const confirmPassword = ref('')
 const acceptTerms = ref(false)
+const rememberMe = ref(true)
+const resetEmail = ref('')
 const isSubmitting = ref(false)
 const isGoogleSubmitting = ref(false)
+const isResetSubmitting = ref(false)
 const isProfileSubmitting = ref(false)
 const statusMessage = ref('')
 const statusTone = ref<'error' | 'success'>('error')
-const isRedirectingAfterGoogle = ref(false)
-const googleHelperMessage = ref(getPendingGoogleAuthMessage())
 
 const profile = computed(() => state.profile)
-const isBusy = computed(() => isSubmitting.value || isGoogleSubmitting.value)
+const isBusy = computed(
+  () => isSubmitting.value || isGoogleSubmitting.value || isResetSubmitting.value
+)
 const googleDisabled = computed(
   () => isBusy.value || isLocalAuthBypassEnabled || Boolean(firebaseConfigError)
 )
@@ -465,26 +492,10 @@ watch(
   { immediate: true }
 )
 
-watch(
-  () => state.user?.uid,
-  async (userId) => {
-    const redirectTarget = consumeGoogleRedirectReturnTo()
-
-    if (!userId || !redirectTarget || isRedirectingAfterGoogle.value) return
-
-    isRedirectingAfterGoogle.value = true
-    statusTone.value = 'success'
-    statusMessage.value = 'Google sign-in completed. Redirecting...'
-    await router.replace(sanitizeInternalRedirect(redirectTarget))
-  },
-  { immediate: true }
-)
-
-function setMode(mode: GuestAuthMode) {
+function setMode(mode: Exclude<AuthMode, 'profile'>) {
   if (isBusy.value) return
   activeMode.value = mode
   statusMessage.value = ''
-  refreshGoogleHelperMessage()
 
   if (mode === 'register' && !registerForm.email && loginForm.email) {
     registerForm.email = loginForm.email
@@ -493,12 +504,15 @@ function setMode(mode: GuestAuthMode) {
   if (mode === 'sign-in' && !loginForm.email && registerForm.email) {
     loginForm.email = registerForm.email
   }
-}
 
-function refreshGoogleHelperMessage() {
-  googleHelperMessage.value = getPendingGoogleAuthMessage()
-}
+  if (mode === 'reset' && !resetEmail.value) {
+    resetEmail.value = loginForm.email
+  }
 
+  if (mode === 'sign-in' && !loginForm.email && resetEmail.value) {
+    loginForm.email = resetEmail.value
+  }
+}
 function loginRedirect() {
   return sanitizeInternalRedirect(route.query.redirect)
 }
@@ -516,6 +530,8 @@ async function handleLoginSubmit() {
   isSubmitting.value = true
 
   try {
+    // Persistence has to be chosen before the sign-in so the credential is stored correctly.
+    await setAuthPersistence(rememberMe.value)
     await loginUser(loginForm.email, loginForm.password)
     await rehydrateAuthState()
     statusTone.value = 'success'
@@ -526,6 +542,31 @@ async function handleLoginSubmit() {
     statusMessage.value = toDisplayError(error)
   } finally {
     isSubmitting.value = false
+  }
+}
+
+async function handlePasswordResetSubmit() {
+  if (isBusy.value) return
+  statusMessage.value = ''
+
+  if (!resetEmail.value.trim()) {
+    statusTone.value = 'error'
+    statusMessage.value = 'Enter the email address for your account.'
+    return
+  }
+
+  isResetSubmitting.value = true
+
+  try {
+    await sendPasswordReset(resetEmail.value)
+    statusTone.value = 'success'
+    // Worded so it never confirms whether the address has an account.
+    statusMessage.value = `If an account exists for ${resetEmail.value.trim()}, a reset link is on its way. Check your inbox and spam folder.`
+  } catch (error) {
+    statusTone.value = 'error'
+    statusMessage.value = toDisplayError(error)
+  } finally {
+    isResetSubmitting.value = false
   }
 }
 
@@ -582,46 +623,17 @@ async function handleGoogleLogin() {
   if (isBusy.value) return
   statusMessage.value = ''
   isGoogleSubmitting.value = true
-  refreshGoogleHelperMessage()
 
   try {
-    const googleProfile = await signInWithGoogle({ returnTo: loginRedirect(), source: 'login' })
-
-    if (!googleProfile) {
-      statusTone.value = 'success'
-      statusMessage.value =
-        'Google popup sign-in could not finish, so RANDSA is switching to redirect mode now...'
-      refreshGoogleHelperMessage()
-      return
-    }
-
+    await signInWithGoogle({ returnTo: loginRedirect(), source: 'login' })
     await rehydrateAuthState()
-    refreshGoogleHelperMessage()
     statusTone.value = 'success'
     statusMessage.value = 'Google sign-in successful. Redirecting...'
     await router.replace(loginRedirect())
   } catch (error) {
     statusTone.value = 'error'
     statusMessage.value = toDisplayError(error, 'google')
-    refreshGoogleHelperMessage()
   } finally {
-    isGoogleSubmitting.value = false
-  }
-}
-
-async function handleGoogleRedirectLogin() {
-  if (isBusy.value) return
-  statusTone.value = 'success'
-  statusMessage.value = 'Switching to Google redirect sign-in...'
-  isGoogleSubmitting.value = true
-  refreshGoogleHelperMessage()
-
-  try {
-    await startGoogleRedirectSignIn({ returnTo: loginRedirect(), source: 'login' })
-  } catch (error) {
-    statusTone.value = 'error'
-    statusMessage.value = toDisplayError(error, 'google')
-    refreshGoogleHelperMessage()
     isGoogleSubmitting.value = false
   }
 }
@@ -637,63 +649,22 @@ async function handleGoogleRegister() {
   }
 
   isGoogleSubmitting.value = true
-  refreshGoogleHelperMessage()
 
   try {
-    const googleProfile = await signInWithGoogle({
+    await signInWithGoogle({
       phone: registerForm.phone,
       acceptedTerms: true,
       returnTo: '/home',
       source: 'register',
     })
-
-    if (!googleProfile) {
-      statusTone.value = 'success'
-      statusMessage.value =
-        'Google popup sign-in could not finish, so RANDSA is switching to redirect mode now...'
-      refreshGoogleHelperMessage()
-      return
-    }
-
     await rehydrateAuthState()
-    refreshGoogleHelperMessage()
     statusTone.value = 'success'
     statusMessage.value = 'Google sign-in successful. Redirecting...'
     await router.replace('/home')
   } catch (error) {
     statusTone.value = 'error'
     statusMessage.value = toDisplayError(error, 'google')
-    refreshGoogleHelperMessage()
   } finally {
-    isGoogleSubmitting.value = false
-  }
-}
-
-async function handleGoogleRedirectRegister() {
-  if (isBusy.value) return
-
-  if (!acceptTerms.value) {
-    statusTone.value = 'error'
-    statusMessage.value = 'Accept the terms and privacy policy before creating your account.'
-    return
-  }
-
-  statusTone.value = 'success'
-  statusMessage.value = 'Switching to Google redirect sign-in...'
-  isGoogleSubmitting.value = true
-  refreshGoogleHelperMessage()
-
-  try {
-    await startGoogleRedirectSignIn({
-      phone: registerForm.phone,
-      acceptedTerms: true,
-      returnTo: '/home',
-      source: 'register',
-    })
-  } catch (error) {
-    statusTone.value = 'error'
-    statusMessage.value = toDisplayError(error, 'google')
-    refreshGoogleHelperMessage()
     isGoogleSubmitting.value = false
   }
 }
@@ -730,49 +701,48 @@ async function handleProfileCompletion() {
 </script>
 
 <style scoped>
+/* On wide screens the form sits directly on the canvas: no card, no border, no shadow.
+   It only becomes a panel once the plate stacks above it. */
 .auth-card {
-  width: min(680px, 100%);
-  border: 1px solid var(--auth-border);
-  border-radius: 20px;
-  background: var(--auth-surface);
-  padding: 28px 36px 32px;
-  box-shadow: 0 24px 62px -44px rgba(16, 32, 51, 0.55);
+  width: 100%;
 }
 
 .auth-mode-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  margin-bottom: 22px;
-  border: 1px solid var(--auth-border);
-  border-radius: 12px;
-  background: var(--auth-hover);
-  padding: 4px;
+  display: flex;
+  gap: 32px;
+  border-bottom: 1px solid var(--auth-hairline);
+  margin-bottom: 34px;
 }
 
 .auth-mode-tabs button {
-  min-height: 38px;
+  margin-bottom: -1px;
   border: 0;
-  border-radius: 9px;
+  border-bottom: 1px solid transparent;
   background: transparent;
-  color: var(--auth-muted);
+  padding: 0 0 14px;
+  color: var(--auth-subtle);
+  font-family: inherit;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   cursor: pointer;
   transition:
-    background-color 190ms ease,
-    color 190ms ease,
-    box-shadow 190ms ease;
+    color 240ms ease,
+    border-color 240ms ease;
+}
+
+.auth-mode-tabs button:hover {
+  color: var(--auth-text);
 }
 
 .auth-mode-tabs .auth-mode-tab--active {
-  background: var(--auth-surface);
-  color: var(--auth-blue);
-  box-shadow: 0 8px 18px -14px rgba(16, 32, 51, 0.65);
+  border-bottom-color: var(--auth-blue);
+  color: var(--auth-text);
 }
 
 .auth-card > .auth-alert + .auth-mode-content {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .auth-card-header {
@@ -781,48 +751,100 @@ async function handleProfileCompletion() {
   gap: 13px;
 }
 
+/* The serif headline carries the hierarchy on its own; the icon chip only crowded it. */
 .auth-card-icon {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--auth-hover);
-  color: var(--auth-blue);
-  font-size: 21px;
+  display: none;
 }
 
 .auth-card-header h2 {
   margin: 0;
   color: var(--auth-text);
-  font-family: 'Space Grotesk', 'Manrope', sans-serif;
-  font-size: 23px;
-  font-weight: 850;
-  letter-spacing: 0;
+  font-family: 'Fraunces', 'Space Grotesk', serif;
+  font-size: clamp(28px, 2.5vw, 38px);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .auth-card-header p {
-  margin: 7px 0 0;
+  max-width: 400px;
+  margin: 14px 0 0;
   color: var(--auth-muted);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.75;
 }
 
 .auth-form {
   display: grid;
-  gap: 15px;
-  margin-top: 24px;
+  gap: 18px;
+  margin-top: 32px;
 }
 
 .auth-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .auth-field-wide {
   grid-column: 1 / -1;
+}
+
+.auth-form-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.auth-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--auth-muted);
+  font-size: 11px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.auth-remember input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--auth-blue);
+  cursor: pointer;
+}
+
+.auth-remember input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.auth-link-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--auth-blue);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 240ms ease;
+}
+
+.auth-link-button:hover:not(:disabled) {
+  color: var(--auth-blue-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-link-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .auth-primary-button,
@@ -830,140 +852,140 @@ async function handleProfileCompletion() {
 .auth-redirect-button {
   display: inline-flex;
   width: 100%;
-  min-height: 50px;
+  min-height: 56px;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  border-radius: 12px;
-  padding: 0 16px;
+  gap: 10px;
+  border-radius: 4px;
+  padding: 0 18px;
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   cursor: pointer;
   transition:
-    transform 200ms ease,
-    box-shadow 200ms ease,
-    border-color 200ms ease,
-    background-color 200ms ease,
-    color 200ms ease;
+    background-color 240ms ease,
+    border-color 240ms ease,
+    color 240ms ease,
+    box-shadow 240ms ease;
 }
 
 .auth-primary-button {
-  border: 1px solid var(--auth-blue);
-  background: var(--auth-blue);
-  color: #ffffff;
-  box-shadow: 0 16px 28px -20px rgba(23, 105, 223, 0.8);
-}
-
-.auth-primary-button:hover:not(:disabled),
-.auth-google-button:hover:not(:disabled),
-.auth-redirect-button:hover:not(:disabled) {
-  transform: translateY(-4px);
+  border: 1px solid var(--auth-primary-bg);
+  background: var(--auth-primary-bg);
+  color: var(--auth-primary-text);
 }
 
 .auth-primary-button:hover:not(:disabled) {
-  background: var(--auth-blue-dark);
-  box-shadow: 0 20px 32px -18px rgba(23, 105, 223, 0.72);
+  border-color: var(--auth-primary-bg-hover);
+  background: var(--auth-primary-bg-hover);
+  box-shadow: 0 14px 30px -20px rgba(11, 14, 19, 0.85);
 }
 
 .auth-divider {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 18px 0;
+  gap: 16px;
+  margin: 26px 0;
   color: var(--auth-subtle);
-  font-size: 8px;
-  font-weight: 800;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
 }
 
 .auth-divider::before,
 .auth-divider::after {
   height: 1px;
   flex: 1 1 auto;
-  background: var(--auth-border);
+  background: var(--auth-hairline);
   content: '';
-}
-
-.auth-divider span {
-  display: grid;
-  width: 34px;
-  height: 22px;
-  place-items: center;
-  border-radius: 11px;
-  background: var(--auth-hover);
 }
 
 .auth-provider-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.78fr);
-  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 10px;
 }
 
-.auth-google-button {
+.auth-google-button,
+.auth-redirect-button {
   border: 1px solid var(--auth-border);
-  background: var(--auth-surface);
+  background: transparent;
   color: var(--auth-text);
 }
 
-.auth-google-button:hover:not(:disabled) {
-  border-color: #b8cee8;
-  box-shadow: 0 16px 27px -22px rgba(16, 32, 51, 0.55);
-}
-
-.google-mark {
-  color: #4285f4;
-  font-family: Arial, sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.auth-redirect-button {
-  border: 1px dashed #9ebde2;
-  background: transparent;
-  color: var(--auth-blue);
-}
-
+.auth-google-button:hover:not(:disabled),
 .auth-redirect-button:hover:not(:disabled) {
   border-color: var(--auth-blue);
   background: var(--auth-hover);
+}
+
+.google-mark {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--rd-surface);
+  color: #4285f4;
+  font-family: 'Space Grotesk', 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.auth-redirect-button {
+  color: var(--auth-muted);
+}
+
+.auth-redirect-button ion-icon {
+  font-size: 15px;
 }
 
 .auth-primary-button:disabled,
 .auth-google-button:disabled,
 .auth-redirect-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-  box-shadow: none;
+  opacity: 0.5;
 }
 
 .auth-google-message {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .auth-switch-copy {
-  margin: 20px 0 0;
+  margin: 28px 0 0;
   color: var(--auth-muted);
-  font-size: 10px;
-  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .auth-switch-copy button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-left: 4px;
+  gap: 6px;
   border: 0;
   background: transparent;
-  padding: 4px;
+  padding: 0;
   color: var(--auth-blue);
-  font-size: inherit;
-  font-weight: 800;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
+  transition: color 240ms ease;
+}
+
+.auth-switch-copy button:hover {
+  color: var(--auth-blue-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .auth-switch-copy button ion-icon {
-  transition: transform 190ms ease;
+  font-size: 13px;
+  transition: transform 240ms ease;
 }
 
 .auth-switch-copy button:hover ion-icon {
@@ -973,40 +995,25 @@ async function handleProfileCompletion() {
 .auth-terms {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 11px;
   color: var(--auth-muted);
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.65;
   cursor: pointer;
 }
 
 .auth-terms input {
+  margin-top: 2px;
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
-  margin: 0;
   accent-color: var(--auth-blue);
+  cursor: pointer;
 }
 
 .auth-spinner {
-  animation: auth-spin 850ms linear infinite;
-}
-
-.auth-mode-enter-active,
-.auth-mode-leave-active {
-  transition:
-    opacity 190ms ease,
-    transform 190ms ease;
-}
-
-.auth-mode-enter-from {
-  opacity: 0;
-  transform: translateX(10px) scale(0.995);
-}
-
-.auth-mode-leave-to {
-  opacity: 0;
-  transform: translateX(-8px) scale(0.995);
+  animation: auth-spin 900ms linear infinite;
 }
 
 @keyframes auth-spin {
@@ -1015,107 +1022,137 @@ async function handleProfileCompletion() {
   }
 }
 
+.auth-mode-enter-active,
+.auth-mode-leave-active {
+  transition:
+    opacity 260ms ease,
+    transform 260ms cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.auth-mode-enter-from {
+  transform: translateY(8px);
+  opacity: 0;
+}
+
+.auth-mode-leave-to {
+  transform: translateY(-8px);
+  opacity: 0;
+}
+
 .auth-mode-tabs button:focus-visible,
 .auth-primary-button:focus-visible,
 .auth-google-button:focus-visible,
 .auth-redirect-button:focus-visible,
 .auth-switch-copy button:focus-visible,
-.auth-terms input:focus-visible {
-  outline: 3px solid var(--auth-focus);
-  outline-offset: 2px;
+.auth-link-button:focus-visible,
+.auth-terms input:focus-visible,
+.auth-remember input:focus-visible {
+  outline: 2px solid var(--auth-focus-border);
+  outline-offset: 3px;
+}
+
+/* Once the plate stacks above the form, the form needs its own surface again. */
+@media (max-width: 1080px) {
+  .auth-card {
+    border: 1px solid var(--auth-hairline);
+    border-radius: 6px;
+    background: var(--auth-surface);
+    padding: 30px 32px 34px;
+  }
 }
 
 @media (max-width: 680px) {
+  /* The card floats over the photo backdrop on phones, so it needs real lift. */
   .auth-card {
-    border-radius: 16px;
-    padding: 18px 16px 24px;
-    box-shadow: 0 18px 40px -34px rgba(16, 32, 51, 0.55);
-  }
-
-  .auth-card-header h2 {
-    font-size: 20px;
-  }
-  .auth-card-header p {
-    font-size: 10px;
-  }
-  .auth-form-grid {
-    grid-template-columns: 1fr;
-  }
-  .auth-field-wide {
-    grid-column: auto;
-  }
-  .auth-provider-actions {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 1024px) and (max-height: 760px) {
-  .auth-card {
-    padding: 18px 28px 20px;
+    border-color: var(--auth-border);
+    padding: 24px 18px 28px;
+    box-shadow: 0 30px 60px -30px rgba(5, 8, 13, 0.75);
   }
 
   .auth-mode-tabs {
-    margin-bottom: 14px;
-  }
-
-  .auth-mode-tabs button {
-    min-height: 34px;
-  }
-
-  .auth-card-header {
-    gap: 10px;
-  }
-
-  .auth-card-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    font-size: 19px;
+    gap: 24px;
+    margin-bottom: 26px;
   }
 
   .auth-card-header h2 {
-    font-size: 21px;
+    font-size: 26px;
   }
 
   .auth-card-header p {
-    margin-top: 4px;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .auth-form {
-    gap: 10px;
-    margin-top: 14px;
+    margin-top: 24px;
   }
 
   .auth-form-grid {
-    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .auth-field-wide {
+    grid-column: auto;
+  }
+
+  .auth-provider-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-divider {
+    margin: 20px 0;
+  }
+}
+
+@media (min-width: 1081px) and (max-height: 820px) {
+  .auth-mode-tabs {
+    margin-bottom: 22px;
+  }
+
+  .auth-card-header h2 {
+    font-size: 30px;
+  }
+
+  .auth-card-header p {
+    margin-top: 10px;
+  }
+
+  .auth-form {
+    gap: 13px;
+    margin-top: 20px;
+  }
+
+  .auth-form-grid {
+    gap: 10px;
   }
 
   .auth-card :deep(.auth-input-wrap) {
-    height: 46px;
+    height: 50px;
   }
 
   .auth-primary-button,
   .auth-google-button,
   .auth-redirect-button {
-    min-height: 44px;
+    min-height: 48px;
   }
 
   .auth-divider {
-    margin: 11px 0;
+    margin: 16px 0;
   }
 
   .auth-switch-copy {
-    margin-top: 12px;
+    margin-top: 18px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .auth-mode-enter-active,
   .auth-mode-leave-active,
+  .auth-mode-tabs button,
   .auth-primary-button,
   .auth-google-button,
   .auth-redirect-button,
+  .auth-link-button,
+  .auth-switch-copy button,
   .auth-switch-copy button ion-icon {
     transition: none;
   }

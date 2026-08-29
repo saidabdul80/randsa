@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
+  <AppShell content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="listing-details-page">
       <NotificationSidebarNav
         :can-manage-properties="canManageProperties"
@@ -302,7 +302,7 @@ async function handleSave() {
 .listing-details-page {
   min-height: 100%;
   background: #f5f6f8;
-  color: #102033;
+  color: var(--rd-ink);
   padding: 12px;
 }
 
@@ -316,7 +316,7 @@ async function handleSave() {
   align-items: center;
   gap: 16px;
   min-height: 58px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--rd-hairline);
   background: white;
   padding: 0 20px;
 }
@@ -339,7 +339,7 @@ async function handleSave() {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 0.76rem;
 }
 
@@ -361,7 +361,7 @@ async function handleSave() {
 .listing-section,
 .listing-contact,
 .listing-details-state {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rd-hairline);
   border-radius: 12px;
   background: white;
 }
@@ -468,7 +468,7 @@ async function handleSave() {
 
 .listing-summary__location,
 .listing-section > p {
-  color: #64748b;
+  color: var(--rd-subtle);
   line-height: 1.65;
 }
 
@@ -485,7 +485,7 @@ async function handleSave() {
 }
 
 .listing-summary__price span {
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 0.8rem;
 }
 
@@ -511,7 +511,7 @@ async function handleSave() {
 }
 
 .listing-location-map p {
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 0.76rem;
 }
 
@@ -534,9 +534,9 @@ async function handleSave() {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rd-hairline);
   border-radius: 8px;
-  background: #e2e8f0;
+  background: var(--rd-hairline);
 }
 
 .listing-attributes div {
@@ -546,7 +546,7 @@ async function handleSave() {
 }
 
 .listing-attributes dt {
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 0.7rem;
 }
 
@@ -576,7 +576,7 @@ async function handleSave() {
 
 .listing-contact > span,
 .listing-contact > small {
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 0.76rem;
   line-height: 1.5;
 }
@@ -593,13 +593,13 @@ async function handleSave() {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: white;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 0.8rem;
   font-weight: 800;
 }
 
 .listing-contact .is-primary {
-  border-color: #102033;
+  border-color: var(--rd-ink);
   background: #102033;
   color: white;
 }

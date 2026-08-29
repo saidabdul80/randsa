@@ -141,7 +141,7 @@ function clearSearch() {
 
 .category-selector__header p {
   margin-bottom: 5px;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -169,7 +169,7 @@ function clearSearch() {
   gap: 10px;
   border: 1px solid #dbe3ed;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 12px;
   color: #75869a;
   transition:
@@ -178,7 +178,7 @@ function clearSearch() {
 }
 
 .category-selector__search:focus-within {
-  border-color: #1e6de0;
+  border-color: var(--rd-brass);
   box-shadow: 0 0 0 3px rgba(30, 109, 224, 0.12);
 }
 
@@ -235,7 +235,7 @@ function clearSearch() {
   gap: 11px;
   border: 1px solid #e0e6ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 11px;
   color: #142033;
   text-align: left;
@@ -258,7 +258,7 @@ function clearSearch() {
 }
 
 .category-option--selected {
-  border-color: #1e6de0;
+  border-color: var(--rd-brass);
   background: #f3f7ff;
 }
 
@@ -269,12 +269,12 @@ function clearSearch() {
   place-items: center;
   border-radius: 8px;
   background: #eef4fc;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 20px;
 }
 
 .category-option--selected .category-option__icon {
-  background: #1e6de0;
+  background: var(--rd-brass);
   color: #fff;
 }
 
@@ -318,7 +318,7 @@ function clearSearch() {
 
 .category-selector__empty ion-icon {
   margin-bottom: 4px;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 24px;
 }
 
@@ -370,7 +370,7 @@ function clearSearch() {
 :global(.dark) .category-selector__header h2,
 :global(.dark) .category-selector__search input,
 :global(.dark) .category-option {
-  color: #edf4ff;
+  color: var(--rd-brass-soft);
 }
 
 :global(.dark) .category-selector__search,
@@ -386,6 +386,6 @@ function clearSearch() {
 }
 
 :global(.dark) .category-selector__empty strong {
-  color: #edf4ff;
+  color: var(--rd-brass-soft);
 }
 </style>

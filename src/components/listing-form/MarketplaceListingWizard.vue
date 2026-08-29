@@ -517,20 +517,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   font-size: 10px;
 }
 .marketplace-wizard__steps button.active {
-  background: #edf4ff;
-  color: #1769ef;
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
 }
 .marketplace-wizard__steps button.active > span,
 .marketplace-wizard__steps button.complete > span {
-  border-color: #1769ef;
-  background: #1769ef;
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
   color: #fff;
 }
 .marketplace-wizard__content {
   min-width: 0;
   border: 1px solid #dfe7f0;
   border-radius: 15px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 20px;
   box-shadow: 0 22px 55px -46px rgba(16, 32, 51, 0.55);
 }
@@ -542,7 +542,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   gap: 12px;
 }
 .marketplace-wizard__content > header {
-  border-bottom: 1px solid #e8edf3;
+  border-bottom: 1px solid var(--rd-hairline);
   padding-bottom: 15px;
 }
 .marketplace-wizard__content header p,
@@ -550,14 +550,14 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   margin: 0;
 }
 .marketplace-wizard__content header p {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 8px;
   font-weight: 850;
   text-transform: uppercase;
 }
 .marketplace-wizard__content header h2 {
   margin-top: 3px;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 19px;
 }
 .marketplace-wizard__draft {
@@ -565,9 +565,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   min-height: 34px;
   align-items: center;
   gap: 6px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 10px;
   color: #3f5770;
   font-size: 9px;
@@ -600,7 +600,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 }
 .shared-grid label > span b {
   margin-left: 5px;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 7px;
   text-transform: uppercase;
 }
@@ -609,11 +609,11 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 .shared-grid textarea,
 .video-field input {
   width: 100%;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 11px 12px;
-  color: #102033;
+  color: var(--rd-ink);
   font: inherit;
   font-size: 11px;
   outline: none;
@@ -622,21 +622,21 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 .shared-grid select:focus,
 .shared-grid textarea:focus,
 .video-field input:focus {
-  border-color: #1769ef;
+  border-color: var(--rd-brass);
   box-shadow: 0 0 0 3px rgba(23, 105, 239, 0.12);
 }
 .switch-field {
   grid-template-columns: 1fr auto;
   min-height: 43px;
   align-items: center;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
   padding: 0 12px;
 }
 .switch-field input {
   width: 18px;
   height: 18px;
-  accent-color: #1769ef;
+  accent-color: var(--rd-brass);
 }
 .private-file {
   display: grid;
@@ -654,8 +654,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   height: 38px;
   place-items: center;
   border-radius: 9px;
-  background: #edf4ff;
-  color: #1769ef;
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
   font-size: 19px;
 }
 .private-file b {
@@ -676,11 +676,11 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   align-items: center;
   gap: 7px;
   margin-top: 14px;
-  border: 1px solid #fecdd3;
+  border: 1px solid var(--rd-danger-bg);
   border-radius: 9px;
-  background: #fff1f2;
+  background: var(--rd-danger-bg);
   padding: 9px 11px;
-  color: #be123c;
+  color: var(--rd-danger);
   font-size: 9px;
 }
 .marketplace-wizard__review {
@@ -691,12 +691,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   display: grid;
   gap: 0;
   margin: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rd-hairline);
   border-radius: 12px;
 }
 .marketplace-wizard__review dl div {
   padding: 12px;
-  border-bottom: 1px solid #edf1f5;
+  border-bottom: 1px solid var(--rd-hairline);
 }
 .marketplace-wizard__review dl div:last-child {
   border: 0;
@@ -712,7 +712,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   font-weight: 750;
 }
 .marketplace-wizard__content > footer {
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 15px;
 }
 .marketplace-wizard__content > footer button {
@@ -727,13 +727,13 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   font-weight: 850;
 }
 .marketplace-wizard__content > footer .secondary {
-  border: 1px solid #dce4ed;
-  background: #fff;
+  border: 1px solid var(--rd-hairline);
+  background: var(--rd-surface);
   color: #40576f;
 }
 .marketplace-wizard__content > footer .primary {
-  border: 1px solid #1769ef;
-  background: #1769ef;
+  border: 1px solid var(--rd-brass);
+  background: var(--rd-brass);
   color: #fff;
 }
 .marketplace-wizard__content > footer button:disabled {
@@ -785,13 +785,13 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 :global(.dark) .video-field input {
   border-color: #2a394b;
   background: #111c2a;
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .marketplace-wizard__content header h2,
 :global(.dark) .shared-grid label > span,
 :global(.dark) .video-field > span,
 :global(.dark) .private-file b,
 :global(.dark) .marketplace-wizard__review dd {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
+  <AppShell content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="bookings-page">
       <NotificationSidebarNav
         :can-manage-properties="canManageProperties"
@@ -1030,7 +1030,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .bookings-hero h1 {
   margin: 11px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-family: 'Space Grotesk', 'Manrope', sans-serif;
   font-size: 32px;
   font-weight: 800;
@@ -1067,7 +1067,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   transform: translateY(-47%) rotate(4deg);
   border: 1px solid rgba(112, 160, 214, 0.34);
   border-radius: 15px;
-  background: #ffffff;
+  background: var(--rd-surface);
   box-shadow: 0 25px 42px -22px rgba(22, 75, 134, 0.46);
 }
 
@@ -1118,7 +1118,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   padding: 7px;
   border: 4px solid #edf6ff;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--rd-surface);
   color: #1764c8;
   font-size: 26px;
 }
@@ -1165,9 +1165,9 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .booking-notice--error {
-  border-color: #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+  border-color: var(--rd-danger-bg);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 
 .booking-metrics {
@@ -1185,7 +1185,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   gap: 14px;
   border: 1px solid #e6ebf1;
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--rd-surface);
   padding: 18px;
   box-shadow: 0 14px 34px -30px rgba(16, 32, 51, 0.54);
   transition:
@@ -1211,7 +1211,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .metric-icon--blue {
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1769dc;
 }
 .metric-icon--green {
@@ -1246,7 +1246,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .booking-metric strong {
   margin-top: 4px;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 26px;
   line-height: 1;
 }
@@ -1265,12 +1265,12 @@ function toErrorMessage(error: unknown, fallback: string) {
   overflow: visible;
   border: 1px solid #e3e9f0;
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--rd-surface);
   box-shadow: 0 18px 46px -36px rgba(16, 32, 51, 0.48);
 }
 
 .booking-toolbar {
-  border-bottom: 1px solid #e8edf3;
+  border-bottom: 1px solid var(--rd-hairline);
   padding: 16px;
 }
 
@@ -1320,17 +1320,17 @@ function toErrorMessage(error: unknown, fallback: string) {
   border-radius: 10px;
   background: #eef2f6;
   padding: 0 5px;
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 9px;
 }
 
 .booking-tabs .booking-tab--active {
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1763d1;
 }
 
 .booking-tabs .booking-tab--active span {
-  background: #ffffff;
+  background: var(--rd-surface);
   color: #1763d1;
 }
 
@@ -1351,8 +1351,8 @@ function toErrorMessage(error: unknown, fallback: string) {
   gap: 9px;
   border: 1px solid #dfe6ee;
   border-radius: 11px;
-  background: #ffffff;
-  color: #344256;
+  background: var(--rd-surface);
+  color: var(--rd-muted);
   transition:
     border-color 190ms ease,
     box-shadow 190ms ease;
@@ -1381,7 +1381,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   border: 0;
   outline: 0;
   background: transparent;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 12px;
 }
 
@@ -1436,7 +1436,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #1f6fe7;
+  background: var(--rd-brass);
 }
 
 .booking-filter-popover {
@@ -1449,7 +1449,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   gap: 12px;
   border: 1px solid #dfe6ee;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--rd-surface);
   padding: 14px;
   box-shadow: 0 20px 45px -20px rgba(16, 32, 51, 0.34);
 }
@@ -1469,10 +1469,10 @@ function toErrorMessage(error: unknown, fallback: string) {
 .booking-filter-popover select {
   width: 100%;
   height: 40px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 9px;
   outline: 0;
-  background: #ffffff;
+  background: var(--rd-surface);
   padding: 0 10px;
   color: #1c2b3e;
   font-size: 12px;
@@ -1516,7 +1516,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   border: 0;
   outline: 0;
   background: transparent;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1542,7 +1542,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .booking-list-heading h2 {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 15px;
   font-weight: 800;
 }
@@ -1576,7 +1576,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   align-items: center;
   border: 1px solid #e3e9f0;
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--rd-surface);
   padding: 8px;
   color: inherit;
   text-align: left;
@@ -1642,7 +1642,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .booking-row-copy > strong {
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 12px;
   font-weight: 800;
 }
@@ -1717,7 +1717,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 .booking-detail-pane {
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
 }
 
 .booking-detail-heading,
@@ -1762,7 +1762,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 .booking-detail-heading h2,
 .booking-section-title h3 {
   margin: 4px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 14px;
   font-weight: 800;
 }
@@ -1775,7 +1775,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .booking-property-summary h3 {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 21px;
   font-weight: 800;
 }
@@ -1823,7 +1823,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   display: grid;
   gap: 0;
   margin: 18px 0 0;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
 }
 
 .booking-detail-grid > div {
@@ -1877,7 +1877,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   gap: 10px;
   align-items: center;
   min-height: 58px;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 10px;
 }
 
@@ -1926,7 +1926,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .booking-timeline {
   margin-top: 18px;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 16px;
 }
 
@@ -1965,7 +1965,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   place-items: center;
   border: 2px solid #d8e0e9;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--rd-surface);
   color: #ffffff;
   font-size: 12px;
 }
@@ -2004,7 +2004,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 .booking-notes {
   margin-top: 14px;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 14px;
 }
 
@@ -2018,7 +2018,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 .booking-notes span {
   display: block;
   margin-top: 6px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 10px;
   line-height: 1.6;
 }
@@ -2027,7 +2027,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   display: grid;
   gap: 8px;
   margin-top: 18px;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 16px;
 }
 
@@ -2055,9 +2055,9 @@ function toErrorMessage(error: unknown, fallback: string) {
   transform: translateY(-3px);
 }
 .booking-action--secondary {
-  border-color: #dce4ed;
-  background: #ffffff;
-  color: #344256;
+  border-color: var(--rd-hairline);
+  background: var(--rd-surface);
+  color: var(--rd-muted);
 }
 .booking-action--primary {
   border-color: #246fe0;
@@ -2091,14 +2091,14 @@ function toErrorMessage(error: unknown, fallback: string) {
   height: 58px;
   place-items: center;
   border-radius: 16px;
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #2774dc;
   font-size: 27px;
 }
 
 .booking-state h2 {
   margin: 16px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 20px;
   font-weight: 800;
 }
@@ -2145,7 +2145,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 9px;
-  border: 1px solid #edf1f5;
+  border: 1px solid var(--rd-hairline);
   border-radius: 14px;
   padding: 9px;
 }
@@ -2154,7 +2154,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   width: 72px;
   aspect-ratio: 1;
   border-radius: 10px;
-  background: #edf1f5;
+  background: var(--rd-hairline);
 }
 .booking-row-skeleton div {
   display: grid;
@@ -2165,7 +2165,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   display: block;
   height: 9px;
   border-radius: 5px;
-  background: #edf1f5;
+  background: var(--rd-hairline);
 }
 .booking-row-skeleton i:nth-child(1) {
   width: 48%;
@@ -2177,14 +2177,14 @@ function toErrorMessage(error: unknown, fallback: string) {
   width: 34%;
 }
 .booking-detail-skeleton {
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
 }
 .booking-detail-skeleton span {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 7;
   border-radius: 14px;
-  background: #edf1f5;
+  background: var(--rd-hairline);
 }
 .booking-detail-skeleton i {
   display: block;
@@ -2192,7 +2192,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   height: 10px;
   margin-top: 15px;
   border-radius: 5px;
-  background: #edf1f5;
+  background: var(--rd-hairline);
 }
 .booking-detail-skeleton i:nth-child(3) {
   width: 76%;
@@ -2284,7 +2284,7 @@ function toErrorMessage(error: unknown, fallback: string) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .booking-status-bands section:nth-child(2) {
-    border-left: 1px solid #e8edf3;
+    border-left: 1px solid var(--rd-hairline);
     padding-left: 12px;
   }
   .booking-actions {
@@ -2355,7 +2355,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   }
 
   .booking-list-pane {
-    border-right: 1px solid #e8edf3;
+    border-right: 1px solid var(--rd-hairline);
   }
 
   .booking-list {
@@ -2503,7 +2503,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 :global(.dark) .booking-section-title h3,
 :global(.dark) .booking-timeline--done span strong,
 :global(.dark) .booking-state h2 {
-  color: #f8fafc !important;
+  color: var(--rd-surface-alt) !important;
 }
 
 :global(.dark) .booking-detail-pane,

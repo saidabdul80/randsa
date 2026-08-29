@@ -1,17 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Fonts are preconnected and loaded from index.html so they never block first paint. */
+
 @layer base {
   html {
-    background: #f5f6f8;
-    @apply text-ink antialiased;
-  }
-
-  html.dark {
-    @apply bg-slate-950 text-slate-50;
+    background: var(--rd-canvas);
+    color: var(--rd-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body,
@@ -20,72 +18,219 @@
   }
 
   body {
-    background: #f5f6f8;
-    @apply font-sans text-ink;
+    background: var(--rd-canvas);
+    color: var(--rd-ink);
+    @apply font-sans;
   }
 
-  html.dark body {
-    @apply bg-slate-950 text-slate-50;
+  /* Headings default to the editorial serif so pages read as one product. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--rd-font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    background: var(--rd-brass-soft);
+    color: var(--rd-ink);
+  }
+
+  /* Anything focusable gets the same brass ring, app-wide. */
+  :focus-visible {
+    outline: 2px solid var(--rd-brass);
+    outline-offset: 3px;
   }
 }
 
 @layer components {
+  /*
+   * The legacy class names are kept because they are used across hundreds of
+   * templates, but every one of them now renders the premium editorial surface
+   * rather than the old translucent blue glass.
+   */
   .glass-panel {
-    @apply rounded-[24px] border border-white/[0.65] bg-white/[0.82] shadow-panel backdrop-blur-2xl dark:border-white/[0.10] dark:bg-slate-900/[0.72];
-  }
-
-  .section-chip {
-    @apply inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200;
-  }
-
-  .page-heading {
-    @apply font-display text-3xl font-bold tracking-tight text-ink dark:text-white sm:text-4xl;
+    border: 1px solid var(--rd-hairline);
+    border-radius: var(--rd-radius-lg);
+    background: var(--rd-surface);
+    box-shadow: var(--rd-shadow);
   }
 
   .hero-shell {
-    @apply relative overflow-hidden rounded-[24px] border border-white/[0.70] bg-white/[0.78] shadow-panel backdrop-blur-2xl dark:border-white/[0.10] dark:bg-slate-950/[0.58];
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--rd-hairline);
+    border-radius: var(--rd-radius);
+    background: var(--rd-surface);
+    box-shadow: var(--rd-shadow);
   }
 
-  .metric-card {
-    @apply rounded-[20px] border border-white/[0.70] bg-white/[0.82] p-5 shadow-panel backdrop-blur-xl dark:border-white/[0.10] dark:bg-slate-950/[0.58];
-  }
-
+  .metric-card,
   .surface-card {
-    @apply rounded-[18px] border border-slate-200/[0.80] bg-white/[0.80] p-5 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/[0.58];
+    border: 1px solid var(--rd-hairline);
+    border-radius: var(--rd-radius-lg);
+    background: var(--rd-surface);
+    padding: 20px;
+  }
+
+  .section-chip {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    border: 1px solid var(--rd-border);
+    border-radius: var(--rd-radius-pill);
+    background: transparent;
+    padding: 0 16px;
+    color: var(--rd-muted);
+    font-size: 13px;
+    font-weight: 600;
+    transition:
+      border-color 200ms ease,
+      color 200ms ease;
+  }
+
+  .section-chip:hover {
+    border-color: var(--rd-brass);
+    color: var(--rd-brass);
+  }
+
+  .page-heading {
+    color: var(--rd-ink);
+    font-family: var(--rd-font-display);
+    font-size: clamp(28px, 3.2vw, 42px);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
   }
 
   .premium-input {
-    @apply w-full rounded-2xl border border-slate-200 bg-white/[0.94] px-4 py-3 text-sm outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100/[0.70] dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-brand-500/[0.10];
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--rd-border);
+    border-radius: var(--rd-radius-sm);
+    background: var(--rd-surface);
+    padding: 12px 14px;
+    color: var(--rd-ink);
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition:
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .premium-input::placeholder {
+    color: var(--rd-subtle);
+  }
+
+  .premium-input:focus {
+    border-color: var(--rd-brass);
+    box-shadow: 0 0 0 3px var(--rd-brass-soft);
   }
 
   .premium-button-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800;
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--rd-primary-bg);
+    border-radius: var(--rd-radius-sm);
+    background: var(--rd-primary-bg);
+    padding: 0 24px;
+    color: var(--rd-primary-text);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease;
+  }
+
+  .premium-button-primary:hover {
+    border-color: var(--rd-primary-bg-hover);
+    background: var(--rd-primary-bg-hover);
   }
 
   .premium-button-secondary {
-    @apply inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200;
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--rd-border);
+    border-radius: var(--rd-radius-sm);
+    background: transparent;
+    padding: 0 24px;
+    color: var(--rd-ink);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition:
+      border-color 220ms ease,
+      background-color 220ms ease,
+      color 220ms ease;
+  }
+
+  .premium-button-secondary:hover {
+    border-color: var(--rd-brass);
+    background: var(--rd-brass-soft);
+    color: var(--rd-brass);
   }
 
   .status-pill {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--rd-radius-pill);
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .empty-state-mark {
-    @apply mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] border border-brand-100 bg-brand-50 text-2xl font-bold text-brand-700 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-200;
+    display: grid;
+    width: 56px;
+    height: 56px;
+    place-items: center;
+    border: 1px solid var(--rd-brass);
+    border-radius: var(--rd-radius);
+    margin-inline: auto;
+    color: var(--rd-brass);
+    font-family: var(--rd-font-display);
+    font-size: 24px;
   }
 
   .action-link-card {
-    @apply flex items-center justify-between gap-4 rounded-[18px] border border-slate-200 bg-white/[0.78] px-4 py-4 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700 dark:border-slate-800 dark:bg-slate-950/[0.58] dark:text-slate-200 dark:hover:border-brand-500/40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid var(--rd-hairline);
+    border-radius: var(--rd-radius-lg);
+    background: var(--rd-surface);
+    padding: 16px 18px;
+    color: var(--rd-ink);
+    font-size: 14px;
+    font-weight: 600;
+    transition:
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .action-link-card:hover {
+    border-color: var(--rd-brass);
+    box-shadow: var(--rd-shadow-sm);
   }
 }
 
-.ion-page {
-  background: #f5f6f8;
-}
-
-html.dark .ion-page {
-  background:
-    radial-gradient(circle at top left, rgba(50, 143, 255, 0.16), transparent 25%),
-    radial-gradient(circle at top right, rgba(242, 162, 74, 0.08), transparent 22%),
-    linear-gradient(180deg, rgba(9, 17, 28, 0.98), rgba(4, 10, 17, 1));
+/* Ionic page surface follows the theme token, no separate dark rule needed. */
+.ion-page,
+ion-content {
+  --background: var(--rd-canvas);
+  background: var(--rd-canvas);
 }

@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" :show-bottom-nav="false" content-class="min-h-full w-full">
+  <AppShell content-class="min-h-full w-full">
     <div class="property-details-page">
       <div class="property-details-layout">
         <div class="property-details-sidebar">

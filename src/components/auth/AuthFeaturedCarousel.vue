@@ -652,7 +652,7 @@ onBeforeUnmount(() => {
 }
 
 .auth-featured-link:hover {
-  background: #ffffff;
+  background: var(--rd-surface);
   transform: translateY(-1px);
 }
 
@@ -691,7 +691,7 @@ onBeforeUnmount(() => {
 .auth-featured-dots .auth-featured-dot--active {
   width: 20px;
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--rd-surface);
 }
 
 .auth-featured-controls {

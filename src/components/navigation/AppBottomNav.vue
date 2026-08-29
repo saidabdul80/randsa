@@ -1,76 +1,146 @@
 <template>
-  <nav
-    aria-label="Primary navigation"
-    class="pointer-events-none fixed inset-x-0 bottom-3 z-50 px-3 pb-[env(safe-area-inset-bottom)] sm:bottom-4 sm:px-4"
-  >
-    <div
-      class="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-[24px] border border-white/[0.70] bg-white/[0.88] px-2 py-2 shadow-panel backdrop-blur-2xl dark:border-white/[0.10] dark:bg-slate-900/[0.88]"
+  <nav class="bottom-nav" aria-label="Primary">
+    <RouterLink
+      v-for="item in navItems"
+      :key="item.to"
+      :to="item.to"
+      class="bottom-nav__item"
+      :class="{
+        'bottom-nav__item--active': isNavItemActive(item, route.path),
+        'bottom-nav__item--accent': item.to === '/post-listing',
+      }"
+      :aria-current="isNavItemActive(item, route.path) ? 'page' : undefined"
     >
-      <RouterLink
-        v-for="item in navItems"
-        :key="item.to"
-        :to="item.to"
-        :aria-label="item.label"
-        class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-[18px] px-1.5 py-2 text-[10px] font-semibold transition sm:min-w-[64px] sm:px-2 sm:text-[11px]"
-        :class="
-          isActive(item.matchers)
-            ? item.to === '/post-listing'
-              ? 'bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-lg shadow-brand-500/30'
-              : 'bg-ink text-white shadow-lg shadow-slate-900/20'
-            : item.to === '/post-listing'
-              ? 'text-brand-700 hover:bg-brand-50 dark:text-brand-200 dark:hover:bg-brand-500/10'
-              : 'text-slate-500 hover:bg-slate-100 hover:text-brand-700 dark:text-slate-300 dark:hover:bg-slate-800'
-        "
-      >
-        <ion-icon :icon="item.icon" class="text-[1.15rem]" />
-        <span class="min-h-6 max-w-full text-center leading-3">{{ item.label }}</span>
-      </RouterLink>
-    </div>
+      <span class="bottom-nav__icon">
+        <IonIcon :icon="item.icon" aria-hidden="true" />
+      </span>
+      <span class="bottom-nav__label">{{ item.shortLabel ?? item.label }}</span>
+    </RouterLink>
   </nav>
 </template>
 
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue'
-import {
-  addCircleOutline,
-  albumsOutline,
-  calendarOutline,
-  homeOutline,
-  personOutline,
-} from 'ionicons/icons'
+import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import { isNavItemActive, primaryNavItems, visibleNavItems } from '../../config/navigation'
+import { useAuth } from '../../composables/useAuth'
+
 const route = useRoute()
+const { role } = useAuth()
 
-const navItems = [
-  { label: 'Home', to: '/home', icon: homeOutline, matchers: ['/home'] },
-  {
-    label: 'My Listings',
-    to: '/my-listings',
-    icon: albumsOutline,
-    matchers: ['/my-listings'],
-  },
-  {
-    label: 'Post Listing',
-    to: '/post-listing',
-    icon: addCircleOutline,
-    matchers: ['/post-listing', '/add-property', '/edit-property', '/edit-listing'],
-  },
-  {
-    label: 'Bookings',
-    to: '/my-bookings',
-    icon: calendarOutline,
-    matchers: ['/my-bookings', '/booking', '/payment'],
-  },
-  {
-    label: 'Account Center',
-    to: '/profile',
-    icon: personOutline,
-    matchers: ['/profile', '/notifications'],
-  },
-] as const
-
-function isActive(matchers: readonly string[]) {
-  return matchers.some((matcher) => route.path === matcher || route.path.startsWith(`${matcher}/`))
-}
+const navItems = computed(() =>
+  visibleNavItems(primaryNavItems, { isAdmin: role.value === 'admin' })
+)
 </script>
+
+<style scoped>
+.bottom-nav {
+  position: fixed;
+  z-index: 70;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--rd-hairline);
+  background: var(--rd-surface);
+  /* The inset only resolves because index.html sets viewport-fit=cover. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -8px 24px -20px rgba(11, 14, 19, 0.5);
+}
+
+.bottom-nav__item {
+  position: relative;
+  display: flex;
+  /* 44px minimum tap target on the shortest supported viewport. */
+  min-height: var(--rd-bottom-nav-height);
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 4px;
+  color: var(--rd-subtle);
+  text-decoration: none;
+  transition: color 200ms ease;
+}
+
+/* Brass hairline marks the active tab rather than a heavy filled pill. */
+.bottom-nav__item::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--rd-brass);
+  content: '';
+  transform: translateX(-50%);
+  transition: width 240ms cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.bottom-nav__item--active {
+  color: var(--rd-ink);
+}
+
+.bottom-nav__item--active::before {
+  width: 34px;
+}
+
+.bottom-nav__icon {
+  display: grid;
+  place-items: center;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.bottom-nav__item--active .bottom-nav__icon {
+  color: var(--rd-brass);
+}
+
+.bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Post a listing reads as the primary action without breaking the row rhythm. */
+.bottom-nav__item--accent .bottom-nav__icon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--rd-brass);
+  border-radius: 999px;
+  color: var(--rd-brass);
+  font-size: 20px;
+}
+
+.bottom-nav__item--accent.bottom-nav__item--active .bottom-nav__icon {
+  background: var(--rd-brass);
+  color: #fff;
+}
+
+.bottom-nav__item:hover {
+  color: var(--rd-ink);
+}
+
+/* The bar is a mobile affordance; desktop navigates from the header. */
+@media (min-width: 900px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav__item,
+  .bottom-nav__item::before {
+    transition: none;
+  }
+}
+</style>

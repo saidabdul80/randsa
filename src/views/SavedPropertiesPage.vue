@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" :show-bottom-nav="false" content-class="min-h-full w-full">
+  <AppShell content-class="min-h-full w-full">
     <div class="saved-workspace">
       <aside class="saved-sidebar" aria-label="Saved Properties navigation">
         <RouterLink to="/home" class="saved-brand" aria-label="RANDSA home">
@@ -918,24 +918,24 @@ function formatSavedDate(value: string) {
 
 <style scoped>
 .saved-workspace {
-  --saved-bg: #f7f9fc;
-  --saved-surface: #ffffff;
-  --saved-soft: #f5f7fb;
-  --saved-text: #102033;
-  --saved-muted: #66778d;
-  --saved-subtle: #8795a8;
-  --saved-border: #e0e7ef;
-  --saved-blue: #1769ef;
-  --saved-blue-dark: #0f56cc;
-  --saved-blue-soft: #edf4ff;
-  --saved-green: #14804a;
-  --saved-green-soft: #eaf9f0;
-  --saved-amber: #b76a00;
-  --saved-amber-soft: #fff6e7;
-  --saved-purple: #7551d6;
-  --saved-purple-soft: #f3edff;
-  --saved-red: #df294d;
-  --saved-red-soft: #fff0f3;
+  --saved-bg: var(--rd-canvas);
+  --saved-surface: var(--rd-surface);
+  --saved-soft: var(--rd-surface-alt);
+  --saved-text: var(--rd-ink);
+  --saved-muted: var(--rd-muted);
+  --saved-subtle: var(--rd-subtle);
+  --saved-border: var(--rd-hairline);
+  --saved-blue: var(--rd-brass);
+  --saved-blue-dark: var(--rd-brass-strong);
+  --saved-blue-soft: var(--rd-brass-soft);
+  --saved-green: var(--rd-success);
+  --saved-green-soft: var(--rd-success-bg);
+  --saved-amber: var(--rd-warning);
+  --saved-amber-soft: var(--rd-warning-bg);
+  --saved-purple: var(--rd-info);
+  --saved-purple-soft: var(--rd-info-bg);
+  --saved-red: var(--rd-danger);
+  --saved-red-soft: var(--rd-danger-bg);
   min-height: 100%;
   background: var(--saved-bg);
   color: var(--saved-text);
@@ -1457,7 +1457,7 @@ function formatSavedDate(value: string) {
   background: var(--saved-red-soft);
 }
 .saved-state-card.is-error .saved-state-card__icon {
-  background: #fff;
+  background: var(--rd-surface);
   color: var(--saved-red);
 }
 .saved-empty-state {
@@ -1585,8 +1585,8 @@ function formatSavedDate(value: string) {
   flex-direction: column;
   overflow: hidden;
   border-left: 1px solid #dce4ee;
-  background: #fff;
-  color: #102033;
+  background: var(--rd-surface);
+  color: var(--rd-ink);
   box-shadow: -24px 0 60px -40px rgba(7, 17, 31, 0.8);
 }
 .saved-filter-dialog > header {
@@ -1602,7 +1602,7 @@ function formatSavedDate(value: string) {
   margin: 0;
 }
 .saved-filter-dialog > header p {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 9px;
   font-weight: 850;
 }
@@ -1631,7 +1631,7 @@ function formatSavedDate(value: string) {
 .saved-price-filter label span {
   display: block;
   margin-bottom: 7px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 10px;
   font-weight: 850;
 }
@@ -1641,9 +1641,9 @@ function formatSavedDate(value: string) {
   min-height: 46px;
   border: 1px solid #d8e1ec;
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 12px;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 11px;
   outline: 0;
 }
@@ -1658,7 +1658,7 @@ function formatSavedDate(value: string) {
   gap: 10px;
 }
 .saved-price-filter label span {
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 8px;
 }
 .saved-filter-dialog > footer {
@@ -1677,19 +1677,19 @@ function formatSavedDate(value: string) {
 }
 .saved-filter-dialog > footer .is-clear {
   border: 1px solid #cfd9e6;
-  color: #344256;
+  color: var(--rd-muted);
 }
 .saved-filter-dialog > footer .is-apply {
-  background: #1769ef;
+  background: var(--rd-brass);
   color: #fff;
 }
 .saved-remove-dialog {
   width: min(430px, 100%);
   border: 1px solid #e0e7ef;
   border-radius: 18px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 25px;
-  color: #102033;
+  color: var(--rd-ink);
   box-shadow: 0 28px 70px -38px rgba(7, 17, 31, 0.9);
   text-align: center;
 }
@@ -1718,7 +1718,7 @@ function formatSavedDate(value: string) {
   display: block;
   overflow: hidden;
   margin-top: 12px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1737,7 +1737,7 @@ function formatSavedDate(value: string) {
   gap: 7px;
   border: 1px solid #cfd9e6;
   border-radius: 11px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 10px;
   font-weight: 850;
 }
@@ -2234,32 +2234,11 @@ function formatSavedDate(value: string) {
   }
 }
 
-:global(.dark) .saved-workspace {
-  --saved-bg: #08111f;
-  --saved-surface: #101b2b;
-  --saved-soft: #152236;
-  --saved-text: #f5f8fc;
-  --saved-muted: #b0bdcd;
-  --saved-subtle: #8797aa;
-  --saved-border: #27364a;
-  --saved-blue: #70aaff;
-  --saved-blue-dark: #4f90e9;
-  --saved-blue-soft: #142b4e;
-  --saved-green: #4bd391;
-  --saved-green-soft: #123326;
-  --saved-amber: #f3bb51;
-  --saved-amber-soft: #382b14;
-  --saved-purple: #b99cff;
-  --saved-purple-soft: #2c2148;
-  --saved-red: #ff8199;
-  --saved-red-soft: #3b1721;
-}
-
 :global(.dark) .saved-filter-dialog,
 :global(.dark) .saved-remove-dialog {
   border-color: #27364a;
   background: #101b2b;
-  color: #f5f8fc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .saved-filter-dialog > header,
 :global(.dark) .saved-filter-dialog > footer {
@@ -2277,7 +2256,7 @@ function formatSavedDate(value: string) {
 :global(.dark) .saved-filter-fields input {
   border-color: #33445a;
   background: #0c1726;
-  color: #f5f8fc;
+  color: var(--rd-surface-alt);
   color-scheme: dark;
 }
 :global(.dark) .saved-remove-dialog p {

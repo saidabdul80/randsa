@@ -6,8 +6,7 @@ export function createRouter() {
   const router = createVueRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-      { path: '/', redirect: '/splash' },
-      { path: '/splash', name: 'splash', component: () => import('../views/SplashScreen.vue') },
+      { path: '/', redirect: '/onboarding' },
       {
         path: '/onboarding',
         name: 'onboarding',
@@ -114,10 +113,14 @@ export function createRouter() {
         component: () => import('../views/AdminDashboardPage.vue'),
         meta: { requiresAuth: true, requiresActiveAccount: true, requiresAdmin: true },
       },
-      { path: '/:pathMatch(.*)*', redirect: '/home' },
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'not-found',
+        component: () => import('../views/NotFoundPage.vue'),
+      },
     ],
-    scrollBehavior() {
-      return { top: 0 }
+    scrollBehavior(to) {
+      return to.hash ? { el: to.hash, top: 80, behavior: 'smooth' } : { top: 0 }
     },
   })
 
@@ -181,5 +184,37 @@ export function createRouter() {
     return true
   })
 
+  // A static <title> on every route hurts history, tabs, and shared links.
+  router.afterEach((to) => {
+    if (typeof document === 'undefined') return
+
+    const pageTitle = ROUTE_TITLES[String(to.name ?? '')]
+    document.title = pageTitle ? `${pageTitle} · RANDSA` : DEFAULT_TITLE
+  })
+
   return router
+}
+
+const DEFAULT_TITLE = 'RANDSA — Rent, list, and book anything'
+
+const ROUTE_TITLES: Record<string, string> = {
+  onboarding: 'Welcome',
+  login: 'Sign in',
+  register: 'Create account',
+  home: 'Marketplace',
+  'property-details': 'Property details',
+  'marketplace-listing-details': 'Listing details',
+  'post-listing': 'Post a listing',
+  'edit-listing': 'Edit listing',
+  'my-listings': 'My listings',
+  'edit-property': 'Edit property',
+  'saved-properties': 'Saved listings',
+  booking: 'Book',
+  'my-bookings': 'My bookings',
+  payment: 'Payment',
+  'agent-verification': 'Professional verification',
+  notifications: 'Notifications',
+  profile: 'Account centre',
+  admin: 'Admin',
+  'not-found': 'Page not found',
 }

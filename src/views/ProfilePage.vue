@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 sm:pb-8">
+  <AppShell content-class="min-h-full w-full pb-28 sm:pb-8">
     <div class="account-center">
       <div class="account-center__navigation">
         <NotificationSidebarNav
@@ -485,6 +485,7 @@ import AppShell from '../components/layout/AppShell.vue'
 import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
 import LocalDataMigrationCard from '../components/profile/LocalDataMigrationCard.vue'
 import StoragePathTester from '../components/profile/StoragePathTester.vue'
+import { confirmAction } from '../composables/useConfirm'
 import { rehydrateAuthState, signOutCurrentUser, useAuth } from '../composables/useAuth'
 import { switchLocalBypassRole, toDisplayError } from '../services/auth'
 import type { UserRole } from '../types/user'
@@ -845,7 +846,13 @@ function dismissNotice() {
 }
 
 async function handleLogout() {
-  if (!window.confirm('Log out of your RANDSA account on this device?')) return
+  const confirmed = await confirmAction({
+    title: 'Log out of RANDSA?',
+    message: 'You will need to sign in again on this device to book, post, or manage listings.',
+    confirmLabel: 'Log out',
+  })
+  if (!confirmed) return
+
   errorMessage.value = ''
   isSigningOut.value = true
   try {
@@ -875,21 +882,21 @@ async function handleRoleSwitch(role: UserRole) {
 
 <style scoped>
 .account-center {
-  --ac-bg: #f5f7fa;
-  --ac-surface: #ffffff;
-  --ac-soft: #f4f7fb;
-  --ac-text: #102033;
-  --ac-muted: #66778d;
-  --ac-subtle: #8a98aa;
-  --ac-border: #e0e7ef;
-  --ac-blue: #1769ef;
-  --ac-blue-soft: #edf4ff;
-  --ac-green: #079455;
-  --ac-green-soft: #ecfdf3;
-  --ac-amber: #b76a00;
-  --ac-amber-soft: #fff8e8;
-  --ac-red: #d92d4f;
-  --ac-red-soft: #fff1f3;
+  --ac-bg: var(--rd-canvas);
+  --ac-surface: var(--rd-surface);
+  --ac-soft: var(--rd-surface-alt);
+  --ac-text: var(--rd-ink);
+  --ac-muted: var(--rd-muted);
+  --ac-subtle: var(--rd-subtle);
+  --ac-border: var(--rd-hairline);
+  --ac-blue: var(--rd-brass);
+  --ac-blue-soft: var(--rd-brass-soft);
+  --ac-green: var(--rd-success);
+  --ac-green-soft: var(--rd-success-bg);
+  --ac-amber: var(--rd-warning);
+  --ac-amber-soft: var(--rd-warning-bg);
+  --ac-red: var(--rd-danger);
+  --ac-red-soft: var(--rd-danger-bg);
   min-height: 100%;
   background: var(--ac-bg);
   color: var(--ac-text);
@@ -958,7 +965,7 @@ async function handleRoleSwitch(role: UserRole) {
   height: 126px;
   place-items: center;
   border-radius: 42% 42% 52% 52%;
-  background: linear-gradient(145deg, #5aa2ff, #1769ef 70%);
+  background: linear-gradient(145deg, #5aa2ff, var(--rd-brass) 70%);
   color: rgba(255, 255, 255, 0.22);
   box-shadow: 0 28px 45px -30px rgba(23, 105, 239, 0.9);
   transform: perspective(300px) rotateY(-7deg);
@@ -976,7 +983,7 @@ async function handleRoleSwitch(role: UserRole) {
   height: 58px;
   place-items: center;
   border-radius: 50%;
-  background: #fff;
+  background: var(--rd-surface);
   color: #406b9e;
   box-shadow: 0 12px 25px -18px #102033;
 }
@@ -1130,7 +1137,7 @@ async function handleRoleSwitch(role: UserRole) {
   height: 5px;
   overflow: hidden;
   border-radius: 4px;
-  background: #e8edf3;
+  background: var(--rd-hairline);
 }
 .completion-inline i {
   display: block;
@@ -1811,7 +1818,7 @@ async function handleRoleSwitch(role: UserRole) {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   color: var(--ac-green);
 }
 .summary-security strong,
@@ -1961,23 +1968,6 @@ async function handleRoleSwitch(role: UserRole) {
   }
 }
 
-:global(.dark) .account-center {
-  --ac-bg: #0b1420;
-  --ac-surface: #111c2a;
-  --ac-soft: #182638;
-  --ac-text: #f7f9fc;
-  --ac-muted: #b6c3d2;
-  --ac-subtle: #8797aa;
-  --ac-border: #2a394b;
-  --ac-blue: #67a6f5;
-  --ac-blue-soft: #162942;
-  --ac-green: #54d39a;
-  --ac-green-soft: #153126;
-  --ac-amber: #f0bd61;
-  --ac-amber-soft: #302718;
-  --ac-red: #ff9aae;
-  --ac-red-soft: #341d26;
-}
 :global(.dark) .account-hero {
   background: linear-gradient(110deg, #111c2a, #13243a);
 }

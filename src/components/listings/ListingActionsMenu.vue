@@ -141,7 +141,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeFromOutside))
   place-items: center;
   border: 1px solid #dfe6ef;
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   color: #40546d;
   cursor: pointer;
   font-size: 18px;
@@ -155,7 +155,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeFromOutside))
 .listing-actions__trigger:hover {
   border-color: #b9c9dd;
   background: #f7f9fc;
-  color: #1769ef;
+  color: var(--rd-brass);
   transform: translateY(-1px);
 }
 
@@ -187,7 +187,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeFromOutside))
   overflow: hidden;
   border: 1px solid #dde5ef;
   border-radius: 12px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 6px;
   box-shadow: 0 18px 50px -20px rgba(15, 23, 42, 0.38);
 }
@@ -214,7 +214,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeFromOutside))
 .listing-actions__menu a:hover,
 .listing-actions__menu button:hover {
   background: #f3f6fa;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 
 .listing-actions__menu ion-icon {
@@ -225,7 +225,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeFromOutside))
 .listing-actions__divider {
   height: 1px;
   margin: 5px 4px;
-  background: #edf1f5;
+  background: var(--rd-hairline);
 }
 
 .listing-actions__menu .listing-actions__danger {

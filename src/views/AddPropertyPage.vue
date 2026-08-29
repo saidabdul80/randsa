@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 sm:pb-8">
+  <AppShell content-class="min-h-full w-full pb-28 sm:pb-8">
     <div class="add-listing-page">
       <div class="add-listing-navigation">
         <NotificationSidebarNav
@@ -596,7 +596,7 @@ function handleCancel() {
 .add-listing-page {
   min-height: 100%;
   background: #f5f7fa;
-  color: #102033;
+  color: var(--rd-ink);
 }
 .add-listing-navigation {
   padding: 10px 12px 0;
@@ -616,11 +616,11 @@ function handleCancel() {
   display: none;
   align-items: center;
   gap: 9px;
-  color: #102033;
+  color: var(--rd-ink);
   text-decoration: none;
 }
 .add-listing-brand > span {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 31px;
   font-weight: 950;
   line-height: 1;
@@ -647,9 +647,9 @@ function handleCancel() {
   min-height: 38px;
   align-items: center;
   gap: 7px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 13px;
   color: #243950;
   font-size: 11px;
@@ -671,7 +671,7 @@ function handleCancel() {
   color: #fff;
   font-size: 9px;
   font-weight: 850;
-  box-shadow: 0 0 0 1px #dce4ed;
+  box-shadow: 0 0 0 1px var(--rd-hairline);
 }
 .add-listing-hero {
   position: relative;
@@ -680,7 +680,7 @@ function handleCancel() {
   overflow: hidden;
   border: 1px solid #dfe7f0;
   border-radius: 18px;
-  background: #edf4ff;
+  background: var(--rd-brass-soft);
 }
 .add-listing-hero > div:first-child {
   position: relative;
@@ -690,7 +690,7 @@ function handleCancel() {
 }
 .add-listing-hero p {
   margin: 0;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -699,7 +699,7 @@ function handleCancel() {
 .add-listing-hero h1 {
   max-width: 520px;
   margin: 9px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: clamp(24px, 4vw, 35px);
   font-weight: 900;
   letter-spacing: 0;
@@ -722,7 +722,7 @@ function handleCancel() {
   inset: 0;
   background: linear-gradient(
     90deg,
-    #edf4ff 0%,
+    var(--rd-brass-soft) 0%,
     rgba(237, 244, 255, 0.97) 44%,
     rgba(237, 244, 255, 0.08) 77%
   );
@@ -768,9 +768,9 @@ function handleCancel() {
   color: #087b4c;
 }
 .add-listing-status.error {
-  border-color: #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+  border-color: var(--rd-danger-bg);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 .add-listing-workspace {
   display: grid;
@@ -789,7 +789,7 @@ function handleCancel() {
   gap: 7px;
   border: 1px dashed #cdd9e7;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 24px;
   text-align: center;
 }
@@ -799,8 +799,8 @@ function handleCancel() {
   height: 44px;
   place-items: center;
   border-radius: 8px;
-  background: #edf4ff;
-  color: #1769ef;
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
   font-size: 22px;
 }
 .category-details-ready p,
@@ -809,13 +809,13 @@ function handleCancel() {
   margin: 0;
 }
 .category-details-ready p {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 10px;
   font-weight: 850;
   text-transform: uppercase;
 }
 .category-details-ready h2 {
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 20px;
 }
 .category-details-ready small {
@@ -828,7 +828,7 @@ function handleCancel() {
 .permission-panel {
   border: 1px solid #e1e8f0;
   border-radius: 17px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 17px;
   box-shadow: 0 20px 50px -42px rgba(16, 32, 51, 0.45);
 }
@@ -856,7 +856,7 @@ function handleCancel() {
 }
 .permission-panel__title h2 {
   margin: 3px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 12px;
 }
 .permission-panel > p {
@@ -882,7 +882,7 @@ function handleCancel() {
 .permission-panel li > ion-icon {
   width: 17px;
   flex: 0 0 auto;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 17px;
 }
 .permission-panel li span,
@@ -933,7 +933,7 @@ function handleCancel() {
   .add-listing-hero__image::after {
     background: linear-gradient(
       90deg,
-      #edf4ff 0%,
+      var(--rd-brass-soft) 0%,
       rgba(237, 244, 255, 0.94) 68%,
       rgba(237, 244, 255, 0.25)
     );
@@ -994,14 +994,14 @@ function handleCancel() {
 
 :global(.dark) .add-listing-page {
   background: #0b1420;
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .add-listing-brand,
 :global(.dark) .classification-summary strong,
 :global(.dark) .category-details-ready h2,
 :global(.dark) .permission-panel__title h2,
 :global(.dark) .permission-panel li strong {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .save-draft-button,
 :global(.dark) .permission-panel,
@@ -1016,7 +1016,7 @@ function handleCancel() {
   background: #13243a;
 }
 :global(.dark) .add-listing-hero h1 {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .add-listing-hero > div:first-child > span {
   color: #cad5e1;

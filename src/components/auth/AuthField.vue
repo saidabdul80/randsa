@@ -75,40 +75,40 @@ const resolvedType = computed(() =>
   min-width: 0;
 }
 
+/* A filled field closed by a single hairline. The line, not a box, carries focus. */
 .auth-input-wrap {
   position: relative;
   display: flex;
   width: 100%;
-  height: 54px;
+  height: 58px;
   align-items: center;
-  gap: 11px;
-  border: 1px solid var(--auth-border);
-  border-radius: 12px;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--auth-border);
+  border-radius: 3px 3px 0 0;
   background: var(--auth-input);
   padding: 0 14px;
   transition:
-    border-color 190ms ease,
-    box-shadow 190ms ease,
-    transform 190ms ease;
+    border-color 240ms ease,
+    background-color 240ms ease,
+    box-shadow 240ms ease;
 }
 
 .auth-input-wrap:focus-within {
-  border-color: var(--auth-focus-border);
-  box-shadow: 0 0 0 4px var(--auth-focus);
-  transform: translateY(-1px);
+  border-bottom-color: var(--auth-blue);
+  background: var(--auth-hover);
+  /* Thickens the hairline to 2px without shifting the field's height. */
+  box-shadow: inset 0 -1px 0 var(--auth-blue);
 }
 
 .auth-input-wrap > ion-icon {
   flex: 0 0 auto;
   color: var(--auth-icon);
-  font-size: 19px;
-  transition:
-    color 190ms ease,
-    transform 190ms ease;
+  font-size: 17px;
+  transition: color 240ms ease;
 }
 
 .auth-input-wrap:focus-within > ion-icon {
-  transform: translateY(-1px);
   color: var(--auth-blue);
 }
 
@@ -119,71 +119,96 @@ const resolvedType = computed(() =>
   border: 0;
   outline: 0;
   background: transparent;
-  padding: 15px 0 0;
+  padding: 18px 0 0;
   color: var(--auth-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
 }
 
 .auth-input-wrap input:disabled {
   cursor: not-allowed;
-  opacity: 0.62;
+  opacity: 0.6;
+}
+
+/* Chrome paints autofilled fields with its own rgb(232, 240, 254) highlight, which is
+   unreadable on a dark card. Clipping that background to the glyphs hides it without
+   forcing an opaque colour, so the field keeps its translucent surface. */
+.auth-input-wrap input:-webkit-autofill,
+.auth-input-wrap input:-webkit-autofill:hover,
+.auth-input-wrap input:-webkit-autofill:focus,
+.auth-input-wrap input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--auth-text);
+  caret-color: var(--auth-text);
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s;
 }
 
 .auth-floating-label {
   position: absolute;
-  left: 44px;
+  left: 43px;
   top: 50%;
   overflow: hidden;
-  max-width: calc(100% - 58px);
+  max-width: calc(100% - 60px);
   transform: translateY(-50%);
   color: var(--auth-placeholder);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 550;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
   transition:
-    top 180ms ease,
-    transform 180ms ease,
-    color 180ms ease,
-    font-size 180ms ease;
+    top 240ms cubic-bezier(0.33, 0, 0.2, 1),
+    transform 240ms cubic-bezier(0.33, 0, 0.2, 1),
+    color 240ms ease,
+    font-size 240ms ease,
+    letter-spacing 240ms ease;
 }
 
 .auth-input-wrap input:focus + .auth-floating-label,
 .auth-input-wrap input:not(:placeholder-shown) + .auth-floating-label {
-  top: 11px;
+  top: 13px;
   transform: none;
-  color: var(--auth-blue);
+  color: var(--auth-subtle);
   font-size: 8px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.auth-input-wrap input:focus + .auth-floating-label {
+  color: var(--auth-blue);
 }
 
 .auth-password-toggle {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   place-items: center;
   border: 0;
-  border-radius: 9px;
+  border-radius: 3px;
   background: transparent;
   color: var(--auth-icon);
-  font-size: 19px;
+  font-size: 17px;
   cursor: pointer;
   transition:
-    background-color 190ms ease,
-    color 190ms ease;
+    background-color 240ms ease,
+    color 240ms ease;
 }
 
 .auth-password-toggle:hover {
   background: var(--auth-hover);
-  color: var(--auth-blue);
+  color: var(--auth-text);
 }
 
 .auth-password-toggle:focus-visible {
-  outline: 3px solid var(--auth-focus);
+  outline: 2px solid var(--auth-focus-border);
   outline-offset: 2px;
 }
 

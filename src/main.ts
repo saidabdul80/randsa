@@ -16,15 +16,19 @@ import '@ionic/vue/css/flex-utils.css'
 import '@ionic/vue/css/display.css'
 import 'leaflet/dist/leaflet.css'
 
+/* Order matters: design tokens first, then Tailwind so its utilities can still win. */
+import './assets/styles/editorial.css'
 import './theme/variables.css'
 import './assets/styles/tailwind.css'
 import { initializeAuthState } from './composables/useAuth'
+import { initializeTheme } from './composables/useTheme'
 
 const app = createApp(App)
 const router = createRouter()
 
 app.use(IonicVue)
 app.use(router)
+initializeTheme()
 initializeAuthState()
 
 app.mount('#app')

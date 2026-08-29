@@ -110,7 +110,7 @@ const emit = defineEmits<{
   overflow: visible;
   border: 1px solid #dfe6ef;
   border-radius: 16px;
-  background: #fff;
+  background: var(--rd-surface);
   box-shadow: 0 16px 36px -30px rgba(16, 32, 51, 0.6);
   transition:
     border-color 190ms ease,
@@ -238,7 +238,7 @@ const emit = defineEmits<{
   overflow: hidden;
   min-height: 24px;
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 17px;
   font-weight: 800;
   line-height: 1.35;
@@ -308,7 +308,7 @@ const emit = defineEmits<{
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 9px;
-  border-top: 1px solid #edf1f5;
+  border-top: 1px solid var(--rd-hairline);
   padding: 13px 16px 16px;
 }
 
@@ -333,7 +333,7 @@ const emit = defineEmits<{
 .my-listing-card__footer > a:hover {
   border-color: #abc3e4;
   background: #f5f8fd;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 
 .my-listing-card__footer > a:focus-visible {
@@ -347,7 +347,7 @@ const emit = defineEmits<{
 }
 
 :global(.dark) .my-listing-card__body h2 {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 
 :global(.dark) .my-listing-card__footer,

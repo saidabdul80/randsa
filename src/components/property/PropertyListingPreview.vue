@@ -147,9 +147,9 @@ const detailItems = computed(() => {
 .listing-preview {
   display: grid;
   gap: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rd-hairline);
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--rd-surface);
   padding: 18px;
   box-shadow: 0 22px 55px -42px rgba(16, 32, 51, 0.48);
 }
@@ -174,7 +174,7 @@ const detailItems = computed(() => {
 }
 .listing-preview__header h2 {
   margin: 4px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 16px;
   font-weight: 850;
 }
@@ -225,9 +225,9 @@ const detailItems = computed(() => {
 
 .listing-preview__card {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rd-hairline);
   border-radius: 15px;
-  background: #ffffff;
+  background: var(--rd-surface);
 }
 .listing-preview__card figure {
   position: relative;
@@ -287,7 +287,7 @@ const detailItems = computed(() => {
 .listing-preview__body h3 {
   overflow: hidden;
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 16px;
   font-weight: 850;
   text-overflow: ellipsis;
@@ -342,7 +342,7 @@ const detailItems = computed(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #64748b;
+  color: var(--rd-subtle);
   font-size: 10px;
   font-weight: 750;
 }
@@ -360,7 +360,7 @@ const detailItems = computed(() => {
 }
 .listing-preview__quality-title h3 {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 13px;
 }
 .listing-preview__quality ul {
@@ -415,7 +415,7 @@ const detailItems = computed(() => {
 :global(.dark) .listing-preview__header h2,
 :global(.dark) .listing-preview__body h3,
 :global(.dark) .listing-preview__quality-title h3 {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .listing-preview__progress,
 :global(.dark) .listing-preview__details span,

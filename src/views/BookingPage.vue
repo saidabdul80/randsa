@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" content-class="min-h-full w-full pb-28 lg:pb-0">
+  <AppShell content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="booking-page-layout">
       <aside class="booking-desktop-nav" aria-label="Booking navigation">
         <div class="booking-brand" aria-label="RANDSA">
@@ -1260,14 +1260,14 @@ function formatTimeLabel(value: string) {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #102033;
+  color: var(--rd-ink);
   font-family: 'Space Grotesk', 'Manrope', sans-serif;
   font-size: 20px;
   letter-spacing: 0;
 }
 
 .booking-brand span {
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 34px;
   font-weight: 800;
   line-height: 1;
@@ -1290,7 +1290,7 @@ function formatTimeLabel(value: string) {
   gap: 13px;
   border-radius: 11px;
   padding: 0 13px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
@@ -1308,13 +1308,13 @@ function formatTimeLabel(value: string) {
 
 .booking-nav-link:hover {
   transform: translateX(2px);
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1858c8;
 }
 
 .booking-nav-link--active,
 .booking-nav-link--active:hover {
-  background: #1f6fe7;
+  background: var(--rd-brass);
   color: #ffffff;
   box-shadow: 0 14px 28px -18px rgba(31, 111, 231, 0.85);
 }
@@ -1327,9 +1327,9 @@ function formatTimeLabel(value: string) {
   margin-top: auto;
   border: 1px solid #e0e6ed;
   border-radius: 14px;
-  background: #f8fafc;
+  background: var(--rd-surface-alt);
   padding: 11px;
-  color: #344256;
+  color: var(--rd-muted);
   text-decoration: none;
   transition:
     border-color 200ms ease,
@@ -1356,7 +1356,7 @@ function formatTimeLabel(value: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1f6fe7;
+  background: var(--rd-brass);
   color: #ffffff;
   font-size: 13px;
   font-weight: 800;
@@ -1376,7 +1376,7 @@ function formatTimeLabel(value: string) {
 }
 
 .booking-profile-copy strong {
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 11px;
 }
 
@@ -1399,7 +1399,7 @@ function formatTimeLabel(value: string) {
   overflow: hidden;
   border: 1px solid rgba(218, 225, 235, 0.92);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--rd-surface);
   box-shadow: 0 22px 52px -36px rgba(16, 32, 51, 0.55);
 }
 
@@ -1419,13 +1419,13 @@ function formatTimeLabel(value: string) {
   justify-content: center;
   border-radius: 15px;
   background: #eaf3ff;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 24px;
 }
 
 .booking-eyebrow {
   margin: 0;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 11px;
   font-weight: 800;
   line-height: 1.4;
@@ -1435,7 +1435,7 @@ function formatTimeLabel(value: string) {
 
 .booking-hero h1 {
   margin: 6px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-family: 'Space Grotesk', 'Manrope', sans-serif;
   font-size: 30px;
   font-weight: 700;
@@ -1483,7 +1483,7 @@ function formatTimeLabel(value: string) {
   justify-content: center;
   gap: 10px;
   background: #edf2f7;
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1503,7 +1503,7 @@ function formatTimeLabel(value: string) {
 .booking-card {
   border: 1px solid rgba(218, 225, 235, 0.92);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--rd-surface);
   box-shadow: 0 20px 48px -38px rgba(16, 32, 51, 0.55);
   transition:
     transform 200ms ease,
@@ -1531,7 +1531,7 @@ function formatTimeLabel(value: string) {
 .summary-card-heading h2,
 .property-summary-content h2 {
   margin: 6px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 20px;
   font-weight: 800;
   line-height: 1.3;
@@ -1576,9 +1576,9 @@ function formatTimeLabel(value: string) {
 }
 
 .booking-message--error {
-  border-color: #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+  border-color: var(--rd-danger-bg);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 
 .booking-form {
@@ -1602,7 +1602,7 @@ function formatTimeLabel(value: string) {
 .booking-field > label {
   display: block;
   margin-bottom: 9px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -1621,8 +1621,8 @@ function formatTimeLabel(value: string) {
   min-height: 50px;
   border: 1px solid #dbe2ea;
   border-radius: 14px;
-  background: #ffffff;
-  color: #102033;
+  background: var(--rd-surface);
+  color: var(--rd-ink);
   font-size: 13px;
   outline: none;
   transition:
@@ -1657,7 +1657,7 @@ function formatTimeLabel(value: string) {
 
 .booking-picker-trigger > ion-icon:first-child {
   flex: 0 0 auto;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 18px;
 }
 
@@ -1675,7 +1675,7 @@ function formatTimeLabel(value: string) {
 
 .picker-chevron {
   flex: 0 0 auto;
-  color: #718096;
+  color: var(--rd-subtle);
 }
 
 .booking-text-input {
@@ -1691,7 +1691,7 @@ function formatTimeLabel(value: string) {
 
 .booking-text-input ion-icon {
   flex: 0 0 auto;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 18px;
 }
 
@@ -1700,7 +1700,7 @@ function formatTimeLabel(value: string) {
   min-width: 0;
   border: 0;
   background: transparent;
-  color: #102033;
+  color: var(--rd-ink);
   font: inherit;
   outline: 0;
 }
@@ -1735,7 +1735,7 @@ function formatTimeLabel(value: string) {
   overflow: hidden;
   border: 1px solid #dfe5ec;
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--rd-surface);
   box-shadow: 0 24px 60px -24px rgba(16, 32, 51, 0.45);
 }
 
@@ -1751,7 +1751,7 @@ function formatTimeLabel(value: string) {
 .calendar-header h3,
 .time-popover-header h3 {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 14px;
   font-weight: 800;
 }
@@ -1763,15 +1763,15 @@ function formatTimeLabel(value: string) {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  color: #344256;
+  color: var(--rd-muted);
   transition:
     background-color 180ms ease,
     color 180ms ease;
 }
 
 .calendar-nav-button:hover:not(:disabled) {
-  background: #edf5ff;
-  color: #1f6fe7;
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
 }
 
 .calendar-nav-button:disabled {
@@ -1812,7 +1812,7 @@ function formatTimeLabel(value: string) {
   justify-content: center;
   gap: 3px;
   border-radius: 10px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 12px;
   font-weight: 700;
   transition:
@@ -1823,7 +1823,7 @@ function formatTimeLabel(value: string) {
 
 .calendar-day:hover:not(.calendar-day--disabled) {
   transform: translateY(-1px);
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1858c8;
 }
 
@@ -1858,13 +1858,13 @@ function formatTimeLabel(value: string) {
 
 .calendar-day--selected,
 .calendar-day--selected:hover:not(.calendar-day--disabled) {
-  background: #1f6fe7;
+  background: var(--rd-brass);
   color: #ffffff;
   box-shadow: none;
 }
 
 .calendar-day--selected .calendar-availability-dot {
-  background: #ffffff;
+  background: var(--rd-surface);
 }
 
 .calendar-day--disabled {
@@ -1928,13 +1928,13 @@ function formatTimeLabel(value: string) {
 }
 
 .calendar-refresh-note {
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1858c8;
 }
 
 .calendar-refresh-note--error {
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 
 .calendar-footer {
@@ -1965,7 +1965,7 @@ function formatTimeLabel(value: string) {
 
 .calendar-apply-button {
   margin-left: auto;
-  background: #1f6fe7;
+  background: var(--rd-brass);
   color: #ffffff;
 }
 
@@ -2014,7 +2014,7 @@ function formatTimeLabel(value: string) {
   min-height: 38px;
   border: 1px solid #e2e7ed;
   border-radius: 10px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 10px;
   font-weight: 800;
   transition:
@@ -2025,14 +2025,14 @@ function formatTimeLabel(value: string) {
 
 .time-slot:hover:not(:disabled) {
   border-color: #b8d8ff;
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #1858c8;
 }
 
 .time-slot--selected,
 .time-slot--selected:hover:not(:disabled) {
-  border-color: #1f6fe7;
-  background: #1f6fe7;
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
   color: #ffffff;
 }
 
@@ -2091,8 +2091,8 @@ function formatTimeLabel(value: string) {
 
 .booking-button--secondary {
   border: 1px solid #d6dde6;
-  background: #ffffff;
-  color: #344256;
+  background: var(--rd-surface);
+  color: var(--rd-muted);
 }
 
 .booking-button--secondary:hover {
@@ -2102,7 +2102,7 @@ function formatTimeLabel(value: string) {
 
 .booking-button--primary {
   min-width: 182px;
-  background: #1f6fe7;
+  background: var(--rd-brass);
   color: #ffffff;
   box-shadow: 0 14px 28px -16px rgba(31, 111, 231, 0.8);
 }
@@ -2145,20 +2145,20 @@ function formatTimeLabel(value: string) {
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  background: #ffffff;
-  color: #1f6fe7;
+  background: var(--rd-surface);
+  color: var(--rd-brass);
   font-size: 19px;
 }
 
 .booking-trust-strip strong {
   display: block;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 11px;
 }
 
 .booking-trust-strip p {
   margin: 3px 0 0;
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 9px;
   line-height: 1.45;
 }
@@ -2199,8 +2199,8 @@ function formatTimeLabel(value: string) {
 }
 
 .summary-status--unavailable {
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 
 .inspection-summary-list {
@@ -2222,12 +2222,12 @@ function formatTimeLabel(value: string) {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 10px;
 }
 
 .inspection-summary-list dt ion-icon {
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 13px;
 }
 
@@ -2235,7 +2235,7 @@ function formatTimeLabel(value: string) {
   max-width: 58%;
   margin: 0;
   overflow-wrap: anywhere;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 10px;
   font-weight: 800;
   text-align: right;
@@ -2254,7 +2254,7 @@ function formatTimeLabel(value: string) {
 .property-address ion-icon {
   flex: 0 0 auto;
   margin-top: 2px;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 15px;
 }
 
@@ -2277,18 +2277,18 @@ function formatTimeLabel(value: string) {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #718096;
+  color: var(--rd-subtle);
   font-size: 11px;
 }
 
 .property-facts dt ion-icon {
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 14px;
 }
 
 .property-facts dd {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 11px;
   font-weight: 800;
   text-align: right;
@@ -2324,8 +2324,8 @@ function formatTimeLabel(value: string) {
 }
 
 .payment-badge--failed {
-  background: #fff1f2;
-  color: #be123c;
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 
 .payment-amount-row {
@@ -2335,7 +2335,7 @@ function formatTimeLabel(value: string) {
   gap: 16px;
   margin-top: 18px;
   border-radius: 14px;
-  background: #f5f8fc;
+  background: var(--rd-surface-alt);
   padding: 14px;
 }
 
@@ -2350,12 +2350,12 @@ function formatTimeLabel(value: string) {
 .payment-amount-row strong {
   display: block;
   margin-top: 4px;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 17px;
 }
 
 .payment-amount-row > ion-icon {
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 24px;
 }
 
@@ -2369,7 +2369,7 @@ function formatTimeLabel(value: string) {
   display: block;
   overflow-wrap: anywhere;
   margin-top: 4px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 11px;
 }
 
@@ -2405,8 +2405,8 @@ function formatTimeLabel(value: string) {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: #edf5ff;
-  color: #1f6fe7;
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
   font-size: 18px;
 }
 
@@ -2426,7 +2426,7 @@ function formatTimeLabel(value: string) {
 
 .reminder-list li > ion-icon {
   flex: 0 0 auto;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 17px;
 }
 
@@ -2436,7 +2436,7 @@ function formatTimeLabel(value: string) {
 }
 
 .reminder-list strong {
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 11px;
 }
 
@@ -2488,7 +2488,7 @@ function formatTimeLabel(value: string) {
     align-self: start;
     flex-direction: column;
     border-right: 1px solid #e3e8ee;
-    background: #ffffff;
+    background: var(--rd-surface);
     padding: 28px 18px 22px;
   }
 

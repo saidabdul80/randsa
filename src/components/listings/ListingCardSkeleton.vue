@@ -1,102 +1,91 @@
 <template>
   <article class="listing-skeleton" aria-hidden="true">
-    <div class="listing-skeleton__image shimmer" />
+    <div class="listing-skeleton__image rd-skeleton" />
     <div class="listing-skeleton__body">
-      <span class="shimmer listing-skeleton__title" />
-      <span class="shimmer listing-skeleton__price" />
-      <div><span class="shimmer" /><span class="shimmer" /></div>
-      <span class="shimmer listing-skeleton__updated" />
+      <span class="rd-skeleton listing-skeleton__location" />
+      <span class="rd-skeleton listing-skeleton__title" />
+      <span class="rd-skeleton listing-skeleton__title listing-skeleton__title--short" />
+      <div class="listing-skeleton__meta">
+        <span class="rd-skeleton" />
+        <span class="rd-skeleton" />
+      </div>
+      <span class="rd-skeleton listing-skeleton__price" />
     </div>
-    <footer><span class="shimmer" /><span class="shimmer" /><span class="shimmer" /></footer>
   </article>
 </template>
 
 <style scoped>
+/*
+ * Mirrors MarketplaceListingCard geometry exactly - same 4/3 media, same padding,
+ * same line rhythm - so the grid does not shift when real cards replace these.
+ */
 .listing-skeleton {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
   overflow: hidden;
-  border: 1px solid #e1e7ef;
-  border-radius: 16px;
-  background: #fff;
+  border: 1px solid var(--rd-hairline);
+  border-radius: var(--rd-radius);
+  background: var(--rd-surface);
 }
 
+/* Matches the card: the media takes the leftover height of a fixed mosaic row. */
 .listing-skeleton__image {
-  aspect-ratio: 16 / 10.5;
+  min-height: 0;
+  flex: 1;
+  border-radius: 0;
 }
 
 .listing-skeleton__body {
-  display: grid;
-  gap: 11px;
-  padding: 18px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px 14px;
 }
 
-.listing-skeleton__body > span,
-.listing-skeleton__body div span,
-.listing-skeleton footer span {
+.listing-skeleton__body span {
   display: block;
   height: 11px;
-  border-radius: 999px;
+}
+
+.listing-skeleton__location {
+  width: 55%;
+  height: 10px;
 }
 
 .listing-skeleton__title {
-  width: 72%;
-  height: 17px !important;
+  width: 92%;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.listing-skeleton__title--short {
+  width: 64%;
+}
+
+.listing-skeleton__meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.listing-skeleton__meta span {
+  width: 46px;
+  height: 10px;
 }
 
 .listing-skeleton__price {
-  width: 45%;
-  height: 14px !important;
-}
-
-.listing-skeleton__body div {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 16px;
+  width: 58%;
+  height: 13px;
+  border-top: 1px solid var(--rd-hairline);
   margin-top: 8px;
+  padding-top: 9px;
 }
 
-.listing-skeleton__updated {
-  width: 38%;
-  margin-top: 8px;
-}
-
-.listing-skeleton footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr 38px;
-  gap: 9px;
-  border-top: 1px solid #edf1f5;
-  padding: 14px 16px 16px;
-}
-
-.listing-skeleton footer span {
-  height: 38px;
-  border-radius: 10px;
-}
-
-.shimmer {
-  background: linear-gradient(90deg, #edf1f5 25%, #f7f9fb 42%, #edf1f5 60%);
-  background-size: 220% 100%;
-  animation: listing-shimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes listing-shimmer {
-  to {
-    background-position-x: -220%;
-  }
-}
-
-:global(.dark) .listing-skeleton {
-  border-color: #2c3b4d;
-  background: #111c2a;
-}
-
-:global(.dark) .shimmer {
-  background: linear-gradient(90deg, #1b293a 25%, #26364a 42%, #1b293a 60%);
-  background-size: 220% 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shimmer {
-    animation: none;
+@media (max-width: 639px) {
+  .listing-skeleton__body {
+    padding: 11px 12px 13px;
   }
 }
 </style>

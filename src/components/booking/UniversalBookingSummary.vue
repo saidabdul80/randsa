@@ -91,7 +91,7 @@ function formatDateTime(value: string | undefined) {
 .universal-summary {
   border: 1px solid #e3e8ef;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 18px;
   box-shadow: 0 14px 34px -28px rgba(16, 32, 51, 0.45);
 }
@@ -105,7 +105,7 @@ function formatDateTime(value: string | undefined) {
 
 .universal-summary__heading p {
   margin: 0;
-  color: #1f6fe7;
+  color: var(--rd-brass);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -113,7 +113,7 @@ function formatDateTime(value: string | undefined) {
 
 .universal-summary__heading h2 {
   margin: 5px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 17px;
 }
 
@@ -155,7 +155,7 @@ dt {
 }
 dd {
   margin: 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 11px;
   font-weight: 800;
   text-align: right;

@@ -55,7 +55,7 @@ const priceLabel = computed(() => {
   overflow: hidden;
   border: 1px solid #dfe7f0;
   border-radius: 14px;
-  background: #fff;
+  background: var(--rd-surface);
 }
 .marketplace-preview figure {
   position: relative;
@@ -106,13 +106,13 @@ const priceLabel = computed(() => {
   margin: 0;
 }
 .marketplace-preview p {
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 8px;
   font-weight: 850;
   text-transform: uppercase;
 }
 .marketplace-preview h3 {
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 18px;
 }
 .marketplace-preview section > span {
@@ -137,6 +137,6 @@ const priceLabel = computed(() => {
   background: #111c2a;
 }
 :global(.dark) .marketplace-preview h3 {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 </style>

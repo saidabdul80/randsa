@@ -104,7 +104,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
 }
 
 .subcategory-selector__back:hover {
-  color: #1e6de0;
+  color: var(--rd-brass);
 }
 
 .subcategory-selector__back:focus-visible {
@@ -129,7 +129,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 8px;
-  background: #1e6de0;
+  background: var(--rd-brass);
   color: #fff;
   font-size: 22px;
 }
@@ -141,7 +141,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
 
 .subcategory-selector__heading p {
   margin-bottom: 4px;
-  color: #1e6de0;
+  color: var(--rd-brass);
   font-size: 11px;
   font-weight: 800;
 }
@@ -167,7 +167,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
   gap: 10px;
   border: 1px solid #e0e6ee;
   border-radius: 8px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 12px;
   cursor: pointer;
   transition:
@@ -186,7 +186,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
 }
 
 .subcategory-option--selected {
-  border-color: #1e6de0;
+  border-color: var(--rd-brass);
   background: #f3f7ff;
 }
 
@@ -209,8 +209,8 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
 }
 
 .subcategory-option--selected .subcategory-option__marker {
-  border-color: #1e6de0;
-  background: #1e6de0;
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
 }
 
 .subcategory-option__copy {
@@ -263,7 +263,7 @@ function selectSubcategory(subcategory: MarketplaceSubcategory) {
 :global(.dark) .subcategory-selector,
 :global(.dark) .subcategory-selector__heading h2,
 :global(.dark) .subcategory-option__copy strong {
-  color: #edf4ff;
+  color: var(--rd-brass-soft);
 }
 
 :global(.dark) .subcategory-option {

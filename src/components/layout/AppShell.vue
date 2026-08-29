@@ -1,69 +1,133 @@
 <template>
   <ion-page>
-    <ion-header v-if="showHeader" class="ion-no-border">
-      <ion-toolbar color="transparent">
-        <div class="mx-auto max-w-6xl px-4 pb-2 pt-4 sm:px-6 lg:px-8">
-          <div
-            class="glass-panel flex flex-col gap-5 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-7"
-          >
-            <div class="min-w-0">
-              <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-brand-700">
-                RANDSA
-                <span v-if="eyebrow" class="ml-2 text-mist dark:text-slate-300">{{ eyebrow }}</span>
-              </p>
-              <h1
-                class="mt-3 text-balance font-display text-2xl font-bold tracking-normal text-ink dark:text-white sm:text-3xl"
-              >
-                {{ title }}
-              </h1>
-              <p
-                v-if="description"
-                class="mt-2 max-w-2xl text-sm leading-7 text-mist dark:text-slate-300"
-              >
-                {{ description }}
-              </p>
-            </div>
-            <div class="shrink-0">
-              <slot name="headerAction" />
-            </div>
+    <ion-content :fullscreen="true" class="app-shell">
+      <a class="rd-skip-link" href="#main-content">Skip to content</a>
+
+      <OfflineBanner />
+
+      <AppHeader v-if="showHeader" :floating="floatingHeader" :unread-count="unreadCount" />
+
+      <!-- Optional editorial page title block, shared by every inner page. -->
+      <div v-if="title" class="app-shell__masthead">
+        <div class="app-shell__masthead-inner">
+          <p v-if="eyebrow" class="rd-eyebrow">
+            <span class="rd-rule" aria-hidden="true"></span>{{ eyebrow }}
+          </p>
+          <h1 class="rd-display app-shell__title">{{ title }}</h1>
+          <p v-if="description" class="rd-lede app-shell__description">{{ description }}</p>
+          <div v-if="$slots.headerAction" class="app-shell__masthead-actions">
+            <slot name="headerAction" />
           </div>
         </div>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content :fullscreen="true">
-      <div :class="contentClass">
-        <slot />
       </div>
+
+      <main id="main-content" :class="contentClass">
+        <slot />
+      </main>
     </ion-content>
 
-    <AppBottomNav v-if="showBottomNav" :class="{ 'lg:hidden': bottomNavMobileOnly }" />
+    <AppBottomNav v-if="showBottomNav" />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonContent, IonHeader, IonPage, IonToolbar } from '@ionic/vue'
+import { IonContent, IonPage } from '@ionic/vue'
 
 import AppBottomNav from '../navigation/AppBottomNav.vue'
+import AppHeader from './AppHeader.vue'
+import OfflineBanner from './OfflineBanner.vue'
 
 withDefaults(
   defineProps<{
     title?: string
     description?: string
     eyebrow?: string
+    /** Header sits transparently over a full-bleed hero until scrolled. */
+    floatingHeader?: boolean
+    unreadCount?: number
     showBottomNav?: boolean
-    bottomNavMobileOnly?: boolean
     showHeader?: boolean
     contentClass?: string
   }>(),
   {
+    title: '',
     description: '',
     eyebrow: '',
+    floatingHeader: false,
+    unreadCount: 0,
+    // Both default to true: a page has to opt OUT of navigation, never accidentally
+    // ship without it. This is what left mobile users stranded on the old home page.
     showBottomNav: true,
-    bottomNavMobileOnly: false,
     showHeader: true,
-    contentClass:
-      'mx-auto flex min-h-full w-full max-w-6xl flex-col px-4 pb-28 pt-4 sm:px-6 lg:px-8',
+    contentClass: 'app-shell__content',
   }
 )
 </script>
+
+<style scoped>
+.app-shell {
+  --background: var(--rd-canvas);
+  color: var(--rd-ink);
+}
+
+.app-shell__masthead {
+  border-bottom: 1px solid var(--rd-hairline);
+  background: var(--rd-canvas);
+}
+
+.app-shell__masthead-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 48px) clamp(24px, 4vw, 40px);
+}
+
+.app-shell__title {
+  margin-top: 18px;
+  font-size: clamp(28px, 3.6vw, 48px);
+}
+
+.app-shell__description {
+  max-width: 620px;
+  margin: 18px 0 0;
+}
+
+.app-shell__masthead-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+</style>
+
+<style>
+/*
+ * Unscoped: applies to whatever element a page passes as contentClass.
+ * The bottom padding clears the fixed mobile nav plus the device inset, so no
+ * page can hide its own last row behind the bar.
+ */
+.app-shell__content {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)
+    calc(var(--rd-bottom-nav-height) + 32px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 900px) {
+  .app-shell__content {
+    padding-bottom: clamp(40px, 6vw, 72px);
+  }
+}
+
+/* Full-bleed pages still need the mobile nav clearance. */
+.app-shell-bleed {
+  width: 100%;
+  padding-bottom: calc(var(--rd-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 900px) {
+  .app-shell-bleed {
+    padding-bottom: 0;
+  }
+}
+</style>

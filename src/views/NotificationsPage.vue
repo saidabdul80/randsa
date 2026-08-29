@@ -1,7 +1,5 @@
 <template>
   <AppShell
-    :show-header="false"
-    :show-bottom-nav="false"
     content-class="mx-auto min-h-full w-full max-w-[1440px] px-4 pb-12 pt-5 sm:px-6 sm:pt-7 lg:px-8"
   >
     <div class="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:items-start lg:gap-5">

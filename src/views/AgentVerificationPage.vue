@@ -3,7 +3,6 @@
     eyebrow="Trust"
     title="Professional verification"
     description="Submit identity, office, and authorization details so admins can review your professional profile."
-    :show-bottom-nav="false"
   >
     <section class="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[1.1fr_0.9fr]">
       <div class="glass-panel p-6 sm:p-8">

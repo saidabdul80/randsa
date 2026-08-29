@@ -143,7 +143,7 @@ function tagsValue(key: string) {
 }
 .dynamic-fields label > span b {
   margin-left: 5px;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 7px;
   text-transform: uppercase;
 }
@@ -151,11 +151,11 @@ function tagsValue(key: string) {
 .dynamic-fields select,
 .dynamic-fields textarea {
   width: 100%;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 11px 12px;
-  color: #102033;
+  color: var(--rd-ink);
   font: inherit;
   font-size: 11px;
   outline: none;
@@ -166,7 +166,7 @@ function tagsValue(key: string) {
 .dynamic-fields input:focus,
 .dynamic-fields select:focus,
 .dynamic-fields textarea:focus {
-  border-color: #1769ef;
+  border-color: var(--rd-brass);
   box-shadow: 0 0 0 3px rgba(23, 105, 239, 0.12);
 }
 .dynamic-fields__toggle {
@@ -174,14 +174,14 @@ function tagsValue(key: string) {
   min-height: 42px;
   align-items: center;
   gap: 9px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
   padding: 0 12px;
 }
 .dynamic-fields__toggle input {
   width: 17px;
   height: 17px;
-  accent-color: #1769ef;
+  accent-color: var(--rd-brass);
 }
 .dynamic-fields__toggle small {
   color: #52677e;
@@ -208,6 +208,6 @@ function tagsValue(key: string) {
 :global(.dark) .dynamic-fields__toggle {
   border-color: #2a394b;
   background: #111c2a;
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 </style>

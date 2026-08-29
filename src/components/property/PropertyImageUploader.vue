@@ -311,7 +311,7 @@ async function prepareFiles(files: File[]) {
 }
 .image-uploader__dropzone:hover,
 .image-uploader__dropzone.dragging {
-  border-color: #1769ef;
+  border-color: var(--rd-brass);
   background: #f0f6ff;
 }
 .image-uploader__dropzone.processing {
@@ -324,7 +324,7 @@ async function prepareFiles(files: File[]) {
   place-items: center;
   border-radius: 12px;
   background: #e7f0ff;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 .image-uploader__drop-icon ion-icon {
   font-size: 21px;
@@ -344,7 +344,7 @@ async function prepareFiles(files: File[]) {
 }
 .image-uploader__choose {
   border-radius: 9px;
-  background: #1769ef;
+  background: var(--rd-brass);
   padding: 9px 11px;
   color: #fff;
   font-size: 8px;
@@ -378,9 +378,9 @@ async function prepareFiles(files: File[]) {
   font-size: 16px;
 }
 .image-uploader__message.error {
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
+  border: 1px solid var(--rd-danger-bg);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
 }
 .image-uploader__message.processing {
   border: 1px solid #bfdbfe;
@@ -399,7 +399,7 @@ async function prepareFiles(files: File[]) {
   overflow: hidden;
   border: 1px solid #e0e7ef;
   border-radius: 13px;
-  background: #fff;
+  background: var(--rd-surface);
 }
 .image-uploader__card figure {
   position: relative;
@@ -470,7 +470,7 @@ async function prepareFiles(files: File[]) {
   place-items: center;
   border: 1px solid #dfe6ee;
   border-radius: 7px;
-  background: #fff;
+  background: var(--rd-surface);
   color: #526980;
 }
 .image-uploader__card-actions button:disabled {
@@ -528,7 +528,7 @@ async function prepareFiles(files: File[]) {
 }
 :global(.dark) .image-uploader__dropzone strong,
 :global(.dark) .image-uploader__card-body strong {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .image-uploader__dropzone:hover,
 :global(.dark) .image-uploader__dropzone.dragging {

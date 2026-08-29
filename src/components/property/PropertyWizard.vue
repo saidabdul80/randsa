@@ -529,6 +529,7 @@ import {
   waterOutline,
 } from 'ionicons/icons'
 import { computed, reactive, ref, watch } from 'vue'
+import { confirmAction } from '../../composables/useConfirm'
 
 import {
   getListingCategoryConfig,
@@ -819,20 +820,25 @@ function clearSpecificDetails(mode: ListingDetailMode) {
   }
 }
 
-function confirmDetailModeChange(nextMode: ListingDetailMode) {
+async function confirmDetailModeChange(nextMode: ListingDetailMode) {
   const currentMode = config.value.detailMode
   if (currentMode === nextMode || !hasSpecificDetails(currentMode)) return true
-  return window.confirm(
-    'Changing category will clear details that do not apply to the new listing type. Continue?'
-  )
+
+  return confirmAction({
+    title: 'Change category?',
+    message:
+      'Details that do not apply to the new listing type will be cleared. Everything else you have entered is kept.',
+    confirmLabel: 'Change category',
+  })
 }
 
-function handleCategoryChange(event: Event) {
+async function handleCategoryChange(event: Event) {
   const target = event.target as HTMLSelectElement
   const nextCategory = target.value as PropertyCategory
   const nextConfig = getListingCategoryConfig(nextCategory)
 
-  if (!confirmDetailModeChange(nextConfig.detailMode)) {
+  if (!(await confirmDetailModeChange(nextConfig.detailMode))) {
+    // Put the control back on the category the form is actually still using.
     target.value = form.category
     return
   }
@@ -982,7 +988,7 @@ async function copyCoordinates() {
 
 <style scoped>
 .property-wizard {
-  color: #102033;
+  color: var(--rd-ink);
 }
 .property-wizard__progress {
   display: none;
@@ -1009,7 +1015,7 @@ async function copyCoordinates() {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #1769ef;
+  background: var(--rd-brass);
   transition: width 200ms ease;
 }
 .property-wizard__layout {
@@ -1022,7 +1028,7 @@ async function copyCoordinates() {
 .property-wizard__stage {
   border: 1px solid #e1e8f0;
   border-radius: 17px;
-  background: #fff;
+  background: var(--rd-surface);
   box-shadow: 0 20px 50px -42px rgba(16, 32, 51, 0.45);
 }
 .property-wizard__steps {
@@ -1065,13 +1071,13 @@ async function copyCoordinates() {
   place-items: center;
   border: 1px solid #d8e1eb;
   border-radius: 50%;
-  background: #fff;
+  background: var(--rd-surface);
   font-size: 10px;
   font-weight: 850;
 }
 .property-wizard__steps button.active .property-wizard__step-number {
-  border-color: #1769ef;
-  background: #1769ef;
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
   color: #fff;
 }
 .property-wizard__steps button.complete .property-wizard__step-number {
@@ -1108,16 +1114,16 @@ async function copyCoordinates() {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 13px;
-  background: #1769ef;
+  background: var(--rd-brass);
   color: #fff;
-  box-shadow: 0 9px 22px -14px #1769ef;
+  box-shadow: 0 9px 22px -14px var(--rd-brass);
 }
 .property-wizard__stage-icon ion-icon {
   font-size: 21px;
 }
 .property-wizard__stage-header p {
   margin: 1px 0 4px;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.12em;
@@ -1170,7 +1176,7 @@ async function copyCoordinates() {
   place-items: center;
   border-radius: 8px;
   background: #e7f0ff;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 18px;
 }
 .classification-summary small,
@@ -1192,7 +1198,7 @@ async function copyCoordinates() {
   border-radius: 999px;
   background: #e7f0ff;
   padding: 5px 8px;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 8px;
   font-style: normal;
   font-weight: 800;
@@ -1202,11 +1208,11 @@ async function copyCoordinates() {
 .field textarea {
   width: 100%;
   min-width: 0;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 11px 12px;
-  color: #102033;
+  color: var(--rd-ink);
   font: inherit;
   font-size: 12px;
   font-weight: 550;
@@ -1267,9 +1273,9 @@ async function copyCoordinates() {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   overflow: hidden;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
 }
 .field__money > span {
   padding: 0 10px;
@@ -1297,7 +1303,7 @@ async function copyCoordinates() {
 }
 .assistant-panel > div ion-icon {
   flex: 0 0 auto;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 18px;
 }
 .assistant-panel strong {
@@ -1352,7 +1358,7 @@ async function copyCoordinates() {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 12px;
   padding: 11px 12px;
   cursor: pointer;
@@ -1395,12 +1401,12 @@ async function copyCoordinates() {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--rd-surface);
   content: '';
   transition: transform 160ms ease;
 }
 .toggle-card input:checked ~ .toggle-card__switch {
-  background: #1769ef;
+  background: var(--rd-brass);
 }
 .toggle-card input:checked ~ .toggle-card__switch::after {
   transform: translateX(13px);
@@ -1439,7 +1445,7 @@ async function copyCoordinates() {
   gap: 6px;
   border: 1px solid #d9e3ee;
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 9px 11px;
   color: #2b4968;
   font-size: 8px;
@@ -1475,14 +1481,14 @@ async function copyCoordinates() {
   display: grid;
   grid-template-columns: 35px minmax(0, 1fr) 35px;
   overflow: hidden;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
 }
 .stepper-field button {
   display: grid;
   place-items: center;
   border: 0;
-  background: #f5f8fc;
+  background: var(--rd-surface-alt);
   color: #315473;
 }
 .stepper-field input {
@@ -1492,7 +1498,7 @@ async function copyCoordinates() {
   border-right: 1px solid #e4eaf1;
   border-left: 1px solid #e4eaf1;
   padding: 10px;
-  color: #102033;
+  color: var(--rd-ink);
   text-align: center;
   outline: 0;
 }
@@ -1502,7 +1508,7 @@ async function copyCoordinates() {
   min-height: 54px;
   align-items: center;
   gap: 9px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 12px;
   padding: 12px;
   color: #596c81;
@@ -1525,7 +1531,7 @@ async function copyCoordinates() {
   color: #175fce;
 }
 .feature-card input:checked ~ .feature-card__check {
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 .generic-detail-panel {
   display: flex;
@@ -1533,7 +1539,7 @@ async function copyCoordinates() {
 }
 .generic-detail-panel > ion-icon {
   flex: 0 0 auto;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 25px;
 }
 .generic-detail-panel h3 {
@@ -1569,7 +1575,7 @@ async function copyCoordinates() {
   gap: 5px;
   border: 1px solid #dde5ee;
   border-radius: 15px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 7px 9px;
   color: #53667d;
   font-size: 8px;
@@ -1577,7 +1583,7 @@ async function copyCoordinates() {
 }
 .chip-grid button.selected {
   border-color: #a8c9f9;
-  background: #edf5ff;
+  background: var(--rd-brass-soft);
   color: #145dce;
 }
 .custom-amenity {
@@ -1631,7 +1637,7 @@ async function copyCoordinates() {
 }
 .image-guidance > ion-icon {
   flex: 0 0 auto;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 20px;
 }
 .image-guidance > div {
@@ -1647,7 +1653,7 @@ async function copyCoordinates() {
 }
 .image-guidance span {
   border-radius: 12px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 5px 7px;
   color: #61758b;
   font-size: 7px;
@@ -1684,8 +1690,8 @@ async function copyCoordinates() {
   color: #75869a;
 }
 .preview-stage__toolbar button.active {
-  background: #fff;
-  color: #1769ef;
+  background: var(--rd-surface);
+  color: var(--rd-brass);
   box-shadow: 0 4px 12px -9px rgba(0, 0, 0, 0.35);
 }
 .preview-stage__canvas {
@@ -1715,7 +1721,7 @@ async function copyCoordinates() {
   flex: 0 0 auto;
   place-content: center;
   border-radius: 50%;
-  background: #1769ef;
+  background: var(--rd-brass);
   color: #fff;
   text-align: center;
 }
@@ -1786,7 +1792,7 @@ async function copyCoordinates() {
 }
 .publish-stage__notice > ion-icon {
   flex: 0 0 auto;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 19px;
 }
 .publish-stage__notice strong {
@@ -1798,11 +1804,11 @@ async function copyCoordinates() {
   align-items: flex-start;
   gap: 8px;
   margin-top: 17px;
-  border: 1px solid #fecdd3;
+  border: 1px solid var(--rd-danger-bg);
   border-radius: 11px;
-  background: #fff1f2;
+  background: var(--rd-danger-bg);
   padding: 11px 12px;
-  color: #be123c;
+  color: var(--rd-danger);
   font-size: 9px;
   line-height: 1.5;
 }
@@ -1816,7 +1822,7 @@ async function copyCoordinates() {
   align-items: center;
   gap: 8px;
   margin-top: 20px;
-  border-top: 1px solid #e8edf3;
+  border-top: 1px solid var(--rd-hairline);
   padding-top: 16px;
 }
 .property-wizard__actions-spacer {
@@ -1851,15 +1857,15 @@ async function copyCoordinates() {
 .button--draft,
 .button--back {
   border: 1px solid #dae3ed;
-  background: #fff;
+  background: var(--rd-surface);
   color: #27425f;
 }
 .button--primary {
-  border: 1px solid #1769ef;
-  background: #1769ef;
+  border: 1px solid var(--rd-brass);
+  background: var(--rd-brass);
   padding-inline: 17px;
   color: #fff;
-  box-shadow: 0 10px 22px -15px #1769ef;
+  box-shadow: 0 10px 22px -15px var(--rd-brass);
 }
 
 @media (max-width: 900px) {
@@ -1957,7 +1963,7 @@ async function copyCoordinates() {
 }
 
 :global(.dark) .property-wizard {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .property-wizard__steps,
 :global(.dark) .property-wizard__stage,
@@ -1994,7 +2000,7 @@ async function copyCoordinates() {
 :global(.dark) .assistant-panel strong,
 :global(.dark) .generic-detail-panel h3,
 :global(.dark) .currency-note > strong {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 :global(.dark) .property-wizard__actions {
   border-color: #2a394b;

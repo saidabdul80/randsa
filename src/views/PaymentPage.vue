@@ -1,5 +1,5 @@
 <template>
-  <AppShell :show-header="false" :show-bottom-nav="false" content-class="min-h-full w-full">
+  <AppShell content-class="min-h-full w-full">
     <div class="payment-workspace">
       <aside class="payment-sidebar" aria-label="Payment Center navigation">
         <RouterLink to="/home" class="payment-brand" aria-label="RANDSA home">
@@ -1169,22 +1169,22 @@ function formatShortDate(value: string) {
 
 <style scoped>
 .payment-workspace {
-  --payment-bg: #f5f7fb;
-  --payment-surface: #ffffff;
-  --payment-soft: #f6f8fc;
-  --payment-text: #102033;
-  --payment-muted: #66778d;
-  --payment-subtle: #8794a6;
-  --payment-border: #e0e7f0;
-  --payment-blue: #1769ef;
-  --payment-blue-dark: #0f56cc;
-  --payment-blue-soft: #edf4ff;
-  --payment-green: #078a50;
-  --payment-green-soft: #ecfdf3;
-  --payment-amber: #a85d00;
-  --payment-amber-soft: #fff7e6;
-  --payment-red: #ce294c;
-  --payment-red-soft: #fff1f3;
+  --payment-bg: var(--rd-canvas);
+  --payment-surface: var(--rd-surface);
+  --payment-soft: var(--rd-surface-alt);
+  --payment-text: var(--rd-ink);
+  --payment-muted: var(--rd-muted);
+  --payment-subtle: var(--rd-subtle);
+  --payment-border: var(--rd-hairline);
+  --payment-blue: var(--rd-brass);
+  --payment-blue-dark: var(--rd-brass-strong);
+  --payment-blue-soft: var(--rd-brass-soft);
+  --payment-green: var(--rd-success);
+  --payment-green-soft: var(--rd-success-bg);
+  --payment-amber: var(--rd-warning);
+  --payment-amber-soft: var(--rd-warning-bg);
+  --payment-red: var(--rd-danger);
+  --payment-red-soft: var(--rd-danger-bg);
   min-height: 100%;
   background: var(--payment-bg);
   color: var(--payment-text);
@@ -1393,7 +1393,7 @@ function formatShortDate(value: string) {
 .payment-field > span:first-child {
   display: block;
   margin-bottom: 8px;
-  color: #344256;
+  color: var(--rd-muted);
   font-size: 12px;
   font-weight: 800;
 }
@@ -1575,7 +1575,7 @@ function formatShortDate(value: string) {
 .payment-button.is-secondary {
   border-color: #cfd9e6;
   background: var(--payment-surface);
-  color: #344256;
+  color: var(--rd-muted);
 }
 .payment-button.is-secondary:hover:not(:disabled) {
   border-color: #91baf3;
@@ -1972,7 +1972,7 @@ function formatShortDate(value: string) {
 .payment-skeleton span {
   height: 46px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #eef2f7 20%, #f8fafc 50%, #eef2f7 80%);
+  background: linear-gradient(90deg, #eef2f7 20%, var(--rd-surface-alt) 50%, #eef2f7 80%);
   background-size: 220% 100%;
   animation: payment-shimmer 1.4s ease-in-out infinite;
 }
@@ -2430,25 +2430,6 @@ function formatShortDate(value: string) {
     scroll-behavior: auto !important;
     transition: none !important;
   }
-}
-
-:global(.dark) .payment-workspace {
-  --payment-bg: #08111f;
-  --payment-surface: #101b2b;
-  --payment-soft: #152236;
-  --payment-text: #f5f8fc;
-  --payment-muted: #b0bdcd;
-  --payment-subtle: #8797aa;
-  --payment-border: #27364a;
-  --payment-blue: #6aa6ff;
-  --payment-blue-dark: #4d8fea;
-  --payment-blue-soft: #142b4e;
-  --payment-green: #4bd391;
-  --payment-green-soft: #123326;
-  --payment-amber: #f4bd54;
-  --payment-amber-soft: #382b14;
-  --payment-red: #ff7f98;
-  --payment-red-soft: #3b1721;
 }
 
 :global(.dark) .payment-header {

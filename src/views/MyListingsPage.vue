@@ -1,9 +1,5 @@
 <template>
-  <AppShell
-    :show-header="false"
-    :bottom-nav-mobile-only="true"
-    content-class="min-h-full w-full pb-28 lg:pb-0"
-  >
+  <AppShell content-class="min-h-full w-full pb-28 lg:pb-0">
     <div class="my-listings-page">
       <NotificationSidebarNav
         :can-manage-properties="canManageProperties"
@@ -173,6 +169,7 @@ import {
   type ManageListingItem,
 } from '../components/listings/manageListing'
 import NotificationSidebarNav from '../components/notifications/NotificationSidebarNav.vue'
+import { confirmAction } from '../composables/useConfirm'
 import { useAuth } from '../composables/useAuth'
 import { useListings } from '../composables/useListings'
 import { useProperties } from '../composables/useProperties'
@@ -376,7 +373,16 @@ function resetFilters() {
 
 async function handleAction(item: ManageListingItem, action: ManageListingAction) {
   if (!state.profile || item.source !== 'listing' || !action) return
-  if (action === 'delete' && !window.confirm(`Delete "${item.title}" permanently?`)) return
+  if (action === 'delete') {
+    const confirmed = await confirmAction({
+      title: `Delete “${item.title}”?`,
+      message:
+        'This permanently removes the listing and its media. Bookings already made against it are not affected.',
+      confirmLabel: 'Delete listing',
+      tone: 'danger',
+    })
+    if (!confirmed) return
+  }
 
   errorMessage.value = ''
   busyItemId.value = `${item.source}:${item.id}`
@@ -398,7 +404,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 .my-listings-page {
   min-height: 100%;
   background: #f5f6f8;
-  color: #102033;
+  color: var(--rd-ink);
   padding: clamp(12px, 1.5vw, 24px);
 }
 
@@ -429,7 +435,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 
 .my-listings-hero__copy h1 {
   margin-top: 8px;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: clamp(28px, 3vw, 40px);
   font-weight: 760;
   line-height: 1.08;
@@ -451,9 +457,9 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border: 1px solid #1769ef;
+  border: 1px solid var(--rd-brass);
   border-radius: 11px;
-  background: #1769ef;
+  background: var(--rd-brass);
   padding: 0 17px;
   color: #fff;
   cursor: pointer;
@@ -497,7 +503,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   gap: 15px;
   border: 1px solid #e0e6ee;
   border-radius: 15px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 17px;
   box-shadow: 0 15px 34px -31px rgba(16, 32, 51, 0.58);
 }
@@ -537,7 +543,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 }
 
 .listing-stat-card__copy strong {
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 25px;
   font-weight: 800;
   line-height: 1;
@@ -566,9 +572,9 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 
 .listing-status-tabs button {
   min-height: 42px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 10px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 15px;
   color: #536980;
   cursor: pointer;
@@ -584,13 +590,13 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 
 .listing-status-tabs button:hover {
   border-color: #b8c7da;
-  color: #1769ef;
+  color: var(--rd-brass);
   transform: translateY(-1px);
 }
 
 .listing-status-tabs button.active {
-  border-color: #1769ef;
-  background: #1769ef;
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
   color: #fff;
   box-shadow: 0 9px 20px -14px rgba(23, 105, 239, 0.8);
 }
@@ -617,16 +623,16 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   flex: 1;
   align-items: center;
   gap: 10px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 0 13px;
   color: #667b92;
   transition: border-color 180ms ease;
 }
 
 .listing-search:focus-within {
-  border-color: #1769ef;
+  border-color: var(--rd-brass);
 }
 
 .listing-search > ion-icon {
@@ -641,7 +647,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   border: 0;
   outline: 0;
   background: transparent;
-  color: #102033;
+  color: var(--rd-ink);
   font: inherit;
   font-size: 12px;
 }
@@ -678,9 +684,9 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   width: 46px;
   height: 46px;
   place-items: center;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
   color: #526b86;
   cursor: pointer;
   font-size: 20px;
@@ -694,7 +700,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 .listings-sort[open] summary,
 .listings-sort summary:hover {
   border-color: #aac0de;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 
 .listings-sort > div {
@@ -703,9 +709,9 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   right: 0;
   display: grid;
   width: 170px;
-  border: 1px solid #dce4ed;
+  border: 1px solid var(--rd-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 6px;
   box-shadow: 0 18px 45px -20px rgba(15, 23, 42, 0.38);
 }
@@ -730,7 +736,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 .listings-sort > div button:hover,
 .listings-sort > div button.active {
   background: #f1f5fb;
-  color: #1769ef;
+  color: var(--rd-brass);
 }
 
 .listing-grid {
@@ -744,11 +750,11 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #fecdd3;
+  border: 1px solid var(--rd-danger-bg);
   border-radius: 11px;
-  background: #fff1f2;
+  background: var(--rd-danger-bg);
   padding: 12px 14px;
-  color: #be123c;
+  color: var(--rd-danger);
   font-size: 11px;
 }
 
@@ -764,7 +770,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   justify-items: center;
   border: 1px dashed #c8d5e3;
   border-radius: 16px;
-  background: #fff;
+  background: var(--rd-surface);
   padding: 28px;
   text-align: center;
 }
@@ -776,13 +782,13 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
   place-items: center;
   border-radius: 15px;
   background: #eef3ff;
-  color: #1769ef;
+  color: var(--rd-brass);
   font-size: 29px;
 }
 
 .listing-empty h2 {
   margin: 17px 0 0;
-  color: #102033;
+  color: var(--rd-ink);
   font-size: 20px;
 }
 
@@ -796,8 +802,8 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 
 .listing-empty button {
   border-color: #d7e1ec;
-  background: #fff;
-  color: #1769ef;
+  background: var(--rd-surface);
+  color: var(--rd-brass);
   box-shadow: none;
 }
 
@@ -914,13 +920,13 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 
 :global(.dark) .my-listings-page {
   background: #0b1420;
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 
 :global(.dark) .my-listings-hero__copy h1,
 :global(.dark) .listing-stat-card__copy strong,
 :global(.dark) .listing-empty h2 {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 
 :global(.dark) .listing-stat-card,
@@ -934,7 +940,7 @@ async function handleAction(item: ManageListingItem, action: ManageListingAction
 }
 
 :global(.dark) .listing-search input {
-  color: #f8fafc;
+  color: var(--rd-surface-alt);
 }
 
 :global(.dark) .listings-sort > div button {

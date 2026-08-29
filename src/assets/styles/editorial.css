@@ -1,0 +1,800 @@
+/* RANDSA design system.
+ *
+ * ONE set of tokens for the whole app. Every page, component, and scoped stylesheet
+ * reads from here, so a colour or radius changes in one place and lands everywhere.
+ *
+ * Light values sit on :root, dark values on html.dark. Nothing else needs theme wiring:
+ * a page that uses the tokens is automatically correct in both themes.
+ *
+ * Legacy namespaces (--auth-*, --ac-*, --admin-*, --saved-*) are aliased at the bottom
+ * so the pages that still reference them inherit the unified palette and dark mode.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- canvas & surfaces ---- */
+  --rd-canvas: #f4f1eb;
+  --rd-canvas-alt: #efeae1;
+  --rd-surface: #ffffff;
+  --rd-surface-alt: #faf8f4;
+  --rd-surface-sunken: rgba(20, 24, 31, 0.035);
+  --rd-overlay: rgba(11, 14, 19, 0.55);
+
+  /* ---- ink ---- */
+  --rd-ink: #14181f;
+  --rd-muted: #5b6470;
+  --rd-subtle: #8a929e;
+  --rd-inverse: #f6f3ee;
+
+  /* ---- lines ---- */
+  --rd-hairline: rgba(20, 24, 31, 0.12);
+  --rd-border: rgba(20, 24, 31, 0.16);
+  --rd-border-strong: rgba(20, 24, 31, 0.28);
+
+  /* ---- brand (brass) ---- */
+  --rd-brass: #8a6a2f;
+  --rd-brass-strong: #6f5424;
+  --rd-brass-soft: rgba(138, 106, 47, 0.12);
+  --rd-brass-ring: rgba(138, 106, 47, 0.34);
+
+  /* ---- primary action ---- */
+  --rd-primary-bg: #14181f;
+  --rd-primary-bg-hover: #262c36;
+  --rd-primary-text: #f6f3ee;
+
+  /* ---- framed imagery ---- */
+  --rd-plate: #0b0e13;
+  --rd-plate-ink: #f8f5f0;
+  --rd-plate-accent: #c9a96a;
+
+  /* ---- status tones ---- */
+  --rd-info: #2b567f;
+  --rd-info-bg: rgba(52, 96, 140, 0.08);
+  --rd-info-border: rgba(52, 96, 140, 0.28);
+  --rd-success: #1d6349;
+  --rd-success-bg: rgba(37, 110, 78, 0.08);
+  --rd-success-border: rgba(37, 110, 78, 0.3);
+  --rd-warning: #7a5c18;
+  --rd-warning-bg: rgba(154, 118, 40, 0.09);
+  --rd-warning-border: rgba(154, 118, 40, 0.3);
+  --rd-danger: #96223c;
+  --rd-danger-bg: rgba(160, 47, 66, 0.08);
+  --rd-danger-border: rgba(160, 47, 66, 0.3);
+
+  /* ---- geometry ---- */
+  --rd-radius-sm: 4px;
+  --rd-radius: 6px;
+  --rd-radius-lg: 10px;
+  --rd-radius-pill: 999px;
+
+  /* ---- elevation ---- */
+  --rd-shadow-sm: 0 2px 8px -4px rgba(11, 14, 19, 0.24);
+  --rd-shadow: 0 14px 34px -24px rgba(11, 14, 19, 0.42);
+  --rd-shadow-lg: 0 28px 60px -32px rgba(11, 14, 19, 0.5);
+
+  /* ---- type ---- */
+  --rd-font-display: 'Fraunces', 'Space Grotesk', Georgia, serif;
+  --rd-font-sans: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+
+  /* ---- layout ---- */
+  --rd-header-height: 64px;
+  --rd-bottom-nav-height: 68px;
+  --rd-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --rd-canvas: #0b0e13;
+  --rd-canvas-alt: #10141b;
+  --rd-surface: #161b24;
+  --rd-surface-alt: #1c222d;
+  --rd-surface-sunken: rgba(243, 239, 232, 0.05);
+  --rd-overlay: rgba(4, 6, 10, 0.68);
+
+  --rd-ink: #f3efe8;
+  --rd-muted: #a5acb8;
+  --rd-subtle: #7c8593;
+  --rd-inverse: #10141b;
+
+  --rd-hairline: rgba(243, 239, 232, 0.12);
+  --rd-border: rgba(243, 239, 232, 0.18);
+  --rd-border-strong: rgba(243, 239, 232, 0.32);
+
+  --rd-brass: #c9a96a;
+  --rd-brass-strong: #dcc08a;
+  --rd-brass-soft: rgba(201, 169, 106, 0.14);
+  --rd-brass-ring: rgba(201, 169, 106, 0.4);
+
+  --rd-primary-bg: #f1ebe1;
+  --rd-primary-bg-hover: #ffffff;
+  --rd-primary-text: #10141b;
+
+  --rd-plate: #05070a;
+  --rd-plate-ink: #f8f5f0;
+  --rd-plate-accent: #c9a96a;
+
+  --rd-info: #8fb6de;
+  --rd-info-bg: rgba(143, 182, 222, 0.12);
+  --rd-info-border: rgba(143, 182, 222, 0.3);
+  --rd-success: #7fc9a8;
+  --rd-success-bg: rgba(127, 201, 168, 0.12);
+  --rd-success-border: rgba(127, 201, 168, 0.3);
+  --rd-warning: #ddb865;
+  --rd-warning-bg: rgba(221, 184, 101, 0.12);
+  --rd-warning-border: rgba(221, 184, 101, 0.3);
+  --rd-danger: #e58ea1;
+  --rd-danger-bg: rgba(229, 142, 161, 0.12);
+  --rd-danger-border: rgba(229, 142, 161, 0.3);
+
+  --rd-shadow-sm: 0 2px 8px -4px rgba(0, 0, 0, 0.6);
+  --rd-shadow: 0 14px 34px -24px rgba(0, 0, 0, 0.8);
+  --rd-shadow-lg: 0 28px 60px -32px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- canvas ---------- */
+
+.rd-page {
+  min-height: 100%;
+  background: var(--rd-canvas);
+  color: var(--rd-ink);
+}
+
+.rd-shell {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+
+/* ---------- type ---------- */
+
+.rd-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--rd-brass);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.rd-rule {
+  display: inline-block;
+  width: 40px;
+  height: 1px;
+  flex: 0 0 auto;
+  background: currentColor;
+}
+
+.rd-display {
+  margin: 0;
+  color: var(--rd-ink);
+  font-family: var(--rd-font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.rd-title {
+  margin: 0;
+  color: var(--rd-ink);
+  font-family: var(--rd-font-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 400;
+  line-height: 1.18;
+}
+
+.rd-subtitle {
+  margin: 0;
+  color: var(--rd-ink);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.rd-lede {
+  color: var(--rd-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.8;
+}
+
+.rd-body {
+  color: var(--rd-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+.rd-meta {
+  color: var(--rd-subtle);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.rd-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- actions ---------- */
+
+.rd-cta {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--rd-primary-bg);
+  border-radius: var(--rd-radius-sm);
+  background: var(--rd-primary-bg);
+  padding: 0 28px;
+  color: var(--rd-primary-text);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 240ms ease,
+    border-color 240ms ease,
+    color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.rd-cta:hover:not(:disabled) {
+  border-color: var(--rd-primary-bg-hover);
+  background: var(--rd-primary-bg-hover);
+  box-shadow: var(--rd-shadow);
+}
+
+.rd-cta:disabled,
+.rd-cta[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rd-cta--ghost {
+  border-color: var(--rd-border);
+  background: transparent;
+  color: var(--rd-ink);
+}
+
+.rd-cta--ghost:hover:not(:disabled) {
+  border-color: var(--rd-brass);
+  background: var(--rd-brass-soft);
+  box-shadow: none;
+}
+
+.rd-cta--brass {
+  border-color: var(--rd-brass);
+  background: var(--rd-brass);
+  color: #fff;
+}
+
+.rd-cta--brass:hover:not(:disabled) {
+  border-color: var(--rd-brass-strong);
+  background: var(--rd-brass-strong);
+}
+
+.rd-cta--danger {
+  border-color: var(--rd-danger-border);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
+}
+
+.rd-cta--danger:hover:not(:disabled) {
+  border-color: var(--rd-danger);
+  background: var(--rd-danger-bg);
+  box-shadow: none;
+}
+
+.rd-cta--sm {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 9px;
+}
+
+.rd-cta--block {
+  width: 100%;
+}
+
+/* Icon-only control: always at least a 44px tap target. */
+.rd-icon-button {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-pill);
+  background: transparent;
+  color: var(--rd-muted);
+  font-size: 19px;
+  cursor: pointer;
+  transition:
+    border-color 240ms ease,
+    color 240ms ease,
+    background-color 240ms ease;
+}
+
+.rd-icon-button:hover {
+  border-color: var(--rd-brass);
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
+}
+
+.rd-link {
+  color: var(--rd-ink);
+  font-weight: 700;
+  text-decoration-color: var(--rd-brass);
+  text-underline-offset: 4px;
+  transition: color 200ms ease;
+}
+
+.rd-link:hover {
+  color: var(--rd-brass);
+}
+
+/* One focus treatment for every interactive element in the app. */
+.rd-cta:focus-visible,
+.rd-icon-button:focus-visible,
+.rd-link:focus-visible,
+.rd-plate-link:focus-visible,
+.rd-card--interactive:focus-visible,
+.rd-input:focus-visible,
+.rd-chip:focus-visible {
+  outline: 2px solid var(--rd-brass);
+  outline-offset: 3px;
+}
+
+/* ---------- surfaces ---------- */
+
+.rd-card {
+  border: 1px solid var(--rd-hairline);
+  border-radius: var(--rd-radius-lg);
+  background: var(--rd-surface);
+  color: var(--rd-ink);
+}
+
+.rd-card--padded {
+  padding: clamp(18px, 2.4vw, 26px);
+}
+
+.rd-card--interactive {
+  cursor: pointer;
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease,
+    transform 240ms ease;
+}
+
+.rd-card--interactive:hover {
+  border-color: var(--rd-border-strong);
+  box-shadow: var(--rd-shadow);
+  transform: translateY(-2px);
+}
+
+.rd-panel {
+  border: 1px solid var(--rd-hairline);
+  border-radius: var(--rd-radius-lg);
+  background: var(--rd-surface-alt);
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.rd-hairline {
+  border: 0;
+  border-top: 1px solid var(--rd-hairline);
+  margin: 0;
+}
+
+/* ---------- form controls ---------- */
+
+.rd-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--rd-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.rd-input,
+.rd-select,
+.rd-textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-sm);
+  background: var(--rd-surface);
+  padding: 12px 14px;
+  color: var(--rd-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.rd-input::placeholder,
+.rd-textarea::placeholder {
+  color: var(--rd-subtle);
+}
+
+.rd-input:focus,
+.rd-select:focus,
+.rd-textarea:focus {
+  border-color: var(--rd-brass);
+  box-shadow: 0 0 0 3px var(--rd-brass-soft);
+  outline: none;
+}
+
+.rd-input:disabled,
+.rd-select:disabled,
+.rd-textarea:disabled {
+  background: var(--rd-surface-sunken);
+  color: var(--rd-subtle);
+  cursor: not-allowed;
+}
+
+.rd-hint {
+  margin: 6px 0 0;
+  color: var(--rd-subtle);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.rd-error {
+  margin: 6px 0 0;
+  color: var(--rd-danger);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* ---------- chips, badges, status ---------- */
+
+.rd-chip {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius-pill);
+  background: transparent;
+  padding: 0 14px;
+  color: var(--rd-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.rd-chip:hover {
+  border-color: var(--rd-brass);
+  color: var(--rd-brass);
+}
+
+.rd-chip--active,
+.rd-chip[aria-pressed='true'] {
+  border-color: var(--rd-primary-bg);
+  background: var(--rd-primary-bg);
+  color: var(--rd-primary-text);
+}
+
+.rd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--rd-radius-pill);
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rd-badge--neutral {
+  border-color: var(--rd-border);
+  background: var(--rd-surface-sunken);
+  color: var(--rd-muted);
+}
+
+.rd-badge--brass {
+  border-color: var(--rd-brass-border, var(--rd-brass-ring));
+  background: var(--rd-brass-soft);
+  color: var(--rd-brass);
+}
+
+.rd-badge--info {
+  border-color: var(--rd-info-border);
+  background: var(--rd-info-bg);
+  color: var(--rd-info);
+}
+
+.rd-badge--success {
+  border-color: var(--rd-success-border);
+  background: var(--rd-success-bg);
+  color: var(--rd-success);
+}
+
+.rd-badge--warning {
+  border-color: var(--rd-warning-border);
+  background: var(--rd-warning-bg);
+  color: var(--rd-warning);
+}
+
+.rd-badge--danger {
+  border-color: var(--rd-danger-border);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
+}
+
+/* ---------- messages ---------- */
+
+.rd-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius);
+  background: var(--rd-surface-sunken);
+  padding: 14px 16px;
+  color: var(--rd-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.rd-alert--info {
+  border-color: var(--rd-info-border);
+  background: var(--rd-info-bg);
+  color: var(--rd-info);
+}
+
+.rd-alert--success {
+  border-color: var(--rd-success-border);
+  background: var(--rd-success-bg);
+  color: var(--rd-success);
+}
+
+.rd-alert--warning {
+  border-color: var(--rd-warning-border);
+  background: var(--rd-warning-bg);
+  color: var(--rd-warning);
+}
+
+.rd-alert--danger {
+  border-color: var(--rd-danger-border);
+  background: var(--rd-danger-bg);
+  color: var(--rd-danger);
+}
+
+/* ---------- empty & loading states ---------- */
+
+.rd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border: 1px dashed var(--rd-border);
+  border-radius: var(--rd-radius-lg);
+  padding: clamp(32px, 6vw, 56px) 24px;
+  text-align: center;
+}
+
+.rd-empty-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid var(--rd-brass);
+  border-radius: var(--rd-radius);
+  color: var(--rd-brass);
+  font-family: var(--rd-font-display);
+  font-size: 24px;
+}
+
+.rd-skeleton {
+  border-radius: var(--rd-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--rd-surface-sunken) 25%,
+    var(--rd-hairline) 37%,
+    var(--rd-surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: rd-shimmer 1.4s ease infinite;
+}
+
+@keyframes rd-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ---------- framed imagery ---------- */
+
+.rd-plate {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--rd-radius);
+  margin: 0;
+  background: var(--rd-plate);
+}
+
+.rd-plate img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rd-plate-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(7, 10, 15, 0.86) 2%,
+    rgba(7, 10, 15, 0.22) 48%,
+    transparent 76%
+  );
+}
+
+/* Text sitting directly on a photo always gets its own scrim, never a bare colour. */
+.rd-on-plate {
+  color: var(--rd-plate-ink);
+}
+
+/* ---------- utilities ---------- */
+
+.rd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Skip link: first tab stop on every page. */
+.rd-skip-link {
+  position: absolute;
+  z-index: 200;
+  top: 8px;
+  left: 8px;
+  border-radius: var(--rd-radius-sm);
+  background: var(--rd-primary-bg);
+  padding: 10px 18px;
+  color: var(--rd-primary-text);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 180ms ease;
+}
+
+.rd-skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-cta,
+  .rd-icon-button,
+  .rd-card--interactive,
+  .rd-chip,
+  .rd-skip-link {
+    transition: none;
+  }
+
+  .rd-skeleton {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+ * Legacy namespace aliases.
+ *
+ * These pages were built with their own private palettes before the design
+ * system existed. Pointing the old variable names at the unified tokens gives
+ * them the correct colours AND working dark mode without rewriting thousands
+ * of declarations. Remove an alias block once its page is migrated to rd-*.
+ * ========================================================================== */
+
+:root,
+html.dark {
+  /* auth screens */
+  --auth-canvas: var(--rd-canvas);
+  --auth-surface: var(--rd-surface);
+  --auth-panel: var(--rd-surface);
+  --auth-text: var(--rd-ink);
+  --auth-muted: var(--rd-muted);
+  --auth-subtle: var(--rd-subtle);
+  --auth-border: var(--rd-border);
+  --auth-hairline: var(--rd-hairline);
+  --auth-input: var(--rd-surface-sunken);
+  --auth-blue: var(--rd-brass);
+  --auth-blue-dark: var(--rd-brass-strong);
+  --auth-focus-border: var(--rd-brass-ring);
+  --auth-focus: var(--rd-brass-soft);
+  --auth-icon: var(--rd-subtle);
+  --auth-placeholder: var(--rd-subtle);
+  --auth-hover: var(--rd-surface-sunken);
+  --auth-primary-bg: var(--rd-primary-bg);
+  --auth-primary-bg-hover: var(--rd-primary-bg-hover);
+  --auth-primary-text: var(--rd-primary-text);
+  --auth-info-border: var(--rd-info-border);
+  --auth-info-bg: var(--rd-info-bg);
+  --auth-info-text: var(--rd-info);
+  --auth-warning-border: var(--rd-warning-border);
+  --auth-warning-bg: var(--rd-warning-bg);
+  --auth-warning-text: var(--rd-warning);
+  --auth-error-border: var(--rd-danger-border);
+  --auth-error-bg: var(--rd-danger-bg);
+  --auth-error-text: var(--rd-danger);
+  --auth-success-border: var(--rd-success-border);
+  --auth-success-bg: var(--rd-success-bg);
+  --auth-success-text: var(--rd-success);
+
+  /* account centre */
+  --ac-bg: var(--rd-canvas);
+  --ac-surface: var(--rd-surface);
+  --ac-soft: var(--rd-surface-alt);
+  --ac-text: var(--rd-ink);
+  --ac-muted: var(--rd-muted);
+  --ac-subtle: var(--rd-subtle);
+  --ac-border: var(--rd-hairline);
+  --ac-blue: var(--rd-brass);
+  --ac-blue-soft: var(--rd-brass-soft);
+  --ac-green: var(--rd-success);
+  --ac-green-soft: var(--rd-success-bg);
+  --ac-amber: var(--rd-warning);
+  --ac-amber-soft: var(--rd-warning-bg);
+  --ac-red: var(--rd-danger);
+  --ac-red-soft: var(--rd-danger-bg);
+
+  /* saved properties */
+  --saved-bg: var(--rd-canvas);
+  --saved-surface: var(--rd-surface);
+  --saved-soft: var(--rd-surface-alt);
+  --saved-text: var(--rd-ink);
+  --saved-muted: var(--rd-muted);
+  --saved-subtle: var(--rd-subtle);
+  --saved-border: var(--rd-hairline);
+  --saved-accent: var(--rd-brass);
+  --saved-accent-soft: var(--rd-brass-soft);
+
+  /* admin */
+  --admin-bg: var(--rd-canvas);
+  --admin-surface: var(--rd-surface);
+  --admin-soft: var(--rd-surface-alt);
+  --admin-text: var(--rd-ink);
+  --admin-muted: var(--rd-muted);
+  --admin-subtle: var(--rd-subtle);
+  --admin-border: var(--rd-hairline);
+  --admin-accent: var(--rd-brass);
+  --admin-accent-soft: var(--rd-brass-soft);
+}
