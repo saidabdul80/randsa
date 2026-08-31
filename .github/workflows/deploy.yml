@@ -1,0 +1,94 @@
+name: Deploy EaseVerifier
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Hestia
+    runs-on: ubuntu-latest
+    env:
+      APP_PATH: /home/ashlabtech/web/verify.ashlabtech.ng/public_html
+
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            echo "======================================"
+            echo "Deploying EaseVerifier"
+            echo "======================================"
+
+            echo "==> Trusting deploy repository path for Git..."
+            git config --global --add safe.directory "${{ env.APP_PATH }}"
+
+            cd "${{ env.APP_PATH }}"
+
+            echo "==> Fetching latest code..."
+            git fetch origin main
+
+            DEPLOYABLE_CHANGES="$(git diff --name-only HEAD origin/main | grep -vE '^\.github/' || true)"
+
+            if [ -z "${DEPLOYABLE_CHANGES}" ]; then
+              echo "No deployable application changes detected."
+              echo "Workflow-only change; nothing to update on the server."
+              exit 0
+            fi
+
+            echo "==> Files to deploy..."
+            printf '%s\n' "${DEPLOYABLE_CHANGES}"
+
+            if ! touch .deploy-write-check 2>/dev/null; then
+              echo "Deploy user cannot write to the application working tree."
+              echo "Fix ownership/permissions for ${{ env.APP_PATH }} on the server, then rerun."
+              exit 1
+            fi
+
+            rm -f .deploy-write-check
+
+            echo "==> Updating code..."
+            git reset --hard origin/main
+
+            echo "==> Installing PHP dependencies..."
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            echo "==> Installing frontend dependencies..."
+            npm ci
+
+            echo "==> Building frontend..."
+            npm run build
+
+            echo "==> Running database migrations..."
+            php artisan migrate --force
+
+            echo "==> Clearing Laravel caches..."
+            php artisan optimize:clear
+
+            echo "==> Rebuilding Laravel caches..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "==> Verifying Laravel writable directories..."
+            mkdir -p \
+              storage/framework/cache/data \
+              storage/framework/sessions \
+              storage/framework/testing \
+              storage/framework/views \
+              storage/logs \
+              bootstrap/cache
+
+            if chmod -R ug+rwX storage bootstrap/cache; then
+              echo "Writable permissions refreshed."
+            else
+              echo "Skipping chmod because the deploy user does not own some files."
+            fi
+
+            echo "==> Deployment completed."
