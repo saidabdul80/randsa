@@ -32,7 +32,7 @@ jobs:
             cd "${{ env.APP_PATH }}"
 
             echo "==> Fetching latest code..."
-            git fetch origin main
+            sudo git fetch origin main
 
             DEPLOYABLE_CHANGES="$(git diff --name-only HEAD origin/main | grep -vE '^\.github/' || true)"
 
@@ -51,25 +51,25 @@ jobs:
               exit 1
             fi
 
-            rm -f .deploy-write-check
+            sudo rm -f .deploy-write-check
 
             echo "==> Updating code..."
-            git reset --hard origin/main
+            sudo git reset --hard origin/main
 
             echo "==> Installing PHP dependencies..."
-            composer install --no-interaction --prefer-dist --optimize-autoloader
+            sudo composer install --no-interaction --prefer-dist --optimize-autoloader
 
             echo "==> Installing frontend dependencies..."
-            npm ci
+            sudo npm ci
 
             echo "==> Building frontend..."
-            npm run build
+            sudo npm run build
 
             echo "==> Running database migrations..."
-            php artisan migrate --force
+            sudo php artisan migrate --force
 
             echo "==> Clearing Laravel caches..."
-            php artisan optimize:clear
+            sudo php artisan optimize:clear
 
             echo "==> Rebuilding Laravel caches..."
             php artisan config:cache
