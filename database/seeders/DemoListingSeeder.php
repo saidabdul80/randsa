@@ -19,6 +19,51 @@ class DemoListingSeeder extends Seeder
 
     private const SEED_MARK = 'seeded_randsa_demo';
 
+    private const FIRST_NAMES = [
+        'Amina',
+        'Chinedu',
+        'Tunde',
+        'Fatima',
+        'Ada',
+        'Seyi',
+        'Ifeoma',
+        'Musa',
+        'Kemi',
+        'Emeka',
+        'Zainab',
+        'Damilola',
+    ];
+
+    private const LAST_NAMES = [
+        'Okafor',
+        'Balogun',
+        'Ibrahim',
+        'Eze',
+        'Adebayo',
+        'Udo',
+        'Nwachukwu',
+        'Bello',
+        'Oladipo',
+        'Etim',
+        'Yakubu',
+        'George',
+    ];
+
+    private const OWNER_LOCATIONS = ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu'];
+
+    private const STREET_NAMES = [
+        'Admiralty Way',
+        'Aminu Kano Crescent',
+        'Adeniran Ogunsanya Street',
+        'Sani Abacha Road',
+        'Ring Road',
+        'Bodija Avenue',
+        'Nwaniba Road',
+        'Trans Amadi Road',
+        'Independence Avenue',
+        'Zoo Road',
+    ];
+
     public function run(): void
     {
         Property::query()->where('legacy_category', self::SEED_MARK)->delete();
@@ -50,10 +95,10 @@ class DemoListingSeeder extends Seeder
                 $user->id = (string) Str::uuid();
             }
             $user->fill([
-                'first_name' => fake()->firstName(),
-                'last_name' => fake()->lastName(),
+                'first_name' => $this->pick(self::FIRST_NAMES, $index),
+                'last_name' => $this->pick(self::LAST_NAMES, $index),
                 'phone' => sprintf('+23480%08d', $index),
-                'location' => fake()->randomElement(['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu']),
+                'location' => $this->pick(self::OWNER_LOCATIONS, $index),
                 'bio' => 'Verified RANDSA provider for homes, services, and marketplace requests.',
                 'is_verified' => true,
                 'account_status' => 'active',
@@ -85,30 +130,30 @@ class DemoListingSeeder extends Seeder
 
     private function createProperty(int $index, $owners, $subCategories): void
     {
-        $subCategoryId = fake()->randomElement([
+        $subCategoryId = $this->pick([
             'housing_apartment_rent',
             'housing_house_sale',
             'housing_land_sale',
             'housing_shop_rent',
-        ]);
+        ], $index);
         $subCategory = $subCategories->get($subCategoryId);
         if (! $subCategory) {
             return;
         }
 
         $location = $this->location($index);
-        $bedrooms = fake()->numberBetween(1, 6);
-        $bathrooms = fake()->numberBetween(max(1, $bedrooms - 1), $bedrooms + 1);
+        $bedrooms = $this->numberBetween(1, 6, $index, 11);
+        $bathrooms = $this->numberBetween(max(1, $bedrooms - 1), $bedrooms + 1, $index, 12);
         $size = match ($subCategoryId) {
-            'housing_land_sale' => fake()->numberBetween(450, 2200),
-            'housing_shop_rent' => fake()->numberBetween(40, 420),
-            default => fake()->numberBetween(80, 520),
+            'housing_land_sale' => $this->numberBetween(450, 2200, $index, 21),
+            'housing_shop_rent' => $this->numberBetween(40, 420, $index, 22),
+            default => $this->numberBetween(80, 520, $index, 23),
         };
         $propertyKind = match ($subCategoryId) {
-            'housing_house_sale' => fake()->randomElement(['detached duplex', 'terrace home', 'family bungalow', 'smart home']),
-            'housing_land_sale' => fake()->randomElement(['dry land', 'corner-piece plot', 'commercial land', 'fenced estate plot']),
-            'housing_shop_rent' => fake()->randomElement(['street-facing shop', 'office suite', 'retail space', 'warehouse unit']),
-            default => fake()->randomElement(['serviced apartment', 'mini flat', 'penthouse', 'self-contained studio']),
+            'housing_house_sale' => $this->pick(['detached duplex', 'terrace home', 'family bungalow', 'smart home'], $index),
+            'housing_land_sale' => $this->pick(['dry land', 'corner-piece plot', 'commercial land', 'fenced estate plot'], $index),
+            'housing_shop_rent' => $this->pick(['street-facing shop', 'office suite', 'retail space', 'warehouse unit'], $index),
+            default => $this->pick(['serviced apartment', 'mini flat', 'penthouse', 'self-contained studio'], $index),
         };
         $title = match ($subCategoryId) {
             'housing_land_sale' => Str::headline("{$propertyKind} in {$location['area']}"),
@@ -117,7 +162,7 @@ class DemoListingSeeder extends Seeder
         };
 
         $property = Property::query()->create([
-            'owner_id' => $owners->random()->id,
+            'owner_id' => $this->ownerFor($owners, $index)->id,
             'service_category_id' => $subCategory->service_category_id,
             'service_sub_category_id' => $subCategory->id,
             'title' => $title.' #'.$index,
@@ -131,7 +176,7 @@ class DemoListingSeeder extends Seeder
             'owner_phone' => sprintf('+23470%08d', $index),
             'status' => 'approved',
             'is_available' => true,
-            'base_price' => $this->propertyPrice($subCategoryId),
+            'base_price' => $this->propertyPrice($subCategoryId, $index),
             'currency' => 'NGN',
             'pricing_unit' => in_array($subCategoryId, ['housing_apartment_rent', 'housing_shop_rent'], true) ? 'year' : null,
             'legacy_category' => self::SEED_MARK,
@@ -154,7 +199,7 @@ class DemoListingSeeder extends Seeder
 
     private function createMarketplaceListing(int $index, $owners, $subCategories): void
     {
-        $subCategoryId = fake()->randomElement([
+        $subCategoryId = $this->pick([
             'artisan_plumbing',
             'artisan_electrical',
             'artisan_cleaning',
@@ -166,7 +211,7 @@ class DemoListingSeeder extends Seeder
             'marketplace_furniture',
             'marketplace_electronics',
             'marketplace_home_services',
-        ]);
+        ], $index);
         $subCategory = $subCategories->get($subCategoryId);
         if (! $subCategory) {
             return;
@@ -174,10 +219,10 @@ class DemoListingSeeder extends Seeder
 
         $location = $this->location($index + self::PROPERTY_RECORDS);
         $title = $this->marketplaceTitle($subCategoryId, $location['area'], $index);
-        $basePrice = $this->marketplacePrice($subCategoryId);
+        $basePrice = $this->marketplacePrice($subCategoryId, $index);
 
         $listing = MarketplaceListing::query()->create([
-            'owner_id' => $owners->random()->id,
+            'owner_id' => $this->ownerFor($owners, $index)->id,
             'service_category_id' => $subCategory->service_category_id,
             'service_sub_category_id' => $subCategory->id,
             'title' => $title,
@@ -196,16 +241,16 @@ class DemoListingSeeder extends Seeder
             'maximum_amount' => null,
             'price_type' => in_array($subCategory->transaction_type, ['service', 'hire', 'booking'], true) ? 'starting_from' : 'fixed',
             'billing_period' => $this->billingPeriod($subCategoryId),
-            'negotiable' => fake()->boolean(45),
-            'contact_name' => fake()->name(),
+            'negotiable' => $this->seededBoolean($index, 45),
+            'contact_name' => $this->personName($index),
             'contact_phone' => sprintf('+23481%08d', $index),
-            'whatsapp_enabled' => fake()->boolean(75),
-            'preferred_contact_method' => fake()->randomElement(['phone', 'whatsapp']),
-            'delivery_available' => fake()->boolean(55),
+            'whatsapp_enabled' => $this->seededBoolean($index, 75),
+            'preferred_contact_method' => $this->pick(['phone', 'whatsapp'], $index),
+            'delivery_available' => $this->seededBoolean($index, 55),
             'pickup_available' => true,
             'delivery_details' => 'Delivery or visit schedule is confirmed after contact.',
-            'view_count' => fake()->numberBetween(15, 1800),
-            'favourite_count' => fake()->numberBetween(0, 150),
+            'view_count' => $this->numberBetween(15, 1800, $index, 31),
+            'favourite_count' => $this->numberBetween(0, 150, $index, 32),
             'published_at' => now()->subMinutes($index * 11),
             'legacy_category' => self::SEED_MARK,
             'legacy_sub_category' => $subCategoryId,
@@ -240,49 +285,49 @@ class DemoListingSeeder extends Seeder
             'state' => $base['state'],
             'city' => $base['city'],
             'area' => $area,
-            'address' => fake()->buildingNumber().' '.fake()->streetName(),
-            'latitude' => fake()->latitude(4.8, 9.2),
-            'longitude' => fake()->longitude(3.0, 8.8),
+            'address' => $this->numberBetween(1, 240, $index, 41).' '.$this->pick(self::STREET_NAMES, $index),
+            'latitude' => $this->decimalBetween(4.8, 9.2, $index, 42),
+            'longitude' => $this->decimalBetween(3.0, 8.8, $index, 43),
         ];
     }
 
-    private function propertyPrice(string $subCategoryId): int
+    private function propertyPrice(string $subCategoryId, int $index): int
     {
         return match ($subCategoryId) {
-            'housing_house_sale' => fake()->numberBetween(35000000, 280000000),
-            'housing_land_sale' => fake()->numberBetween(7000000, 120000000),
-            'housing_shop_rent' => fake()->numberBetween(600000, 12000000),
-            default => fake()->numberBetween(350000, 12000000),
+            'housing_house_sale' => $this->numberBetween(35000000, 280000000, $index, 51),
+            'housing_land_sale' => $this->numberBetween(7000000, 120000000, $index, 52),
+            'housing_shop_rent' => $this->numberBetween(600000, 12000000, $index, 53),
+            default => $this->numberBetween(350000, 12000000, $index, 54),
         };
     }
 
-    private function marketplacePrice(string $subCategoryId): ?int
+    private function marketplacePrice(string $subCategoryId, int $index): ?int
     {
         return match ($subCategoryId) {
             'artisan_plumbing', 'artisan_electrical', 'artisan_cleaning', 'artisan_beauty', 'artisan_carpentry', 'marketplace_home_services' => null,
-            'rental_cars' => fake()->numberBetween(25000, 160000),
-            'rental_equipment' => fake()->numberBetween(15000, 350000),
-            'rental_event_space' => fake()->numberBetween(150000, 2500000),
-            'marketplace_furniture' => fake()->numberBetween(45000, 2500000),
-            'marketplace_electronics' => fake()->numberBetween(35000, 1800000),
-            default => fake()->numberBetween(10000, 500000),
+            'rental_cars' => $this->numberBetween(25000, 160000, $index, 61),
+            'rental_equipment' => $this->numberBetween(15000, 350000, $index, 62),
+            'rental_event_space' => $this->numberBetween(150000, 2500000, $index, 63),
+            'marketplace_furniture' => $this->numberBetween(45000, 2500000, $index, 64),
+            'marketplace_electronics' => $this->numberBetween(35000, 1800000, $index, 65),
+            default => $this->numberBetween(10000, 500000, $index, 66),
         };
     }
 
     private function marketplaceTitle(string $subCategoryId, string $area, int $index): string
     {
         $title = match ($subCategoryId) {
-            'artisan_plumbing' => fake()->randomElement(['Emergency plumbing repair', 'Water heater installation', 'Bathroom pipe replacement']),
-            'artisan_electrical' => fake()->randomElement(['Certified electrician callout', 'Inverter and wiring service', 'Office lighting installation']),
-            'artisan_cleaning' => fake()->randomElement(['Deep home cleaning team', 'Post-construction cleaning', 'Office cleaning package']),
-            'artisan_beauty' => fake()->randomElement(['Mobile barber service', 'Makeup artist booking', 'Home nail technician']),
-            'artisan_carpentry' => fake()->randomElement(['Kitchen cabinet carpenter', 'Wardrobe installation', 'Furniture repair specialist']),
-            'rental_cars' => fake()->randomElement(['Toyota Corolla for daily hire', 'Lexus SUV chauffeur rental', 'Coaster bus for events']),
-            'rental_equipment' => fake()->randomElement(['Generator rental', 'Scaffold and ladder hire', 'Sound system rental']),
-            'rental_event_space' => fake()->randomElement(['Outdoor event garden', 'Banquet hall booking', 'Private meeting lounge']),
-            'marketplace_furniture' => fake()->randomElement(['Luxury sofa set', 'Dining table set', 'Office workstation bundle']),
-            'marketplace_electronics' => fake()->randomElement(['Smart TV and soundbar', 'Laptop workstation', 'Inverter battery pack']),
-            default => fake()->randomElement(['Home support service', 'Errand and domestic assistance', 'Moving and setup service']),
+            'artisan_plumbing' => $this->pick(['Emergency plumbing repair', 'Water heater installation', 'Bathroom pipe replacement'], $index),
+            'artisan_electrical' => $this->pick(['Certified electrician callout', 'Inverter and wiring service', 'Office lighting installation'], $index),
+            'artisan_cleaning' => $this->pick(['Deep home cleaning team', 'Post-construction cleaning', 'Office cleaning package'], $index),
+            'artisan_beauty' => $this->pick(['Mobile barber service', 'Makeup artist booking', 'Home nail technician'], $index),
+            'artisan_carpentry' => $this->pick(['Kitchen cabinet carpenter', 'Wardrobe installation', 'Furniture repair specialist'], $index),
+            'rental_cars' => $this->pick(['Toyota Corolla for daily hire', 'Lexus SUV chauffeur rental', 'Coaster bus for events'], $index),
+            'rental_equipment' => $this->pick(['Generator rental', 'Scaffold and ladder hire', 'Sound system rental'], $index),
+            'rental_event_space' => $this->pick(['Outdoor event garden', 'Banquet hall booking', 'Private meeting lounge'], $index),
+            'marketplace_furniture' => $this->pick(['Luxury sofa set', 'Dining table set', 'Office workstation bundle'], $index),
+            'marketplace_electronics' => $this->pick(['Smart TV and soundbar', 'Laptop workstation', 'Inverter battery pack'], $index),
+            default => $this->pick(['Home support service', 'Errand and domestic assistance', 'Moving and setup service'], $index),
         };
 
         return "{$title} in {$area} #{$index}";
@@ -358,7 +403,7 @@ class DemoListingSeeder extends Seeder
         }
 
         if ($subCategoryId !== 'housing_land_sale') {
-            $values['furnishing'] = ['value_string' => fake()->randomElement(['Fully fitted', 'Semi furnished', 'Unfurnished'])];
+            $values['furnishing'] = ['value_string' => $this->pick(['Fully fitted', 'Semi furnished', 'Unfurnished'], $property->id)];
         }
 
         if (in_array($subCategoryId, ['housing_house_sale', 'housing_land_sale'], true)) {
@@ -371,5 +416,40 @@ class DemoListingSeeder extends Seeder
                 'field_key' => $fieldId,
             ], $attributes));
         }
+    }
+
+    private function pick(array $items, int $index): string
+    {
+        return $items[($index - 1) % count($items)];
+    }
+
+    private function numberBetween(int $min, int $max, int $index, int $salt = 0): int
+    {
+        $range = $max - $min + 1;
+        $value = abs(($index * 1103515245) + ($salt * 12345) + 12345);
+
+        return $min + ($value % $range);
+    }
+
+    private function decimalBetween(float $min, float $max, int $index, int $salt = 0): float
+    {
+        $basis = $this->numberBetween(0, 1000000, $index, $salt) / 1000000;
+
+        return round($min + (($max - $min) * $basis), 7);
+    }
+
+    private function seededBoolean(int $index, int $truePercent): bool
+    {
+        return $this->numberBetween(1, 100, $index, 71) <= $truePercent;
+    }
+
+    private function personName(int $index): string
+    {
+        return $this->pick(self::FIRST_NAMES, $index).' '.$this->pick(self::LAST_NAMES, $index + 3);
+    }
+
+    private function ownerFor($owners, int $index): User
+    {
+        return $owners->values()[($index - 1) % $owners->count()];
     }
 }

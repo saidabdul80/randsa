@@ -9,6 +9,34 @@ use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
+    private const FIRST_NAMES = [
+        'Amina',
+        'Chinedu',
+        'Tunde',
+        'Fatima',
+        'Ada',
+        'Seyi',
+        'Ifeoma',
+        'Musa',
+        'Kemi',
+        'Emeka',
+    ];
+
+    private const LAST_NAMES = [
+        'Okafor',
+        'Balogun',
+        'Ibrahim',
+        'Eze',
+        'Adebayo',
+        'Udo',
+        'Nwachukwu',
+        'Bello',
+        'Oladipo',
+        'Etim',
+    ];
+
+    private const LOCATIONS = ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu'];
+
     public function run(): void
     {
         $this->seedCustomer(
@@ -22,10 +50,10 @@ class UserSeeder extends Seeder
         collect(range(1, 20))->each(function (int $index): void {
             $this->seedCustomer(
                 email: sprintf('customer%02d@randsa.test', $index),
-                firstName: fake()->firstName(),
-                lastName: fake()->lastName(),
+                firstName: $this->pick(self::FIRST_NAMES, $index),
+                lastName: $this->pick(self::LAST_NAMES, $index),
                 phone: sprintf('+23491%08d', $index),
-                location: fake()->randomElement(['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu']),
+                location: $this->pick(self::LOCATIONS, $index),
             );
         });
     }
@@ -55,5 +83,10 @@ class UserSeeder extends Seeder
         $user->save();
 
         $user->assignRole('customer');
+    }
+
+    private function pick(array $items, int $index): string
+    {
+        return $items[($index - 1) % count($items)];
     }
 }
