@@ -77,7 +77,7 @@ jobs:
             php artisan view:cache
 
             echo "==> Verifying Laravel writable directories..."
-            mkdir -p \
+            sudo mkdir -p \
               storage/framework/cache/data \
               storage/framework/sessions \
               storage/framework/testing \
