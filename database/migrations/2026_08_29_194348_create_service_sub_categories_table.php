@@ -38,9 +38,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('service_category_id')->references('id')->on('service_categories')->cascadeOnDelete();
-            $table->unique(['service_category_id', 'slug']);
-            $table->index(['service_category_id', 'type', 'transaction_type']);
-            $table->index(['service_category_id', 'is_active', 'is_public', 'sort_order']);
+            $table->unique(['service_category_id', 'slug'], 'svc_sub_cat_slug_unique');
+            $table->index(['service_category_id', 'type', 'transaction_type'], 'svc_sub_cat_type_idx');
+            $table->index(['service_category_id', 'is_active', 'is_public', 'sort_order'], 'svc_sub_cat_public_sort_idx');
         });
     }
 

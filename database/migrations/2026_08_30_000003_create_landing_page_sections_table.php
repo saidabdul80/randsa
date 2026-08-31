@@ -27,7 +27,7 @@ return new class extends Migration
 
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
             $table->foreign('updated_by')->references('id')->on('users')->nullOnDelete();
-            $table->index(['placement', 'section_key', 'is_active', 'sort_order']);
+            $table->index(['placement', 'section_key', 'is_active', 'sort_order'], 'landing_sections_lookup_idx');
         });
     }
 

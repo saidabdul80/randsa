@@ -23,7 +23,10 @@ return new class extends Migration
             $table->json('quality_rules')->nullable();
             $table->timestamps();
 
-            $table->foreign('service_sub_category_id')->references('id')->on('service_sub_categories')->cascadeOnDelete();
+            $table->foreign('service_sub_category_id', 'svc_sub_form_config_sub_cat_fk')
+                ->references('id')
+                ->on('service_sub_categories')
+                ->cascadeOnDelete();
         });
     }
 

@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreign('service_sub_category_id')->references('id')->on('service_sub_categories')->nullOnDelete();
             $table->foreign('service_field_id')->references('id')->on('service_fields')->cascadeOnDelete();
             $table->index(['service_category_id', 'sort_order']);
-            $table->index(['service_sub_category_id', 'sort_order']);
+            $table->index(['service_sub_category_id', 'sort_order'], 'svc_filter_fields_sub_sort_idx');
         });
     }
 

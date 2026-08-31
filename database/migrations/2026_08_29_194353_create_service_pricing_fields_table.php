@@ -28,8 +28,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('service_sub_category_id')->references('id')->on('service_sub_categories')->cascadeOnDelete();
-            $table->unique(['service_sub_category_id', 'key']);
-            $table->index(['service_sub_category_id', 'sort_order']);
+            $table->unique(['service_sub_category_id', 'key'], 'svc_pricing_field_key_unique');
+            $table->index(['service_sub_category_id', 'sort_order'], 'svc_pricing_field_sort_idx');
             $table->index('payment_type');
         });
     }

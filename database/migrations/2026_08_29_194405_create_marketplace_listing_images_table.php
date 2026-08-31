@@ -18,8 +18,8 @@ return new class extends Migration
             $table->boolean('is_cover')->default(false);
             $table->timestamps();
 
-            $table->index(['marketplace_listing_id', 'sort_order']);
-            $table->index(['marketplace_listing_id', 'is_cover']);
+            $table->index(['marketplace_listing_id', 'sort_order'], 'market_listing_images_sort_idx');
+            $table->index(['marketplace_listing_id', 'is_cover'], 'market_listing_images_cover_idx');
         });
     }
 

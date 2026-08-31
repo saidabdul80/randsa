@@ -38,7 +38,7 @@ return new class extends Migration
 
             $table->foreign('service_category_id')->references('id')->on('service_categories')->restrictOnDelete();
             $table->foreign('service_sub_category_id')->references('id')->on('service_sub_categories')->restrictOnDelete();
-            $table->index(['service_category_id', 'service_sub_category_id', 'status']);
+            $table->index(['service_category_id', 'service_sub_category_id', 'status'], 'properties_service_status_idx');
             $table->index(['owner_id', 'created_at']);
             $table->index(['status', 'is_available', 'created_at']);
         });

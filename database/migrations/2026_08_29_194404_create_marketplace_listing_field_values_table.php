@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('marketplace_listing_field_values', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('marketplace_listing_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('marketplace_listing_id');
             $table->string('service_field_id');
             $table->string('field_key');
             $table->text('value_string')->nullable();
@@ -20,6 +20,10 @@ return new class extends Migration
             $table->json('value_json')->nullable();
             $table->timestamps();
 
+            $table->foreign('marketplace_listing_id', 'market_field_values_listing_fk')
+                ->references('id')
+                ->on('marketplace_listings')
+                ->cascadeOnDelete();
             $table->foreign('service_field_id')->references('id')->on('service_fields')->restrictOnDelete();
             $table->unique(['marketplace_listing_id', 'service_field_id'], 'marketplace_listing_field_values_listing_field_unique');
             $table->index('service_field_id');
