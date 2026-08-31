@@ -10,7 +10,7 @@ jobs:
     name: Deploy to Hestia
     runs-on: ubuntu-latest
     env:
-      APP_PATH: /home/ashlabtech/web/verify.ashlabtech.ng/public_html
+      APP_PATH: /home/ashlabtech/web/randsa.ashlabtech.ng/public_html
 
     steps:
       - name: Deploy to production server
