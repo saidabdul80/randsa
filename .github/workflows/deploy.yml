@@ -32,9 +32,9 @@ jobs:
             cd "${{ env.APP_PATH }}"
 
             echo "==> Fetching latest code..."
-            sudo git fetch origin main
+            sudo git fetch origin master
 
-            DEPLOYABLE_CHANGES="$(git diff --name-only HEAD origin/main | grep -vE '^\.github/' || true)"
+            DEPLOYABLE_CHANGES="$(git diff --name-only HEAD origin/master | grep -vE '^\.github/' || true)"
 
             if [ -z "${DEPLOYABLE_CHANGES}" ]; then
               echo "No deployable application changes detected."
@@ -54,7 +54,7 @@ jobs:
             sudo rm -f .deploy-write-check
 
             echo "==> Updating code..."
-            sudo git reset --hard origin/main
+            sudo git pull origin master
 
             echo "==> Installing PHP dependencies..."
             sudo composer install --no-interaction --prefer-dist --optimize-autoloader
