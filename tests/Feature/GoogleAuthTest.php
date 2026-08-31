@@ -1,80 +1,95 @@
 <?php
 
+namespace Tests\Feature;
+
 use App\Events\UserRegistered;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
+use Mockery;
 use Mockery\MockInterface;
+use Tests\TestCase;
 
-test('google callback creates and authenticates a customer account', function () {
-    Event::fake([UserRegistered::class]);
+class GoogleAuthTest extends TestCase
+{
+    use RefreshDatabase;
 
-    $googleUser = Mockery::mock(SocialiteUser::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('getId')->andReturn('google-user-123');
-        $mock->shouldReceive('getName')->andReturn('Ada Lovelace');
-        $mock->shouldReceive('getNickname')->andReturn(null);
-        $mock->shouldReceive('getEmail')->andReturn('ada@example.test');
-        $mock->shouldReceive('getAvatar')->andReturn('https://example.test/avatar.jpg');
-    });
+    protected function tearDown(): void
+    {
+        Mockery::close();
 
-    $provider = Mockery::mock(Provider::class, function (MockInterface $mock) use ($googleUser): void {
-        $mock->shouldReceive('user')->once()->andReturn($googleUser);
-    });
+        parent::tearDown();
+    }
 
-    Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
+    public function test_google_callback_creates_and_authenticates_a_customer_account(): void
+    {
+        Event::fake([UserRegistered::class]);
 
-    $this->get('/auth/google/callback')
-        ->assertRedirect(route('home'));
+        $googleUser = Mockery::mock(SocialiteUser::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getId')->andReturn('google-user-123');
+            $mock->shouldReceive('getName')->andReturn('Ada Lovelace');
+            $mock->shouldReceive('getNickname')->andReturn(null);
+            $mock->shouldReceive('getEmail')->andReturn('ada@example.test');
+            $mock->shouldReceive('getAvatar')->andReturn('https://example.test/avatar.jpg');
+        });
 
-    $user = User::query()->where('email', 'ada@example.test')->firstOrFail();
+        $provider = Mockery::mock(Provider::class, function (MockInterface $mock) use ($googleUser): void {
+            $mock->shouldReceive('user')->once()->andReturn($googleUser);
+        });
 
-    $this->assertAuthenticatedAs($user);
+        Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
 
-    expect($user)
-        ->google_id->toBe('google-user-123')
-        ->first_name->toBe('Ada')
-        ->last_name->toBe('Lovelace')
-        ->photo_url->toBe('https://example.test/avatar.jpg')
-        ->email_verified_at->not->toBeNull();
+        $this->get('/auth/google/callback')
+            ->assertRedirect(route('home'));
 
-    expect($user->hasRole('customer'))->toBeTrue();
+        $user = User::query()->where('email', 'ada@example.test')->firstOrFail();
 
-    Event::assertDispatched(UserRegistered::class);
-});
+        $this->assertAuthenticatedAs($user);
 
-test('google callback links an existing email account', function () {
-    $user = User::factory()->create([
-        'email' => 'existing@example.test',
-        'google_id' => null,
-        'email_verified_at' => null,
-        'photo_url' => null,
-    ]);
+        $this->assertSame('google-user-123', $user->google_id);
+        $this->assertSame('Ada', $user->first_name);
+        $this->assertSame('Lovelace', $user->last_name);
+        $this->assertSame('https://example.test/avatar.jpg', $user->photo_url);
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertTrue($user->hasRole('customer'));
 
-    $googleUser = Mockery::mock(SocialiteUser::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('getId')->andReturn('google-existing-123');
-        $mock->shouldReceive('getName')->andReturn('Existing User');
-        $mock->shouldReceive('getNickname')->andReturn(null);
-        $mock->shouldReceive('getEmail')->andReturn('existing@example.test');
-        $mock->shouldReceive('getAvatar')->andReturn('https://example.test/existing.jpg');
-    });
+        Event::assertDispatched(UserRegistered::class);
+    }
 
-    $provider = Mockery::mock(Provider::class, function (MockInterface $mock) use ($googleUser): void {
-        $mock->shouldReceive('user')->once()->andReturn($googleUser);
-    });
+    public function test_google_callback_links_an_existing_email_account(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'existing@example.test',
+            'google_id' => null,
+            'email_verified_at' => null,
+            'photo_url' => null,
+        ]);
 
-    Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
+        $googleUser = Mockery::mock(SocialiteUser::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getId')->andReturn('google-existing-123');
+            $mock->shouldReceive('getName')->andReturn('Existing User');
+            $mock->shouldReceive('getNickname')->andReturn(null);
+            $mock->shouldReceive('getEmail')->andReturn('existing@example.test');
+            $mock->shouldReceive('getAvatar')->andReturn('https://example.test/existing.jpg');
+        });
 
-    $this->get('/auth/google/callback')
-        ->assertRedirect(route('home'));
+        $provider = Mockery::mock(Provider::class, function (MockInterface $mock) use ($googleUser): void {
+            $mock->shouldReceive('user')->once()->andReturn($googleUser);
+        });
 
-    $user->refresh();
+        Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
 
-    $this->assertAuthenticatedAs($user);
+        $this->get('/auth/google/callback')
+            ->assertRedirect(route('home'));
 
-    expect($user)
-        ->google_id->toBe('google-existing-123')
-        ->photo_url->toBe('https://example.test/existing.jpg')
-        ->email_verified_at->not->toBeNull();
-});
+        $user->refresh();
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame('google-existing-123', $user->google_id);
+        $this->assertSame('https://example.test/existing.jpg', $user->photo_url);
+        $this->assertNotNull($user->email_verified_at);
+    }
+}
