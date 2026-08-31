@@ -1,9 +1,9 @@
-name: Deploy EaseVerifier
+name: Deploy randsa
 
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
@@ -23,7 +23,7 @@ jobs:
             set -euo pipefail
 
             echo "======================================"
-            echo "Deploying EaseVerifier"
+            echo "Deploying randsa"
             echo "======================================"
 
             echo "==> Trusting deploy repository path for Git..."
