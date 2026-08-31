@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\LandingPageSection;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Vite;
 
 class LandingPageSeeder extends Seeder
 {
@@ -16,7 +15,7 @@ class LandingPageSeeder extends Seeder
                 'eyebrow' => 'Housing',
                 'title' => 'Find homes, shops, land, and inspections.',
                 'description' => 'Search rent and sale listings, review property details, save options, and book inspections from one public marketplace.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-home.webp'),
+                'image_url' => '/images/seeded/home.webp',
                 'sort_order' => 10,
             ],
             [
@@ -24,7 +23,7 @@ class LandingPageSeeder extends Seeder
                 'eyebrow' => 'Rentals',
                 'title' => 'Rent what you need, when you need it.',
                 'description' => 'Discover vehicles, equipment, spaces, and short-term rentals organized by clear service categories.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-car.webp'),
+                'image_url' => '/images/seeded/car.webp',
                 'sort_order' => 20,
             ],
             [
@@ -32,7 +31,7 @@ class LandingPageSeeder extends Seeder
                 'eyebrow' => 'Events and services',
                 'title' => 'Book spaces and trusted service renderers.',
                 'description' => 'Find artisans, event vendors, professional services, and booking-enabled offers without hardcoded listing rules.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-event.webp'),
+                'image_url' => '/images/seeded/event.webp',
                 'sort_order' => 30,
             ],
             [
@@ -40,7 +39,7 @@ class LandingPageSeeder extends Seeder
                 'eyebrow' => 'Marketplace',
                 'title' => 'Every category, one place.',
                 'description' => 'Browse housing, marketplace items, leisure, jobs, and services through one searchable landing page.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-horses.webp'),
+                'image_url' => '/images/seeded/leisure.webp',
                 'sort_order' => 40,
             ],
             [

@@ -33,7 +33,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Vite;
 use Inertia\Response;
 
 class PageController extends Controller
@@ -446,7 +445,7 @@ class PageController extends Controller
                 'eyebrow' => 'Housing',
                 'title' => 'Find homes, shops, land, and inspections.',
                 'description' => 'Search rent and sale listings, review property details, save options, and book inspections from one public marketplace.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-home.webp'),
+                'image_url' => '/images/seeded/home.webp',
                 'sort_order' => 10,
                 'is_active' => true,
             ],
@@ -456,7 +455,7 @@ class PageController extends Controller
                 'eyebrow' => 'Rentals',
                 'title' => 'Rent what you need, when you need it.',
                 'description' => 'Discover vehicles, equipment, spaces, and short-term rentals organized by clear service categories.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-car.webp'),
+                'image_url' => '/images/seeded/car.webp',
                 'sort_order' => 20,
                 'is_active' => true,
             ],
@@ -466,7 +465,7 @@ class PageController extends Controller
                 'eyebrow' => 'Events and services',
                 'title' => 'Book spaces and trusted service renderers.',
                 'description' => 'Find artisans, event vendors, professional services, and booking-enabled offers without hardcoded listing rules.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-event.webp'),
+                'image_url' => '/images/seeded/event.webp',
                 'sort_order' => 30,
                 'is_active' => true,
             ],
@@ -476,7 +475,7 @@ class PageController extends Controller
                 'eyebrow' => 'Marketplace',
                 'title' => 'Every category, one place.',
                 'description' => 'Browse housing, marketplace items, leisure, jobs, and services through one searchable landing page.',
-                'image_url' => Vite::asset('resources/js/assets/randsa-hero-horses.webp'),
+                'image_url' => '/images/seeded/leisure.webp',
                 'sort_order' => 40,
                 'is_active' => true,
             ],
