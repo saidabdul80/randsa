@@ -29,7 +29,9 @@ class Booking extends Model
         'status',
         'payment_status',
         'reminder_sent',
-        'guest_phone',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
         'notes',
         'request_id',
         'schema_version',
@@ -88,5 +90,10 @@ class Booking extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
     }
 }

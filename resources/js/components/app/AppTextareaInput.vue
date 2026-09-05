@@ -9,11 +9,13 @@ withDefaults(
         placeholder?: string;
         rows?: number;
         variant?: 'light' | 'dark' | 'glass';
+        compact?: boolean;
     }>(),
     {
         placeholder: '',
         rows: 4,
         variant: 'light',
+        compact: false,
     },
 );
 
@@ -22,14 +24,15 @@ const model = defineModel<string | null>({ required: true });
 
 <template>
     <label
-        class="block rounded-[10px] px-4 py-3 transition"
-        :class="
+        class="block w-full min-w-0 rounded-[10px] px-4 transition"
+        :class="[
+            compact ? 'py-2.5' : 'py-3',
             variant === 'dark'
                 ? 'border border-white/12 bg-white/10 text-white focus-within:border-emerald-300 focus-within:bg-white/14'
                 : variant === 'glass'
                   ? 'border border-transparent bg-transparent text-white focus-within:bg-white/8'
-                  : 'border border-slate-200 bg-white text-slate-950 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.7)] focus-within:border-emerald-500 focus-within:ring-3 focus-within:ring-emerald-100'
-        "
+                  : 'border border-slate-200 bg-white text-slate-950 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.7)] focus-within:border-emerald-500 focus-within:ring-3 focus-within:ring-emerald-100',
+        ]"
     >
         <span
             class="block text-[11px] font-semibold uppercase"
@@ -42,12 +45,13 @@ const model = defineModel<string | null>({ required: true });
             v-model="model"
             :rows="rows"
             :placeholder="placeholder"
-            class="mt-2 w-full resize-y border-0 bg-transparent text-sm font-medium leading-6 outline-none"
-            :class="
+            class="mt-2 w-full resize-y border-0 bg-transparent text-sm leading-6 font-medium outline-none"
+            :class="[
                 variant === 'dark' || variant === 'glass'
                     ? 'text-white placeholder:text-white/42'
-                    : 'text-slate-950 placeholder:text-slate-400'
-            "
+                    : 'text-slate-950 placeholder:text-slate-400',
+                compact ? 'min-h-20' : 'min-h-28',
+            ]"
         />
     </label>
 </template>

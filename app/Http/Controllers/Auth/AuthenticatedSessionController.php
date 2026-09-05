@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -19,7 +20,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('home');
+        return redirect()->to($this->intendedPath($request->input('intended_url')));
     }
 
     public function destroy(): RedirectResponse
@@ -30,5 +31,18 @@ class AuthenticatedSessionController extends Controller
         request()->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function intendedPath(?string $path): string
+    {
+        if (! $path || ! Str::startsWith($path, '/') || Str::startsWith($path, '//')) {
+            return route('home', absolute: false);
+        }
+
+        if (in_array($path, ['/login', '/register'], true)) {
+            return route('home', absolute: false);
+        }
+
+        return $path;
     }
 }

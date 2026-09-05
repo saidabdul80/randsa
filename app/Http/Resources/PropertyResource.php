@@ -47,6 +47,8 @@ class PropertyResource extends JsonResource
             'pricing_unit' => $this->pricing_unit,
             'limited_remaining_capacity' => $this->limited_remaining_capacity,
             'blocked_dates' => $this->blocked_dates,
+            'availability_slots' => $this->availability_slots,
+            'availability_rules' => $this->availability_rules,
             'buffer_minutes' => $this->buffer_minutes,
             'minimum_duration_minutes' => $this->minimum_duration_minutes,
             'category' => new ServiceCategoryResource($this->whenLoaded('category')),

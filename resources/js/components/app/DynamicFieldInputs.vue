@@ -15,7 +15,9 @@ const emit = defineEmits<{
 }>();
 
 function valueFor(field: ServiceSubCategoryField): FieldValue {
-    const current = props.values.find((item) => item.service_field_id === field.service_field_id);
+    const current = props.values.find(
+        (item) => item.service_field_id === field.service_field_id,
+    );
 
     return (
         current ?? {
@@ -26,8 +28,14 @@ function valueFor(field: ServiceSubCategoryField): FieldValue {
     );
 }
 
-function setValue(field: ServiceSubCategoryField, key: keyof FieldValue, value: unknown) {
-    const next = props.values.filter((item) => item.service_field_id !== field.service_field_id);
+function setValue(
+    field: ServiceSubCategoryField,
+    key: keyof FieldValue,
+    value: unknown,
+) {
+    const next = props.values.filter(
+        (item) => item.service_field_id !== field.service_field_id,
+    );
     next.push({
         ...valueFor(field),
         [key]: value,
@@ -35,10 +43,15 @@ function setValue(field: ServiceSubCategoryField, key: keyof FieldValue, value: 
     emit('update:values', next);
 }
 
-function optionsFor(field: ServiceSubCategoryField): Array<{ label: string; value: string }> {
+function optionsFor(
+    field: ServiceSubCategoryField,
+): Array<{ label: string; value: string }> {
     return [
         { label: 'Select option', value: '' },
-        ...(field.field?.options || []).map((option) => ({ label: option.label, value: option.value })),
+        ...(field.field?.options || []).map((option) => ({
+            label: option.label,
+            value: option.value,
+        })),
     ];
 }
 
@@ -50,10 +63,14 @@ function fieldLabel(field: ServiceSubCategoryField): string {
 </script>
 
 <template>
-    <div v-if="fields.length" class="grid gap-4 md:grid-cols-2">
+    <div v-if="fields.length" class="grid min-w-0 gap-4 md:grid-cols-2">
         <div v-for="link in fields" :key="link.id" class="space-y-1 text-sm">
             <AppSelectInput
-                v-if="['select', 'multi_select'].includes(link.field?.field_type || '')"
+                v-if="
+                    ['select', 'multi_select'].includes(
+                        link.field?.field_type || '',
+                    )
+                "
                 :model-value="valueFor(link).value_string || ''"
                 :label="fieldLabel(link)"
                 :options="optionsFor(link)"
@@ -61,7 +78,10 @@ function fieldLabel(field: ServiceSubCategoryField): string {
             />
 
             <AppTextInput
-                v-else-if="link.field?.data_type === 'number' || link.field?.field_type === 'number'"
+                v-else-if="
+                    link.field?.data_type === 'number' ||
+                    link.field?.field_type === 'number'
+                "
                 :model-value="valueFor(link).value_number ?? ''"
                 :label="fieldLabel(link)"
                 :placeholder="link.field?.placeholder || ''"
@@ -70,9 +90,14 @@ function fieldLabel(field: ServiceSubCategoryField): string {
             />
 
             <AppToggleInput
-                v-else-if="link.field?.data_type === 'boolean' || link.field?.field_type === 'boolean'"
+                v-else-if="
+                    link.field?.data_type === 'boolean' ||
+                    link.field?.field_type === 'boolean'
+                "
                 :model-value="Boolean(valueFor(link).value_boolean)"
-                :label="link.field?.placeholder || link.field?.label || 'Enabled'"
+                :label="
+                    link.field?.placeholder || link.field?.label || 'Enabled'
+                "
                 @update:model-value="setValue(link, 'value_boolean', $event)"
             />
 
@@ -94,7 +119,11 @@ function fieldLabel(field: ServiceSubCategoryField): string {
                 @update:model-value="setValue(link, 'value_string', $event)"
             />
 
-            <span v-if="link.field?.help_text" class="block text-xs text-zinc-500">{{ link.field.help_text }}</span>
+            <span
+                v-if="link.field?.help_text"
+                class="block text-xs text-zinc-500"
+                >{{ link.field.help_text }}</span
+            >
         </div>
     </div>
 </template>

@@ -2,11 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\Booking;
 use App\Models\MarketplaceListing;
 use App\Models\Property;
+use App\Models\Receipt;
 use App\Models\ServiceSubCategory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -66,6 +69,7 @@ class DemoListingSeeder extends Seeder
 
     public function run(): void
     {
+        $this->deleteSeededTransactionalRecords();
         Property::query()->where('legacy_category', self::SEED_MARK)->delete();
         MarketplaceListing::query()->where('legacy_category', self::SEED_MARK)->delete();
         $this->resetSqliteSequenceWhenEmpty();
@@ -85,6 +89,8 @@ class DemoListingSeeder extends Seeder
                 ? $this->createProperty($index, $owners, $propertySubCategories)
                 : $this->createMarketplaceListing($index - self::PROPERTY_RECORDS, $owners, $listingSubCategories);
         }
+
+        $this->createSeededBookingsAndReceipts();
     }
 
     private function owners()
@@ -125,6 +131,14 @@ class DemoListingSeeder extends Seeder
 
         if (MarketplaceListing::query()->count() === 0) {
             DB::statement("DELETE FROM sqlite_sequence WHERE name = 'marketplace_listings'");
+        }
+
+        if (Booking::query()->count() === 0) {
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'bookings'");
+        }
+
+        if (Receipt::query()->count() === 0) {
+            DB::statement("DELETE FROM sqlite_sequence WHERE name = 'receipts'");
         }
     }
 
@@ -179,6 +193,8 @@ class DemoListingSeeder extends Seeder
             'base_price' => $this->propertyPrice($subCategoryId, $index),
             'currency' => 'NGN',
             'pricing_unit' => in_array($subCategoryId, ['housing_apartment_rent', 'housing_shop_rent'], true) ? 'year' : null,
+            'availability_slots' => $this->availabilitySlots($index),
+            'availability_rules' => $this->availabilityRules($index),
             'legacy_category' => self::SEED_MARK,
             'legacy_property_type' => $propertyKind,
             'created_at' => now()->subMinutes($index * 19),
@@ -249,6 +265,8 @@ class DemoListingSeeder extends Seeder
             'delivery_available' => $this->seededBoolean($index, 55),
             'pickup_available' => true,
             'delivery_details' => 'Delivery or visit schedule is confirmed after contact.',
+            'availability_slots' => $this->availabilitySlots($index + self::PROPERTY_RECORDS),
+            'availability_rules' => $this->availabilityRules($index + self::PROPERTY_RECORDS),
             'view_count' => $this->numberBetween(15, 1800, $index, 31),
             'favourite_count' => $this->numberBetween(0, 150, $index, 32),
             'published_at' => now()->subMinutes($index * 11),
@@ -258,12 +276,14 @@ class DemoListingSeeder extends Seeder
             'updated_at' => now()->subMinutes($index * 7),
         ]);
 
-        $listing->images()->create([
-            'url' => $this->imageUrl($subCategoryId, $index),
-            'alt_text' => $listing->title,
-            'sort_order' => 0,
-            'is_cover' => true,
-        ]);
+        foreach ($this->marketplaceImageUrls($subCategoryId, $index) as $imageIndex => $url) {
+            $listing->images()->create([
+                'url' => $url,
+                'alt_text' => $listing->title,
+                'sort_order' => $imageIndex,
+                'is_cover' => $imageIndex === 0,
+            ]);
+        }
     }
 
     private function location(int $index): array
@@ -351,6 +371,305 @@ class DemoListingSeeder extends Seeder
             'rental_event_space' => 'event',
             default => null,
         };
+    }
+
+    private function availabilitySlots(int $index): array
+    {
+        $firstDate = now()->startOfDay()->addDays($this->numberBetween(1, 8, $index, 81));
+        $secondDate = now()->startOfDay()->addDays($this->numberBetween(9, 18, $index, 82));
+        $times = ['09:00', '10:30', '13:30', '15:00', '16:30'];
+
+        return [
+            [
+                'date' => $firstDate->toDateString(),
+                'time' => $this->pick($times, $index),
+            ],
+            [
+                'date' => $secondDate->toDateString(),
+                'time' => $this->pick($times, $index + 2),
+            ],
+        ];
+    }
+
+    private function availabilityRules(int $index): array
+    {
+        $patterns = [
+            [
+                ['weekdays' => [1, 3, 6], 'times' => ['09:00']],
+                ['weekdays' => [2, 4], 'times' => ['13:30']],
+            ],
+            [
+                ['weekdays' => [1, 5], 'times' => ['10:30']],
+                ['weekdays' => [6], 'times' => ['12:00', '15:00']],
+            ],
+            [
+                ['weekdays' => [2, 4, 6], 'times' => ['09:30']],
+                ['weekdays' => [0, 3], 'times' => ['14:00']],
+            ],
+            [
+                ['weekdays' => [1, 2, 3, 4, 5], 'times' => ['11:00']],
+            ],
+        ];
+
+        return $patterns[($index - 1) % count($patterns)];
+    }
+
+    private function deleteSeededTransactionalRecords(): void
+    {
+        $bookingIds = Booking::query()
+            ->where('request_id', 'like', self::SEED_MARK.'-%')
+            ->pluck('id');
+
+        if ($bookingIds->isEmpty()) {
+            return;
+        }
+
+        Receipt::query()->whereIn('booking_id', $bookingIds)->delete();
+        Booking::query()->whereIn('id', $bookingIds)->delete();
+    }
+
+    private function createSeededBookingsAndReceipts(): void
+    {
+        $customers = $this->customers();
+
+        Property::query()
+            ->where('legacy_category', self::SEED_MARK)
+            ->with(['owner', 'subCategory'])
+            ->oldest('id')
+            ->limit(18)
+            ->get()
+            ->each(function (Property $property, int $index) use ($customers): void {
+                $this->createPostBookingPair($property, null, $customers, $index + 1);
+            });
+
+        MarketplaceListing::query()
+            ->where('legacy_category', self::SEED_MARK)
+            ->with(['owner', 'subCategory'])
+            ->oldest('id')
+            ->limit(18)
+            ->get()
+            ->each(function (MarketplaceListing $listing, int $index) use ($customers): void {
+                $this->createPostBookingPair(null, $listing, $customers, $index + 19);
+            });
+    }
+
+    private function customers()
+    {
+        return collect(range(1, 36))->map(function (int $index): User {
+            $user = User::query()->firstOrNew(['email' => sprintf('demo.customer%02d@randsa.test', $index)]);
+            if (! $user->exists) {
+                $user->id = (string) Str::uuid();
+            }
+
+            $user->fill([
+                'first_name' => $this->pick(self::FIRST_NAMES, $index + 4),
+                'last_name' => $this->pick(self::LAST_NAMES, $index + 7),
+                'phone' => sprintf('+23490%08d', $index),
+                'location' => $this->pick(self::OWNER_LOCATIONS, $index + 2),
+                'bio' => 'Demo customer with active bookings and receipt history.',
+                'is_verified' => true,
+                'account_status' => 'active',
+                'email_verified_at' => now(),
+                'password' => Hash::make('password'),
+            ]);
+            $user->save();
+            $user->assignRole('customer');
+
+            return $user;
+        });
+    }
+
+    private function createPostBookingPair(?Property $property, ?MarketplaceListing $listing, $customers, int $seedIndex): void
+    {
+        foreach ([1, 2] as $bookingIndex) {
+            $customer = $customers->values()[($seedIndex + $bookingIndex - 2) % $customers->count()];
+            $booking = $this->createSeededBooking($property, $listing, $customer, $seedIndex, $bookingIndex);
+
+            if ($bookingIndex === 1 || $seedIndex % 4 === 0) {
+                $this->createSeededReceipt($booking, $seedIndex, $bookingIndex);
+            }
+        }
+    }
+
+    private function createSeededBooking(?Property $property, ?MarketplaceListing $listing, User $customer, int $seedIndex, int $bookingIndex): Booking
+    {
+        $post = $property ?: $listing;
+        $slot = $post->availability_slots[$bookingIndex - 1] ?? $post->availability_slots[0] ?? null;
+        $date = $slot['date'] ?? now()->addDays($seedIndex + $bookingIndex)->toDateString();
+        $time = $slot['time'] ?? $this->pick(['09:00', '10:30', '13:30', '15:00'], $seedIndex + $bookingIndex);
+        $startsAt = "{$date} {$time}:00";
+        $durations = [45, 60, 90, 120];
+        $duration = $property ? 60 : $durations[($seedIndex + $bookingIndex - 1) % count($durations)];
+        $amount = $this->receiptAmount($property, $listing, $seedIndex, $bookingIndex);
+        $hasReceipt = $bookingIndex === 1 || $seedIndex % 4 === 0;
+
+        return Booking::query()->create([
+            'user_id' => $customer->id,
+            'property_id' => $property?->id,
+            'marketplace_listing_id' => $listing?->id,
+            'service_category_id' => $post->service_category_id,
+            'service_sub_category_id' => $post->service_sub_category_id,
+            'booking_mode' => $property ? 'inspection' : $this->bookingModeForListing($listing),
+            'inspection_date' => $date,
+            'inspection_time' => $time,
+            'start_at' => $startsAt,
+            'end_at' => Carbon::parse($startsAt)->addMinutes($duration),
+            'duration_minutes' => $duration,
+            'quantity' => $bookingIndex,
+            'pricing_unit' => $property ? $property->pricing_unit : $listing?->billing_period,
+            'estimated_total' => $amount,
+            'category_details' => [
+                'seeded' => true,
+                'post_type' => $property ? 'housing' : 'marketplace',
+                'receipt_ready' => $hasReceipt,
+            ],
+            'status' => $hasReceipt ? $this->pick(['confirmed', 'completed'], $seedIndex + $bookingIndex) : 'pending',
+            'payment_status' => $hasReceipt ? $this->pick(['paid', 'partial'], $seedIndex + $bookingIndex) : 'pending',
+            'customer_name' => $customer->name,
+            'customer_email' => $customer->email,
+            'customer_phone' => $customer->phone,
+            'notes' => $this->bookingNote($property, $listing, $seedIndex),
+            'request_id' => sprintf('%s-%s-%03d-%d', self::SEED_MARK, $property ? 'property' : 'listing', $post->id, $bookingIndex),
+            'schema_version' => 3,
+            'created_at' => now()->subDays($seedIndex + $bookingIndex),
+            'updated_at' => now()->subDays($bookingIndex),
+        ]);
+    }
+
+    private function createSeededReceipt(Booking $booking, int $seedIndex, int $bookingIndex): void
+    {
+        $post = $booking->property ?: $booking->marketplaceListing;
+        $owner = $post->owner;
+        $isPartial = $booking->payment_status === 'partial';
+        $amount = $isPartial ? round((float) $booking->estimated_total * 0.45) : (float) $booking->estimated_total;
+        $paidAt = now()->subDays(max(1, $seedIndex - $bookingIndex));
+
+        Receipt::query()->create([
+            'receipt_number' => sprintf('RCT-%s-S%05d', now()->format('Ymd'), ($seedIndex * 2) + $bookingIndex),
+            'owner_id' => $owner->id,
+            'user_id' => $booking->user_id,
+            'booking_id' => $booking->id,
+            'property_id' => $booking->property_id,
+            'marketplace_listing_id' => $booking->marketplace_listing_id,
+            'receipt_type' => $this->receiptTypeForBooking($booking),
+            'status' => 'issued',
+            'item_title' => $post->title,
+            'issuer_name' => $owner->name,
+            'issuer_email' => $owner->email,
+            'issuer_phone' => $owner->phone,
+            'customer_name' => $booking->customer_name,
+            'customer_email' => $booking->customer_email,
+            'customer_phone' => $booking->customer_phone,
+            'property_address' => $this->postAddress($post),
+            'line_items' => [
+                [
+                    'description' => $post->title,
+                    'amount' => $amount,
+                    'currency' => 'NGN',
+                ],
+            ],
+            'amount' => $amount,
+            'currency' => 'NGN',
+            'payment_method' => $this->pick(['bank_transfer', 'cash', 'pos', 'online'], $seedIndex + $bookingIndex),
+            'payment_reference' => sprintf('RNDSA-%04d-%02d', $seedIndex, $bookingIndex),
+            'period_start' => $booking->property_id ? now()->startOfMonth()->subMonths($bookingIndex - 1)->toDateString() : null,
+            'period_end' => $booking->property_id ? now()->startOfMonth()->addYear()->subDay()->toDateString() : null,
+            'paid_at' => $paidAt,
+            'issued_at' => $paidAt->copy()->addHours(2),
+            'sent_at' => $paidAt->copy()->addHours(2)->addMinutes(5),
+            'notes' => $isPartial
+                ? 'Part payment received. Balance to be completed before handover.'
+                : $this->pick(['Paid in full.', 'Receipt issued after payment confirmation.', 'Payment verified by post owner.'], $seedIndex),
+            'created_at' => $paidAt,
+            'updated_at' => $paidAt->copy()->addHours(2),
+        ]);
+    }
+
+    private function receiptAmount(?Property $property, ?MarketplaceListing $listing, int $seedIndex, int $bookingIndex): int
+    {
+        if ($property) {
+            return (int) $property->base_price;
+        }
+
+        if ($listing?->base_price) {
+            return (int) $listing->base_price * $bookingIndex;
+        }
+
+        return $this->numberBetween(18000, 180000, $seedIndex, 91) * $bookingIndex;
+    }
+
+    private function bookingModeForListing(?MarketplaceListing $listing): string
+    {
+        return match ($listing?->subCategory?->transaction_type) {
+            'hire' => 'hire_request',
+            'booking' => 'reservation',
+            default => 'service_request',
+        };
+    }
+
+    private function bookingNote(?Property $property, ?MarketplaceListing $listing, int $seedIndex): string
+    {
+        if ($property) {
+            return $this->pick([
+                'Customer requested inspection before payment confirmation.',
+                'Customer wants agency receipt after payment.',
+                'Inspection booked through the quick access modal.',
+                'Customer asked for landlord receipt and move-in timeline.',
+            ], $seedIndex);
+        }
+
+        return $this->pick([
+            'Customer requested service confirmation and receipt.',
+            'Provider should confirm materials before visit.',
+            'Booking came from the compact marketplace card.',
+            'Customer wants a receipt after job completion.',
+        ], $seedIndex + (int) $listing?->id);
+    }
+
+    private function receiptTypeForBooking(Booking $booking): string
+    {
+        if ($booking->property_id) {
+            return $booking->property?->subCategory?->transaction_type === 'sale'
+                ? 'deposit'
+                : 'rent';
+        }
+
+        return match ($booking->marketplaceListing?->subCategory?->transaction_type) {
+            'hire', 'booking' => 'service_charge',
+            default => 'service',
+        };
+    }
+
+    private function postAddress(Property|MarketplaceListing $post): string
+    {
+        return collect([
+            $post->address,
+            $post->area,
+            $post->city,
+            $post->state,
+        ])->filter()->join(', ');
+    }
+
+    private function marketplaceImageUrls(string $subCategoryId, int $index): array
+    {
+        $sets = [
+            'artisan_plumbing' => ['/images/seeded/home.webp', '/images/seeded/event.webp', '/images/seeded/leisure.webp'],
+            'artisan_electrical' => ['/images/seeded/home.webp', '/images/seeded/leisure.webp', '/images/seeded/car.webp'],
+            'artisan_cleaning' => ['/images/seeded/leisure.webp', '/images/seeded/home.webp', '/images/seeded/event.webp'],
+            'artisan_beauty' => ['/images/seeded/event.webp', '/images/seeded/leisure.webp', '/images/seeded/home.webp'],
+            'artisan_carpentry' => ['/images/seeded/home.webp', '/images/seeded/leisure.webp', '/images/seeded/event.webp'],
+            'rental_cars' => ['/images/seeded/car.webp', '/images/seeded/leisure.webp', '/images/seeded/event.webp'],
+            'rental_equipment' => ['/images/seeded/car.webp', '/images/seeded/home.webp', '/images/seeded/leisure.webp'],
+            'rental_event_space' => ['/images/seeded/event.webp', '/images/seeded/leisure.webp', '/images/seeded/home.webp'],
+            'marketplace_furniture' => ['/images/seeded/home.webp', '/images/seeded/leisure.webp', '/images/seeded/event.webp'],
+            'marketplace_electronics' => ['/images/seeded/leisure.webp', '/images/seeded/car.webp', '/images/seeded/home.webp'],
+            'marketplace_home_services' => ['/images/seeded/home.webp', '/images/seeded/event.webp', '/images/seeded/leisure.webp'],
+        ];
+
+        $images = $sets[$subCategoryId] ?? ['/images/seeded/home.webp', '/images/seeded/event.webp', '/images/seeded/leisure.webp'];
+        $offset = ($index - 1) % count($images);
+
+        return array_values(array_merge(array_slice($images, $offset), array_slice($images, 0, $offset)));
     }
 
     private function imageUrl(string $kind, int $index): string

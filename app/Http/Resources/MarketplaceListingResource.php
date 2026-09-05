@@ -63,6 +63,8 @@ class MarketplaceListingResource extends JsonResource
                 'pickup_available' => $this->pickup_available,
                 'details' => $this->delivery_details,
             ],
+            'availability_slots' => $this->availability_slots,
+            'availability_rules' => $this->availability_rules,
             'view_count' => $this->view_count,
             'favourite_count' => $this->favourite_count,
             'published_at' => $this->published_at,

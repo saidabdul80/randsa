@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
     <section class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid min-w-0 gap-4 md:grid-cols-3">
             <AppTextInput v-model="form.state" label="State" />
             <AppTextInput v-model="form.city" label="City" />
             <AppTextInput v-model="form.area" label="Area" />

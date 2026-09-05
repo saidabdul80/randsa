@@ -21,6 +21,7 @@ use App\Models\MarketplaceListing;
 use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\Property;
+use App\Models\Receipt;
 use App\Models\SavedItem;
 use App\Policies\AgentVerificationPolicy;
 use App\Policies\BookingPolicy;
@@ -28,6 +29,7 @@ use App\Policies\MarketplaceListingPolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\PropertyPolicy;
+use App\Policies\ReceiptPolicy;
 use App\Policies\SavedItemPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -68,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Notification::class, NotificationPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Property::class, PropertyPolicy::class);
+        Gate::policy(Receipt::class, ReceiptPolicy::class);
         Gate::policy(SavedItem::class, SavedItemPolicy::class);
     }
 

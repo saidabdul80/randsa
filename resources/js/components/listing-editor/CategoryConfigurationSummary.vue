@@ -7,7 +7,10 @@ defineProps<{
 </script>
 
 <template>
-    <section v-if="subCategory" class="grid gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-sm md:grid-cols-4">
+    <section
+        v-if="subCategory"
+        class="grid gap-3 rounded-xl bg-zinc-50 p-4 text-sm md:grid-cols-4"
+    >
         <div>
             <span class="text-xs text-zinc-500">Type</span>
             <strong class="block">{{ subCategory.type }}</strong>

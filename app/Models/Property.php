@@ -29,6 +29,8 @@ class Property extends Model
         'pricing_unit',
         'limited_remaining_capacity',
         'blocked_dates',
+        'availability_slots',
+        'availability_rules',
         'buffer_minutes',
         'minimum_duration_minutes',
         'legacy_category',
@@ -44,6 +46,8 @@ class Property extends Model
             'base_price' => 'decimal:2',
             'limited_remaining_capacity' => 'integer',
             'blocked_dates' => 'array',
+            'availability_slots' => 'array',
+            'availability_rules' => 'array',
             'buffer_minutes' => 'integer',
             'minimum_duration_minutes' => 'integer',
         ];
@@ -97,5 +101,10 @@ class Property extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
     }
 }

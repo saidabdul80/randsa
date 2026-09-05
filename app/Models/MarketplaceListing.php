@@ -37,6 +37,8 @@ class MarketplaceListing extends Model
         'delivery_available',
         'pickup_available',
         'delivery_details',
+        'availability_slots',
+        'availability_rules',
         'view_count',
         'favourite_count',
         'published_at',
@@ -55,6 +57,8 @@ class MarketplaceListing extends Model
             'whatsapp_enabled' => 'boolean',
             'delivery_available' => 'boolean',
             'pickup_available' => 'boolean',
+            'availability_slots' => 'array',
+            'availability_rules' => 'array',
             'view_count' => 'integer',
             'favourite_count' => 'integer',
             'published_at' => 'datetime',
@@ -104,5 +108,10 @@ class MarketplaceListing extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
     }
 }

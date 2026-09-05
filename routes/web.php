@@ -19,6 +19,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\QuickAccessController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SavedItemController;
 use App\Http\Controllers\Web\PageController;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +44,13 @@ Route::middleware('guest')->group(function (): void {
 Route::get('/properties', [PageController::class, 'properties'])->name('properties');
 Route::get('/properties/{property}', [PageController::class, 'propertyDetails'])->name('property-details');
 Route::get('/listings/{marketplaceListing}', [PageController::class, 'listingDetails'])->name('marketplace-listing-details');
+Route::get('/booking/{property?}', [PageController::class, 'booking'])->name('booking');
+Route::post('/bookings', [BookingController::class, 'store'])
+    ->middleware('throttle:12,1')
+    ->name('bookings.store');
+Route::post('/quick-access', [QuickAccessController::class, 'store'])
+    ->middleware('throttle:8,1')
+    ->name('quick-access.store');
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -55,8 +64,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/edit-property/{property}', [PageController::class, 'editProperty'])->name('edit-property');
     Route::get('/my-listings', [PageController::class, 'myListings'])->name('my-listings');
     Route::get('/saved-properties', [PageController::class, 'savedProperties'])->name('saved-properties');
-    Route::get('/booking/{property?}', [PageController::class, 'booking'])->name('booking');
     Route::get('/my-bookings', [PageController::class, 'myBookings'])->name('my-bookings');
+    Route::get('/receipts', [PageController::class, 'receipts'])->name('receipts');
     Route::get('/payment/{property?}', [PageController::class, 'payment'])->name('payment');
     Route::get('/agent-verification', [PageController::class, 'agentVerification'])->name('agent-verification');
     Route::get('/notifications', [PageController::class, 'notifications'])->name('notifications');
@@ -75,11 +84,10 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/listings/{marketplaceListing}', [MarketplaceListingController::class, 'update'])->name('listings.update');
     Route::delete('/listings/{marketplaceListing}', [MarketplaceListingController::class, 'destroy'])->name('listings.destroy');
 
-    Route::post('/bookings', [BookingController::class, 'store'])
-        ->middleware('can:bookings.create')
-        ->name('bookings.store');
     Route::get('/booking-records/{booking}', [BookingController::class, 'show'])->name('bookings.show-record');
     Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+    Route::post('/receipts', [ReceiptController::class, 'store'])->name('receipts.store');
+    Route::get('/receipt-records/{receipt}', [ReceiptController::class, 'show'])->name('receipts.show-record');
 
     Route::post('/payments', [PaymentController::class, 'store'])
         ->middleware('can:payments.create')

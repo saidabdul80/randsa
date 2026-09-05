@@ -31,7 +31,9 @@ class BookingResource extends JsonResource
             'status' => $this->status,
             'payment_status' => $this->payment_status,
             'reminder_sent' => $this->reminder_sent,
-            'guest_phone' => $this->guest_phone,
+            'customer_name' => $this->customer_name,
+            'customer_email' => $this->customer_email,
+            'customer_phone' => $this->customer_phone,
             'notes' => $this->notes,
             'request_id' => $this->request_id,
             'schema_version' => $this->schema_version,
@@ -39,6 +41,7 @@ class BookingResource extends JsonResource
             'marketplace_listing' => new MarketplaceListingResource($this->whenLoaded('marketplaceListing')),
             'agent' => new UserProfileResource($this->whenLoaded('agent')),
             'payments' => PaymentResource::collection($this->whenLoaded('payments')),
+            'receipts' => ReceiptResource::collection($this->whenLoaded('receipts')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

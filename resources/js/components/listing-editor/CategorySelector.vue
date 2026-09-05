@@ -15,18 +15,38 @@ const emit = defineEmits<{
     'update:selectedSubCategoryId': [value: string];
 }>();
 
-const categoryOptions = computed(() => props.categories.map((category) => ({ label: category.label, value: category.id })));
+const categoryOptions = computed(() =>
+    props.categories.map((category) => ({
+        label: category.label,
+        value: category.id,
+    })),
+);
 const subCategoryOptions = computed(() => [
     { label: 'Choose type', value: '' },
-    ...props.subCategories.map((subcategory) => ({ label: subcategory.label, value: subcategory.id })),
+    ...props.subCategories.map((subcategory) => ({
+        label: subcategory.label,
+        value: subcategory.id,
+    })),
 ]);
 </script>
 
 <template>
     <section class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-2">
-            <AppSelectInput :model-value="selectedCategoryId" label="Category" :options="categoryOptions" @update:model-value="emit('update:selectedCategoryId', $event)" />
-            <AppSelectInput :model-value="selectedSubCategoryId" label="Subcategory" :options="subCategoryOptions" @update:model-value="emit('update:selectedSubCategoryId', $event)" />
+        <div class="grid min-w-0 gap-4 md:grid-cols-2">
+            <AppSelectInput
+                :model-value="selectedCategoryId"
+                label="Category"
+                :options="categoryOptions"
+                @update:model-value="emit('update:selectedCategoryId', $event)"
+            />
+            <AppSelectInput
+                :model-value="selectedSubCategoryId"
+                label="Subcategory"
+                :options="subCategoryOptions"
+                @update:model-value="
+                    emit('update:selectedSubCategoryId', $event)
+                "
+            />
         </div>
     </section>
 </template>

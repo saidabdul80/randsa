@@ -12,6 +12,7 @@ use App\Http\Resources\MarketplaceListingResource;
 use App\Http\Resources\NotificationResource;
 use App\Http\Resources\PaymentResource;
 use App\Http\Resources\PropertyResource;
+use App\Http\Resources\ReceiptResource;
 use App\Http\Resources\SavedItemResource;
 use App\Http\Resources\ServiceCategoryResource;
 use App\Http\Resources\ServiceFieldResource;
@@ -23,6 +24,7 @@ use App\Models\ListingPriceRange;
 use App\Models\MarketplaceListing;
 use App\Models\Payment;
 use App\Models\Property;
+use App\Models\Receipt;
 use App\Models\SavedItem;
 use App\Models\ServiceCategory;
 use App\Models\ServiceField;
@@ -193,18 +195,19 @@ class PageController extends Controller
         $marketplaceListing = $request->integer('listing')
             ? MarketplaceListing::query()->with(['subCategory.bookingConfig', 'images'])->find($request->integer('listing'))
             : null;
+        $recentBookings = $request->user()
+            ? Booking::query()
+                ->where('user_id', $request->user()->id)
+                ->with(['property', 'marketplaceListing'])
+                ->latest()
+                ->paginate(6, ['*'], 'bookings_page')
+                ->withQueryString()
+            : collect();
 
         return inertia('BookingPage', [
             'property' => $property ? new PropertyResource($property->load(['subCategory.bookingConfig', 'images'])) : null,
             'listing' => $marketplaceListing ? new MarketplaceListingResource($marketplaceListing) : null,
-            'bookings' => BookingResource::collection(
-                Booking::query()
-                    ->where('user_id', $request->user()->id)
-                    ->with(['property', 'marketplaceListing'])
-                    ->latest()
-                    ->paginate(6, ['*'], 'bookings_page')
-                    ->withQueryString(),
-            ),
+            'bookings' => BookingResource::collection($recentBookings),
         ]);
     }
 
@@ -217,6 +220,48 @@ class PageController extends Controller
                     ->with(['property.images', 'marketplaceListing.images', 'payments'])
                     ->latest()
                     ->paginate(12)
+                    ->withQueryString(),
+            ),
+        ]);
+    }
+
+    public function receipts(Request $request): Response
+    {
+        $ownerBookingQuery = Booking::query()
+            ->where(function ($query) use ($request): void {
+                $query
+                    ->whereHas('property', fn ($propertyQuery) => $propertyQuery->where('owner_id', $request->user()->id))
+                    ->orWhereHas('marketplaceListing', fn ($listingQuery) => $listingQuery->where('owner_id', $request->user()->id));
+            });
+
+        return inertia('ReceiptsPage', [
+            'properties' => PropertyResource::collection(
+                Property::query()
+                    ->where('owner_id', $request->user()->id)
+                    ->with(['category', 'subCategory', 'images'])
+                    ->latest()
+                    ->get(),
+            ),
+            'marketplaceListings' => MarketplaceListingResource::collection(
+                MarketplaceListing::query()
+                    ->where('owner_id', $request->user()->id)
+                    ->with(['category', 'subCategory', 'images'])
+                    ->latest()
+                    ->get(),
+            ),
+            'bookings' => BookingResource::collection(
+                (clone $ownerBookingQuery)
+                    ->with(['user', 'property.images', 'marketplaceListing.images', 'receipts'])
+                    ->latest()
+                    ->paginate(12, ['*'], 'bookings_page')
+                    ->withQueryString(),
+            ),
+            'receipts' => ReceiptResource::collection(
+                Receipt::query()
+                    ->where('owner_id', $request->user()->id)
+                    ->with(['booking', 'property.images', 'marketplaceListing.images', 'user'])
+                    ->latest('issued_at')
+                    ->paginate(12, ['*'], 'receipts_page')
                     ->withQueryString(),
             ),
         ]);

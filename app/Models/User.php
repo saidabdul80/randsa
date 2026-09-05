@@ -127,6 +127,16 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
+    }
+
+    public function issuedReceipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class, 'owner_id');
+    }
+
     public function savedItems(): HasMany
     {
         return $this->hasMany(SavedItem::class);

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -29,9 +30,26 @@ class RegisteredUserController extends Controller
         ]);
 
         Auth::login($user);
+        $user->assignRole(Role::query()->firstOrCreate([
+            'name' => 'customer',
+            'guard_name' => 'web',
+        ]));
 
         UserRegistered::dispatch($user);
 
-        return redirect()->route('home');
+        return redirect()->to($this->intendedPath($request->input('intended_url')));
+    }
+
+    private function intendedPath(?string $path): string
+    {
+        if (! $path || ! Str::startsWith($path, '/') || Str::startsWith($path, '//')) {
+            return route('home', absolute: false);
+        }
+
+        if (in_array($path, ['/login', '/register'], true)) {
+            return route('home', absolute: false);
+        }
+
+        return $path;
     }
 }

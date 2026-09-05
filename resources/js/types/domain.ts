@@ -186,8 +186,25 @@ export interface FieldValue {
     value_number?: string | number | null;
     value_boolean?: boolean | null;
     value_date?: string | null;
-    value_json?: Record<string, string | number | boolean | null> | Array<string | number | boolean | null> | null;
+    value_json?:
+        | Record<string, string | number | boolean | null>
+        | Array<string | number | boolean | null>
+        | null;
     field?: ServiceField;
+}
+
+export interface AvailabilitySlot {
+    date: string;
+    time: string;
+    label?: string | null;
+    capacity?: number | null;
+}
+
+export interface AvailabilityRule {
+    weekdays: number[];
+    times: string[];
+    label?: string | null;
+    capacity?: number | null;
 }
 
 export interface PropertyRecord {
@@ -210,6 +227,8 @@ export interface PropertyRecord {
     base_price?: string | number | null;
     currency?: string;
     pricing_unit?: string | null;
+    availability_slots?: AvailabilitySlot[] | null;
+    availability_rules?: AvailabilityRule[] | null;
     category?: ServiceCategory | null;
     sub_category?: ServiceSubCategory | null;
     owner?: UserProfile | null;
@@ -255,6 +274,8 @@ export interface MarketplaceListing {
         pickup_available?: boolean;
         details?: string | null;
     };
+    availability_slots?: AvailabilitySlot[] | null;
+    availability_rules?: AvailabilityRule[] | null;
     view_count?: number;
     favourite_count?: number;
     category?: ServiceCategory | null;
@@ -328,9 +349,55 @@ export interface BookingRecord {
     estimated_total?: string | number | null;
     status: string;
     payment_status: string;
+    customer_name?: string | null;
+    customer_email?: string | null;
+    customer_phone?: string | null;
     property?: PropertyRecord | null;
     marketplace_listing?: MarketplaceListing | null;
+    receipts?: ReceiptRecord[];
     created_at?: string;
+}
+
+export interface ReceiptRecord {
+    id: number;
+    receipt_number: string;
+    owner_id: string;
+    user_id: string;
+    booking_id: number;
+    property_id?: number | null;
+    marketplace_listing_id?: number | null;
+    payment_id?: number | null;
+    receipt_type: string;
+    status: string;
+    item_title: string;
+    issuer_name: string;
+    issuer_email?: string | null;
+    issuer_phone?: string | null;
+    customer_name: string;
+    customer_email: string;
+    customer_phone?: string | null;
+    property_address?: string | null;
+    line_items?: Array<{
+        description: string;
+        amount: string | number;
+        currency: string;
+    }> | null;
+    amount: string | number;
+    currency: string;
+    payment_method: string;
+    payment_reference?: string | null;
+    period_start?: string | null;
+    period_end?: string | null;
+    paid_at: string;
+    issued_at: string;
+    sent_at?: string | null;
+    notes?: string | null;
+    booking?: BookingRecord | null;
+    property?: PropertyRecord | null;
+    marketplace_listing?: MarketplaceListing | null;
+    user?: UserProfile | null;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface PaymentRecord {
@@ -442,6 +509,8 @@ export interface ListingEditorFormData {
     delivery_details: string;
     price_type: string;
     negotiable: boolean;
+    availability_slots: AvailabilitySlot[];
+    availability_rules: AvailabilityRule[];
     field_values: FieldValue[];
     images: ListingImageInput[];
     image_files: File[];
